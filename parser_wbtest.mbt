@@ -98,9 +98,7 @@ test "Parser::parse_arguments parses original groups through gullet" {
     allowed_in_argument: false,
     allowed_in_text: false,
     allowed_in_math: true,
-    infix: false,
-    primitive: false,
-    handler: (_parser, _args, _opt_args) => Ok(Internal(mode=Math)),
+    handler: (_parser, _args, _opt_args) => Ok(None),
   }
   debug_inspect(
     parser.parse_arguments("\\test", spec),

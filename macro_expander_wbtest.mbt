@@ -50,17 +50,14 @@ test "MacroExpander propagates invalid macro body lexing" {
   let settings = Settings::default()
   settings.macros["\\bad"] = MacroDefinition::Text("\\")
   let expander = MacroExpander::make("\\bad", settings)
-  debug_inspect(
-    expander.expand_next_token(),
-    content=(
-      #|Err(
-      #|  UnexpectedCharacter(
-      #|    message="Unexpected bare backslash",
-      #|    loc=Some({ input: "\\", start: 0, end: 1 }),
-      #|  ),
-      #|)
-    ),
-  )
+  match expander.expand_next_token() {
+    Err(UnexpectedCharacter(message~, loc~)) =>
+      debug_inspect(
+        (message, loc),
+        content="(\"Unexpected bare backslash\", Some({ input: \"\\\\\", start: 0, end: 1 }))",
+      )
+    _ => fail("expected UnexpectedCharacter")
+  }
 }
 
 ///|
@@ -77,9 +74,42 @@ test "MacroExpander::scan_argument pushes required argument job" {
 }
 
 ///|
+test "MacroExpander::scan_argument keeps nested braced argument order" {
+  let expander = MacroExpander::make("{x{y}z}", Settings::default())
+  let arg = expander.scan_argument(false).unwrap().unwrap()
+  let t0 = expander.expand_next_token().unwrap()
+  let t1 = expander.expand_next_token().unwrap()
+  let t2 = expander.expand_next_token().unwrap()
+  let t3 = expander.expand_next_token().unwrap()
+  let t4 = expander.expand_next_token().unwrap()
+  let t5 = expander.expand_next_token().unwrap()
+  debug_inspect(
+    (arg.loc, [t0.text, t1.text, t2.text, t3.text, t4.text, t5.text]),
+    content=(
+      #|(
+      #|  Some({ input: "{x{y}z}", start: 0, end: 7 }),
+      #|  ["x", "{", "y", "}", "z", "EOF"],
+      #|)
+    ),
+  )
+}
+
+///|
+test "MacroExpander::scan_argument uses one non-braced token as required argument" {
+  let expander = MacroExpander::make("xy", Settings::default())
+  let arg = expander.scan_argument(false).unwrap().unwrap()
+  let t0 = expander.expand_next_token().unwrap()
+  let t1 = expander.expand_next_token().unwrap()
+  debug_inspect(
+    (arg.loc, [t0.text, t1.text]),
+    content="(Some({ input: \"xy\", start: 0, end: 1 }), [\"x\", \"EOF\"])",
+  )
+}
+
+///|
 test "MacroExpander::scan_argument leaves absent optional argument untouched" {
   let expander = MacroExpander::make("x", Settings::default())
   let arg = expander.scan_argument(true).unwrap()
   let t0 = expander.expand_next_token().unwrap()
-  debug_inspect((arg, t0.text), content="(None, \"x\")")
+  debug_inspect((arg is None, t0.text), content="(true, \"x\")")
 }

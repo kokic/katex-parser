@@ -2,12 +2,11 @@
 priv struct Lexer {
   input : String
   mut offset : Int
-  catcodes : Map[String, Int]
 }
 
 ///|
-fn Lexer::make(input : String, _settings : Settings) -> Lexer {
-  { input, offset: 0, catcodes: { "%": 14, "~": 13 } }
+fn Lexer::make(input : String) -> Lexer {
+  { input, offset: 0 }
 }
 
 ///|
@@ -21,8 +20,25 @@ fn is_ascii_letter(c : UInt16) -> Bool {
 }
 
 ///|
-fn one_code_unit(input : String, start : Int, end : Int) -> String {
+fn token_text(input : String, start : Int, end : Int) -> String {
   input.unsafe_substring(start~, end~)
+}
+
+///|
+fn char_end_offset(input : String, start : Int) -> ParseResult[Int] {
+  match input.get_char(start) {
+    Some(ch) => {
+      let next = start + ch.to_string().length()
+      Ok(next)
+    }
+    None =>
+      Err(
+        UnexpectedCharacter(
+          message="Invalid UTF-16 character boundary",
+          loc=Some(SourceLocation::make(input, start~, end=start + 1)),
+        ),
+      )
+  }
 }
 
 ///|
@@ -81,22 +97,27 @@ fn Lexer::lex(self : Lexer) -> ParseResult[Token] {
         self.offset = len
         Ok(token_at(input, start, len, " "))
       }
-    } else if c == '%' && self.catcodes.get("%") == Some(14) {
+    } else if c == '%' {
       let next_offset = find_next_line_start(input, start + 1)
       self.offset = next_offset
       self.lex()
     } else if c == '\\' {
       self.lex_control(start)
     } else {
-      self.offset = start + 1
-      Ok(
-        token_at(
-          input,
-          start,
-          self.offset,
-          one_code_unit(input, start, self.offset),
-        ),
-      )
+      match char_end_offset(input, start) {
+        Err(err) => Err(err)
+        Ok(end_offset) => {
+          self.offset = end_offset
+          Ok(
+            token_at(
+              input,
+              start,
+              end_offset,
+              token_text(input, start, end_offset),
+            ),
+          )
+        }
+      }
     }
   }
 }

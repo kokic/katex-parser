@@ -12,7 +12,7 @@ fn MacroExpander::make(input : String, settings : Settings) -> MacroExpander {
   {
     settings,
     expansion_count: 0,
-    lexer: Lexer::make(input, settings),
+    lexer: Lexer::make(input),
     macros: Namespace::make({}, settings.macros),
     stack: [],
   }
@@ -82,8 +82,10 @@ fn MacroExpander::consume_spaces(self : MacroExpander) -> ParseResult[Unit] {
     match self.future() {
       Ok(token) =>
         if token.text == " " {
-          ignore(self.stack.pop())
-          continue
+          match self.stack.pop() {
+            Some(_) => continue
+            None => break Err(InternalInvariant(message="Empty token stack"))
+          }
         } else {
           break Ok(())
         }
@@ -161,58 +163,79 @@ fn MacroExpander::consume_argument(
   self : MacroExpander,
   delimiter : String?,
 ) -> ParseResult[MacroArgument] {
-  if delimiter is None {
-    match self.consume_spaces() {
-      Err(err) => return Err(err)
-      Ok(_) => ()
-    }
+  let spaces_result = if delimiter is None {
+    self.consume_spaces()
+  } else {
+    Ok(())
   }
-  let start_result = self.future()
-  match start_result {
+  match spaces_result {
     Err(err) => Err(err)
-    Ok(start) => {
-      let tokens : Array[Token] = []
-      let mut depth = 0
-      for ;; {
-        match self.pop_token() {
-          Err(err) => break Err(err)
-          Ok(token) => {
-            if token.text == "EOF" {
-              break Err(
-                InvalidArgument(
-                  message="Unexpected end of input in argument",
-                  token=Some(token),
-                ),
-              )
-            }
-            if delimiter is Some(delim) && depth == 0 && token.text == delim {
-              tokens.rev_in_place()
-              break Ok({ start, end: token, tokens })
-            }
-            tokens.push(token)
-            if token.text == "{" {
-              depth = depth + 1
-            } else if token.text == "}" {
-              depth = depth - 1
-              if depth < 0 {
-                break Err(InvalidArgument(message="Extra }", token=Some(token)))
-              } else if delimiter is None && depth == 0 {
-                if start.text == "{" {
-                  ignore(tokens.pop())
-                  ignore(tokens.remove(0))
-                }
-                tokens.rev_in_place()
-                break Ok({ start, end: token, tokens })
-              }
-            }
-            if delimiter is None && depth == 0 && start.text != "{" {
-              tokens.rev_in_place()
-              break Ok({ start, end: token, tokens })
-            }
+    Ok(_) =>
+      match self.future() {
+        Err(err) => Err(err)
+        Ok(start) => self.consume_argument_from(start, delimiter)
+      }
+  }
+}
+
+///|
+fn MacroExpander::consume_argument_from(
+  self : MacroExpander,
+  start : Token,
+  delimiter : String?,
+) -> ParseResult[MacroArgument] {
+  let tokens : Array[Token] = []
+  let mut depth = 0
+  for ;; {
+    match self.pop_token() {
+      Err(err) => break Err(err)
+      Ok(token) => {
+        if token.text == "EOF" {
+          break Err(
+            InvalidArgument(
+              message="Unexpected end of input in argument",
+              loc=token.loc,
+            ),
+          )
+        }
+        if delimiter is Some(delim) && depth == 0 && token.text == delim {
+          tokens.rev_in_place()
+          break Ok({ start, end: token, tokens })
+        }
+        tokens.push(token)
+        if token.text == "{" {
+          depth = depth + 1
+        } else if token.text == "}" {
+          depth = depth - 1
+          if depth < 0 {
+            break Err(InvalidArgument(message="Extra }", loc=token.loc))
+          } else if delimiter is None && depth == 0 {
+            let normalized = normalize_argument_tokens(start, tokens)
+            break Ok({ start, end: token, tokens: normalized })
           }
+        }
+        if delimiter is None && depth == 0 && start.text != "{" {
+          tokens.rev_in_place()
+          break Ok({ start, end: token, tokens })
         }
       }
     }
+  }
+}
+
+///|
+fn normalize_argument_tokens(
+  start : Token,
+  tokens : Array[Token],
+) -> Array[Token] {
+  if start.text == "{" && tokens.length() >= 2 {
+    let view = tokens[1:tokens.length() - 1]
+    let normalized = view.to_owned()
+    normalized.rev_in_place()
+    normalized
+  } else {
+    tokens.rev_in_place()
+    tokens
   }
 }
 
@@ -238,11 +261,7 @@ fn MacroExpander::expand_once(
     Err(err) => Err(err)
     Ok(top_token) => {
       let name = top_token.text
-      let expansion = if top_token.noexpand {
-        Ok(None)
-      } else {
-        self.get_expansion(name)
-      }
+      let expansion = self.get_expansion(name)
       match expansion {
         Err(err) => Err(err)
         Ok(None) =>
@@ -250,7 +269,7 @@ fn MacroExpander::expand_once(
             name.length() > 0 &&
             name[0] == '\\' &&
             !self.is_defined(name) {
-            Err(UndefinedControlSequence(name~, token=top_token))
+            Err(UndefinedControlSequence(name~, loc=top_token.loc))
           } else {
             self.push_token(top_token)
             Ok(false)
@@ -275,12 +294,7 @@ fn MacroExpander::expand_next_token(self : MacroExpander) -> ParseResult[Token] 
       Err(err) => break Err(err)
       Ok(false) =>
         match self.stack.pop() {
-          Some(token) => {
-            if token.treat_as_relax {
-              token.text = "\\relax"
-            }
-            break Ok(token)
-          }
+          Some(token) => break Ok(token)
           None => break Err(InternalInvariant(message="Empty token stack"))
         }
       Ok(true) => continue
@@ -298,26 +312,17 @@ fn MacroExpander::get_expansion(
     Some(definition) =>
       match definition {
         Text(expansion) =>
-          match tokens_from_macro_text(expansion, self.settings) {
+          match tokens_from_macro_text(expansion) {
             Ok(tokens) => Ok(Some(tokens))
             Err(err) => Err(err)
-          }
-        Expansion(tokens~, unexpandable~, ..) =>
-          if unexpandable {
-            Ok(None)
-          } else {
-            Ok(Some(tokens.copy()))
           }
       }
   }
 }
 
 ///|
-fn tokens_from_macro_text(
-  expansion : String,
-  settings : Settings,
-) -> ParseResult[Array[Token]] {
-  let lexer = Lexer::make(expansion, settings)
+fn tokens_from_macro_text(expansion : String) -> ParseResult[Array[Token]] {
+  let lexer = Lexer::make(expansion)
   let tokens : Array[Token] = []
   for ;; {
     match lexer.lex() {

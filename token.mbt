@@ -1,23 +1,21 @@
 ///|
-pub(all) struct Token {
-  mut text : String
+priv struct Token {
+  text : String
   loc : SourceLocation?
-  mut noexpand : Bool
-  mut treat_as_relax : Bool
-} derive(Debug, ToJson, Eq)
-
-///|
-pub fn Token::make(text : String, loc? : SourceLocation) -> Token {
-  { text, loc, noexpand: false, treat_as_relax: false }
 }
 
 ///|
-pub fn Token::eof(input : String, offset : Int) -> Token {
+fn Token::make(text : String, loc? : SourceLocation) -> Token {
+  { text, loc }
+}
+
+///|
+fn Token::eof(input : String, offset : Int) -> Token {
   Token::make("EOF", loc=SourceLocation::make(input, start=offset, end=offset))
 }
 
 ///|
-pub fn Token::range(self : Token, end_token : Token, text : String) -> Token {
+fn Token::range(self : Token, end_token : Token, text : String) -> Token {
   match (self.loc, end_token.loc) {
     (Some(start_loc), Some(end_loc)) =>
       Token::make(text, loc=SourceLocation::range(start_loc, end_loc))

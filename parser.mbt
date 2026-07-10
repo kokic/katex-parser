@@ -7,6 +7,12 @@ priv struct Parser {
 }
 
 ///|
+priv enum AtomResult {
+  EmitAtom(ParseNode)
+  SkipAtom
+}
+
+///|
 fn Parser::make(input : String, settings : Settings) -> Parser {
   {
     mode: Math,
@@ -60,7 +66,7 @@ fn Parser::expect(
         }
         Ok(())
       } else {
-        Err(ExpectedToken(expected=text, actual=token))
+        Err(ExpectedToken(expected=text, actual=Diagnostic::from_token(token)))
       }
   }
 }
@@ -70,7 +76,7 @@ fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
   if !self.settings.global_group {
     self.gullet.begin_group()
   }
-  let parsed = self.parse_expression(false, None)
+  let parsed = self.parse_expression(None)
   let result = match parsed {
     Err(err) => Err(err)
     Ok(body) =>
@@ -89,7 +95,6 @@ fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
 ///|
 fn Parser::parse_expression(
   self : Parser,
-  break_on_infix : Bool,
   break_on_token_text : String?,
 ) -> ParseResult[Array[ParseNode]] {
   let body : Array[ParseNode] = []
@@ -107,16 +112,14 @@ fn Parser::parse_expression(
           break Ok(self.finish_expression(body))
         } else if break_on_token_text is Some(stop) && token.text == stop {
           break Ok(self.finish_expression(body))
-        } else if break_on_infix && is_infix_function(token.text) {
-          break Ok(self.finish_expression(body))
         } else {
           match self.parse_atom() {
             Err(err) => break Err(err)
             Ok(None) => break Ok(self.finish_expression(body))
-            Ok(Some(node)) =>
-              match node {
-                Internal(_) => continue
-                _ => {
+            Ok(Some(atom)) =>
+              match atom {
+                SkipAtom => continue
+                EmitAtom(node) => {
                   body.push(node)
                   continue
                 }
@@ -129,13 +132,10 @@ fn Parser::parse_expression(
 
 ///|
 fn Parser::finish_expression(
-  self : Parser,
+  _self : Parser,
   body : Array[ParseNode],
 ) -> Array[ParseNode] {
-  if self.mode == Text {
-    form_ligatures(body)
-  }
-  self.handle_infix_nodes(body)
+  body
 }
 
 ///|
@@ -164,19 +164,20 @@ fn Parser::consume_spaces(self : Parser) -> ParseResult[Unit] {
 }
 
 ///|
-fn Parser::parse_atom(self : Parser) -> ParseResult[ParseNode?] {
+fn Parser::parse_atom(self : Parser) -> ParseResult[AtomResult?] {
   match self.parse_group("atom") {
     Err(err) => Err(err)
     Ok(None) => Ok(None)
-    Ok(Some(base)) =>
-      match base {
-        Internal(_) => Ok(Some(base))
-        _ =>
-          if self.mode == Text {
-            Ok(Some(base))
-          } else {
-            self.parse_scripts(base)
-          }
+    Ok(Some(SkipAtom)) => Ok(Some(SkipAtom))
+    Ok(Some(EmitAtom(base))) =>
+      if self.mode == Text {
+        Ok(Some(EmitAtom(base)))
+      } else {
+        match self.parse_scripts(base) {
+          Err(err) => Err(err)
+          Ok(None) => Ok(None)
+          Ok(Some(node)) => Ok(Some(EmitAtom(node)))
+        }
       }
   }
 }
@@ -198,7 +199,7 @@ fn Parser::parse_scripts(
       Ok(token) =>
         if token.text == "^" {
           if sup is Some(_) {
-            break Err(DoubleSuperscript(token~))
+            break Err(DoubleSuperscript(loc=token.loc))
           }
           match self.handle_sup_subscript("superscript") {
             Err(err) => break Err(err)
@@ -209,7 +210,7 @@ fn Parser::parse_scripts(
           }
         } else if token.text == "_" {
           if sub is Some(_) {
-            break Err(DoubleSubscript(token~))
+            break Err(DoubleSubscript(loc=token.loc))
           }
           match self.handle_sup_subscript("subscript") {
             Err(err) => break Err(err)
@@ -253,8 +254,11 @@ fn Parser::handle_sup_subscript(
         Ok(_) =>
           match self.parse_group(name) {
             Err(err) => Err(err)
-            Ok(Some(group)) => Ok(group)
-            Ok(None) => Err(ExpectedGroupAfter(symbol=token.text, token~))
+            Ok(Some(EmitAtom(group))) => Ok(group)
+            Ok(Some(SkipAtom)) =>
+              Err(ExpectedGroupAfter(symbol=token.text, loc=token.loc))
+            Ok(None) =>
+              Err(ExpectedGroupAfter(symbol=token.text, loc=token.loc))
           }
       }
     }
@@ -262,7 +266,10 @@ fn Parser::handle_sup_subscript(
 }
 
 ///|
-fn Parser::parse_group(self : Parser, name : String) -> ParseResult[ParseNode?] {
+fn Parser::parse_group(
+  self : Parser,
+  name : String,
+) -> ParseResult[AtomResult?] {
   match self.fetch() {
     Err(err) => Err(err)
     Ok(first_token) => {
@@ -271,7 +278,7 @@ fn Parser::parse_group(self : Parser, name : String) -> ParseResult[ParseNode?] 
         self.consume()
         let group_end = if text == "{" { "}" } else { "\\endgroup" }
         self.gullet.begin_group()
-        let expression = self.parse_expression(false, Some(group_end))
+        let expression = self.parse_expression(Some(group_end))
         match expression {
           Err(err) => Err(err)
           Ok(body) => {
@@ -290,11 +297,13 @@ fn Parser::parse_group(self : Parser, name : String) -> ParseResult[ParseNode?] 
                     }
                     Ok(
                       Some(
-                        OrdGroup(
-                          mode=self.mode,
-                          loc~,
-                          body~,
-                          semisimple=text == "\\begingroup",
+                        EmitAtom(
+                          OrdGroup(
+                            mode=self.mode,
+                            loc~,
+                            body~,
+                            semisimple=text == "\\begingroup",
+                          ),
                         ),
                       ),
                     )
@@ -306,23 +315,27 @@ fn Parser::parse_group(self : Parser, name : String) -> ParseResult[ParseNode?] 
       } else {
         match self.parse_function(Some(name)) {
           Err(err) => Err(err)
-          Ok(Some(node)) => Ok(Some(node))
+          Ok(Some(result)) => Ok(Some(result))
           Ok(None) =>
             match self.parse_symbol() {
               Err(err) => Err(err)
-              Ok(Some(node)) => Ok(Some(node))
+              Ok(Some(node)) => Ok(Some(EmitAtom(node)))
               Ok(None) =>
                 if text.length() > 0 && text[0] == '\\' {
                   if self.settings.throw_on_error {
-                    Err(UndefinedControlSequence(name=text, token=first_token))
+                    Err(
+                      UndefinedControlSequence(name=text, loc=first_token.loc),
+                    )
                   } else {
                     self.consume()
                     Ok(
                       Some(
-                        format_unsupported_command(
-                          self.mode,
-                          self.settings,
-                          text,
+                        EmitAtom(
+                          format_unsupported_command(
+                            self.mode,
+                            self.settings,
+                            text,
+                          ),
                         ),
                       ),
                     )
@@ -341,7 +354,7 @@ fn Parser::parse_group(self : Parser, name : String) -> ParseResult[ParseNode?] 
 fn Parser::parse_function(
   self : Parser,
   name : String?,
-) -> ParseResult[ParseNode?] {
+) -> ParseResult[AtomResult?] {
   match self.fetch() {
     Err(err) => Err(err)
     Ok(token) =>
@@ -356,7 +369,7 @@ fn Parser::parse_function(
               FunctionNotAllowed(
                 func_name=token.text,
                 context=context_name,
-                token~,
+                loc=token.loc,
               ),
             )
           } else if self.mode == Text && !func_data.allowed_in_text {
@@ -364,7 +377,7 @@ fn Parser::parse_function(
               FunctionNotAllowed(
                 func_name=token.text,
                 context="text mode",
-                token~,
+                loc=token.loc,
               ),
             )
           } else if self.mode == Math && !func_data.allowed_in_math {
@@ -372,7 +385,7 @@ fn Parser::parse_function(
               FunctionNotAllowed(
                 func_name=token.text,
                 context="math mode",
-                token~,
+                loc=token.loc,
               ),
             )
           } else {
@@ -381,7 +394,8 @@ fn Parser::parse_function(
               Ok((args, opt_args)) =>
                 match self.call_function(token.text, args, opt_args) {
                   Err(err) => Err(err)
-                  Ok(node) => Ok(Some(node))
+                  Ok(Some(node)) => Ok(Some(EmitAtom(node)))
+                  Ok(None) => Ok(Some(SkipAtom))
                 }
             }
           }
@@ -396,9 +410,9 @@ fn Parser::call_function(
   func_name : String,
   args : Array[ParseNode],
   opt_args : Array[ParseNode?],
-) -> ParseResult[ParseNode] {
+) -> ParseResult[ParseNode?] {
   match lookup_function(func_name) {
-    None => Err(MissingFunctionHandler(func_name~, token=None))
+    None => Err(MissingFunctionHandler(func_name~, loc=None))
     Some(spec) => (spec.handler)(self, args, opt_args)
   }
 }
@@ -416,9 +430,9 @@ fn Parser::parse_arguments(
     let optional = i < func_data.num_optional_args
     let arg_type = match func_data.arg_types.get(i) {
       Some(kind) => kind
-      None => if func_data.primitive { PrimitiveArg } else { OriginalArg }
+      None => OriginalArg
     }
-    match self.parse_group_of_type(func, arg_type, optional) {
+    match self.parse_group_of_type(arg_type, optional) {
       Err(err) => break Err(err)
       Ok(None) =>
         if optional {
@@ -426,7 +440,7 @@ fn Parser::parse_arguments(
           continue
         } else {
           break Err(
-            InvalidArgument(message="Missing argument for " + func, token=None),
+            InvalidArgument(message="Missing argument for " + func, loc=None),
           )
         }
       Ok(Some(arg)) => {
@@ -446,33 +460,11 @@ fn Parser::parse_arguments(
 ///|
 fn Parser::parse_group_of_type(
   self : Parser,
-  func : String,
   arg_type : ArgType,
   optional : Bool,
 ) -> ParseResult[ParseNode?] {
   match arg_type {
     OriginalArg => self.parse_argument_group(optional)
-    PrimitiveArg =>
-      if optional {
-        Err(
-          UnsupportedFeature(
-            feature="optional primitive argument for " + func,
-            token=None,
-          ),
-        )
-      } else {
-        match self.parse_group("argument to " + func) {
-          Err(err) => Err(err)
-          Ok(None) =>
-            Err(
-              InvalidArgument(
-                message="Expected argument for " + func,
-                token=None,
-              ),
-            )
-          Ok(Some(group)) => Ok(Some(group))
-        }
-      }
   }
 }
 
@@ -486,7 +478,7 @@ fn Parser::parse_argument_group(
     Ok(None) => Ok(None)
     Ok(Some(arg_token)) => {
       self.gullet.begin_group()
-      let parsed = self.parse_expression(false, Some("EOF"))
+      let parsed = self.parse_expression(Some("EOF"))
       let result = match parsed {
         Err(err) => Err(err)
         Ok(body) =>
@@ -572,17 +564,4 @@ fn is_binary_operator(text : String) -> Bool {
 ///|
 fn is_relation_operator(text : String) -> Bool {
   text == "=" || text == "<" || text == ">"
-}
-
-///|
-fn Parser::handle_infix_nodes(
-  _self : Parser,
-  body : Array[ParseNode],
-) -> Array[ParseNode] {
-  body
-}
-
-///|
-fn form_ligatures(_body : Array[ParseNode]) -> Unit {
-  ()
 }

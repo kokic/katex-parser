@@ -15,7 +15,7 @@ pub fn SourceLocation::make(
 }
 
 ///|
-pub fn SourceLocation::range(
+fn SourceLocation::range(
   start_loc : SourceLocation,
   end_loc : SourceLocation,
 ) -> SourceLocation {
