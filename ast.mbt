@@ -17,6 +17,27 @@ pub(all) enum AtomFamily {
 } derive(Debug, ToJson, Eq)
 
 ///|
+pub(all) enum NodeKind {
+  OrdGroupKind
+  SupSubKind
+  TextKind
+  TextOrdKind
+  MathOrdKind
+  AtomKind
+  SpacingKind
+  AccentTokenKind
+  OpTokenKind
+  ColorKind
+  ColorTokenKind
+  SizeKind
+  RawKind
+  UrlKind
+  StylingKind
+  InfixKind
+  InternalKind
+} derive(Debug, ToJson, Eq)
+
+///|
 pub(all) enum ParseNode {
   OrdGroup(
     mode~ : Mode,
@@ -50,7 +71,6 @@ pub(all) enum ParseNode {
   )
   Infix(mode~ : Mode, replace_with~ : String, token~ : Token?)
   Internal(mode~ : Mode)
-  Unsupported(mode~ : Mode, text~ : String)
 } derive(Debug, ToJson, Eq)
 
 ///|
@@ -79,6 +99,28 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Styling(mode~, ..) => mode
     Infix(mode~, ..) => mode
     Internal(mode~) => mode
-    Unsupported(mode~, ..) => mode
+  }
+}
+
+///|
+pub fn ParseNode::kind(self : ParseNode) -> NodeKind {
+  match self {
+    OrdGroup(..) => OrdGroupKind
+    SupSub(..) => SupSubKind
+    Text(..) => TextKind
+    TextOrd(..) => TextOrdKind
+    MathOrd(..) => MathOrdKind
+    Atom(..) => AtomKind
+    Spacing(..) => SpacingKind
+    AccentToken(..) => AccentTokenKind
+    OpToken(..) => OpTokenKind
+    Color(..) => ColorKind
+    ColorToken(..) => ColorTokenKind
+    Size(..) => SizeKind
+    Raw(..) => RawKind
+    Url(..) => UrlKind
+    Styling(..) => StylingKind
+    Infix(..) => InfixKind
+    Internal(..) => InternalKind
   }
 }

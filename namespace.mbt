@@ -1,25 +1,35 @@
 ///|
-pub(all) struct Namespace[V] {
+priv struct Namespace[V] {
   builtins : Map[String, V]
-  current : Map[String, V]
-  stack : Array[Map[String, V?]]
-} derive(Debug)
-
-///|
-pub fn[V] Namespace::make(
-  builtins : Map[String, V],
-  initial : Map[String, V],
-) -> Namespace[V] {
-  { builtins, current: initial, stack: [] }
+  current : Map[String, NamespaceBinding[V]]
+  stack : Array[Map[String, NamespaceBinding[V]?]]
 }
 
 ///|
-pub fn[V] Namespace::begin_group(self : Namespace[V]) -> Unit {
+priv enum NamespaceBinding[V] {
+  Bound(V)
+  Deleted
+}
+
+///|
+fn[V] Namespace::make(
+  builtins : Map[String, V],
+  initial : Map[String, V],
+) -> Namespace[V] {
+  let ns : Namespace[V] = { builtins, current: {}, stack: [] }
+  for key, value in initial {
+    ns.set(key, Some(value), global=true)
+  }
+  ns
+}
+
+///|
+fn[V] Namespace::begin_group(self : Namespace[V]) -> Unit {
   self.stack.push({})
 }
 
 ///|
-pub fn[V] Namespace::end_group(self : Namespace[V]) -> Unit {
+fn[V] Namespace::end_group(self : Namespace[V]) -> Unit {
   match self.stack.pop() {
     Some(changes) =>
       for key, old_value in changes {
@@ -33,27 +43,28 @@ pub fn[V] Namespace::end_group(self : Namespace[V]) -> Unit {
 }
 
 ///|
-pub fn[V] Namespace::end_groups(self : Namespace[V]) -> Unit {
+fn[V] Namespace::end_groups(self : Namespace[V]) -> Unit {
   while !self.stack.is_empty() {
     self.end_group()
   }
 }
 
 ///|
-pub fn[V] Namespace::get(self : Namespace[V], key : String) -> V? {
+fn[V] Namespace::get(self : Namespace[V], key : String) -> V? {
   match self.current.get(key) {
-    Some(value) => Some(value)
+    Some(Bound(value)) => Some(value)
+    Some(Deleted) => None
     None => self.builtins.get(key)
   }
 }
 
 ///|
-pub fn[V] Namespace::has(self : Namespace[V], key : String) -> Bool {
-  self.current.contains(key) || self.builtins.contains(key)
+fn[V] Namespace::has(self : Namespace[V], key : String) -> Bool {
+  self.get(key) is Some(_)
 }
 
 ///|
-pub fn[V] Namespace::set(
+fn[V] Namespace::set(
   self : Namespace[V],
   key : String,
   value : V?,
@@ -69,7 +80,7 @@ pub fn[V] Namespace::set(
     }
   }
   match value {
-    Some(v) => self.current[key] = v
-    None => self.current.remove(key)
+    Some(v) => self.current[key] = Bound(v)
+    None => self.current[key] = Deleted
   }
 }

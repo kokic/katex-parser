@@ -1,19 +1,17 @@
 ///|
-pub(all) struct Parser {
-  mut mode : Mode
+priv struct Parser {
+  mode : Mode
   gullet : MacroExpander
   settings : Settings
-  mut leftright_depth : Int
   mut next_token : Token?
-} derive(Debug)
+}
 
 ///|
-pub fn Parser::make(input : String, settings : Settings) -> Parser {
+fn Parser::make(input : String, settings : Settings) -> Parser {
   {
     mode: Math,
-    gullet: MacroExpander::make(input, settings, Math),
+    gullet: MacroExpander::make(input, settings),
     settings,
-    leftright_depth: 0,
     next_token: None,
   }
 }
@@ -28,7 +26,7 @@ pub fn parse(
 }
 
 ///|
-pub fn Parser::fetch(self : Parser) -> ParseResult[Token] {
+fn Parser::fetch(self : Parser) -> ParseResult[Token] {
   match self.next_token {
     Some(token) => Ok(token)
     None =>
@@ -43,12 +41,12 @@ pub fn Parser::fetch(self : Parser) -> ParseResult[Token] {
 }
 
 ///|
-pub fn Parser::consume(self : Parser) -> Unit {
+fn Parser::consume(self : Parser) -> Unit {
   self.next_token = None
 }
 
 ///|
-pub fn Parser::expect(
+fn Parser::expect(
   self : Parser,
   text : String,
   consume? : Bool = true,
@@ -68,13 +66,7 @@ pub fn Parser::expect(
 }
 
 ///|
-pub fn Parser::switch_mode(self : Parser, new_mode : Mode) -> Unit {
-  self.mode = new_mode
-  self.gullet.switch_mode(new_mode)
-}
-
-///|
-pub fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
+fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
   if !self.settings.global_group {
     self.gullet.begin_group()
   }
@@ -95,7 +87,7 @@ pub fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
 }
 
 ///|
-pub fn Parser::parse_expression(
+fn Parser::parse_expression(
   self : Parser,
   break_on_infix : Bool,
   break_on_token_text : String?,
@@ -118,7 +110,7 @@ pub fn Parser::parse_expression(
         } else if break_on_infix && is_infix_function(token.text) {
           break Ok(self.finish_expression(body))
         } else {
-          match self.parse_atom(break_on_token_text) {
+          match self.parse_atom() {
             Err(err) => break Err(err)
             Ok(None) => break Ok(self.finish_expression(body))
             Ok(Some(node)) =>
@@ -156,15 +148,7 @@ fn is_end_of_expression(text : String) -> Bool {
 }
 
 ///|
-fn is_infix_function(text : String) -> Bool {
-  text == "\\over" ||
-  text == "\\atop" ||
-  text == "\\choose" ||
-  text == "\\above"
-}
-
-///|
-pub fn Parser::consume_spaces(self : Parser) -> ParseResult[Unit] {
+fn Parser::consume_spaces(self : Parser) -> ParseResult[Unit] {
   for ;; {
     match self.fetch() {
       Err(err) => break Err(err)
@@ -180,11 +164,8 @@ pub fn Parser::consume_spaces(self : Parser) -> ParseResult[Unit] {
 }
 
 ///|
-pub fn Parser::parse_atom(
-  self : Parser,
-  break_on_token_text : String?,
-) -> ParseResult[ParseNode?] {
-  match self.parse_group("atom", break_on_token_text) {
+fn Parser::parse_atom(self : Parser) -> ParseResult[ParseNode?] {
+  match self.parse_group("atom") {
     Err(err) => Err(err)
     Ok(None) => Ok(None)
     Ok(Some(base)) =>
@@ -217,7 +198,7 @@ fn Parser::parse_scripts(
       Ok(token) =>
         if token.text == "^" {
           if sup is Some(_) {
-            break Err(Generic(message="Double superscript", token=Some(token)))
+            break Err(DoubleSuperscript(token~))
           }
           match self.handle_sup_subscript("superscript") {
             Err(err) => break Err(err)
@@ -228,7 +209,7 @@ fn Parser::parse_scripts(
           }
         } else if token.text == "_" {
           if sub is Some(_) {
-            break Err(Generic(message="Double subscript", token=Some(token)))
+            break Err(DoubleSubscript(token~))
           }
           match self.handle_sup_subscript("subscript") {
             Err(err) => break Err(err)
@@ -258,7 +239,7 @@ fn make_supsub_or_base(
 }
 
 ///|
-pub fn Parser::handle_sup_subscript(
+fn Parser::handle_sup_subscript(
   self : Parser,
   name : String,
 ) -> ParseResult[ParseNode] {
@@ -270,16 +251,10 @@ pub fn Parser::handle_sup_subscript(
       match self.consume_spaces() {
         Err(err) => Err(err)
         Ok(_) =>
-          match self.parse_group(name, None) {
+          match self.parse_group(name) {
             Err(err) => Err(err)
             Ok(Some(group)) => Ok(group)
-            Ok(None) =>
-              Err(
-                Generic(
-                  message="Expected group after '" + token.text + "'",
-                  token=Some(token),
-                ),
-              )
+            Ok(None) => Err(ExpectedGroupAfter(symbol=token.text, token~))
           }
       }
     }
@@ -287,11 +262,7 @@ pub fn Parser::handle_sup_subscript(
 }
 
 ///|
-pub fn Parser::parse_group(
-  self : Parser,
-  name : String,
-  break_on_token_text : String?,
-) -> ParseResult[ParseNode?] {
+fn Parser::parse_group(self : Parser, name : String) -> ParseResult[ParseNode?] {
   match self.fetch() {
     Err(err) => Err(err)
     Ok(first_token) => {
@@ -333,7 +304,7 @@ pub fn Parser::parse_group(
           }
         }
       } else {
-        match self.parse_function(break_on_token_text, Some(name)) {
+        match self.parse_function(Some(name)) {
           Err(err) => Err(err)
           Ok(Some(node)) => Ok(Some(node))
           Ok(None) =>
@@ -346,7 +317,15 @@ pub fn Parser::parse_group(
                     Err(UndefinedControlSequence(name=text, token=first_token))
                   } else {
                     self.consume()
-                    Ok(Some(Unsupported(mode=self.mode, text~)))
+                    Ok(
+                      Some(
+                        format_unsupported_command(
+                          self.mode,
+                          self.settings,
+                          text,
+                        ),
+                      ),
+                    )
                   }
                 } else {
                   Ok(None)
@@ -359,16 +338,14 @@ pub fn Parser::parse_group(
 }
 
 ///|
-pub fn Parser::parse_function(
+fn Parser::parse_function(
   self : Parser,
-  break_on_token_text : String?,
   name : String?,
 ) -> ParseResult[ParseNode?] {
   match self.fetch() {
     Err(err) => Err(err)
-    Ok(token) => {
-      let funcs = registered_functions()
-      match funcs.get(token.text) {
+    Ok(token) =>
+      match lookup_function(token.text) {
         None => Ok(None)
         Some(func_data) => {
           self.consume()
@@ -376,40 +353,33 @@ pub fn Parser::parse_function(
             context_name != "atom" &&
             !func_data.allowed_in_argument {
             Err(
-              Generic(
-                message="Got function '" +
-                  token.text +
-                  "' with no arguments as " +
-                  context_name,
-                token=Some(token),
+              FunctionNotAllowed(
+                func_name=token.text,
+                context=context_name,
+                token~,
               ),
             )
           } else if self.mode == Text && !func_data.allowed_in_text {
             Err(
-              Generic(
-                message="Can't use function '" + token.text + "' in text mode",
-                token=Some(token),
+              FunctionNotAllowed(
+                func_name=token.text,
+                context="text mode",
+                token~,
               ),
             )
           } else if self.mode == Math && !func_data.allowed_in_math {
             Err(
-              Generic(
-                message="Can't use function '" + token.text + "' in math mode",
-                token=Some(token),
+              FunctionNotAllowed(
+                func_name=token.text,
+                context="math mode",
+                token~,
               ),
             )
           } else {
             match self.parse_arguments(token.text, func_data) {
               Err(err) => Err(err)
               Ok((args, opt_args)) =>
-                match
-                  self.call_function(
-                    token.text,
-                    args,
-                    opt_args,
-                    Some(token),
-                    break_on_token_text,
-                  ) {
+                match self.call_function(token.text, args, opt_args) {
                   Err(err) => Err(err)
                   Ok(node) => Ok(Some(node))
                 }
@@ -417,48 +387,132 @@ pub fn Parser::parse_function(
           }
         }
       }
-    }
   }
 }
 
 ///|
-pub fn Parser::call_function(
+fn Parser::call_function(
   self : Parser,
   func_name : String,
   args : Array[ParseNode],
   opt_args : Array[ParseNode?],
-  token : Token?,
-  break_on_token_text : String?,
 ) -> ParseResult[ParseNode] {
-  match registered_functions().get(func_name) {
-    None => Err(Generic(message="No function handler for " + func_name, token~))
-    Some(spec) => {
-      let context = { func_name, parser: self, token, break_on_token_text }
-      (spec.handler)(context, args, opt_args)
+  match lookup_function(func_name) {
+    None => Err(MissingFunctionHandler(func_name~, token=None))
+    Some(spec) => (spec.handler)(self, args, opt_args)
+  }
+}
+
+///|
+fn Parser::parse_arguments(
+  self : Parser,
+  func : String,
+  func_data : FunctionSpec,
+) -> ParseResult[(Array[ParseNode], Array[ParseNode?])] {
+  let args : Array[ParseNode] = []
+  let opt_args : Array[ParseNode?] = []
+  let total_args = func_data.num_args + func_data.num_optional_args
+  for i in 0..<total_args {
+    let optional = i < func_data.num_optional_args
+    let arg_type = match func_data.arg_types.get(i) {
+      Some(kind) => kind
+      None => if func_data.primitive { PrimitiveArg } else { OriginalArg }
+    }
+    match self.parse_group_of_type(func, arg_type, optional) {
+      Err(err) => break Err(err)
+      Ok(None) =>
+        if optional {
+          opt_args.push(None)
+          continue
+        } else {
+          break Err(
+            InvalidArgument(message="Missing argument for " + func, token=None),
+          )
+        }
+      Ok(Some(arg)) => {
+        if optional {
+          opt_args.push(Some(arg))
+        } else {
+          args.push(arg)
+        }
+        continue
+      }
+    }
+  } nobreak {
+    Ok((args, opt_args))
+  }
+}
+
+///|
+fn Parser::parse_group_of_type(
+  self : Parser,
+  func : String,
+  arg_type : ArgType,
+  optional : Bool,
+) -> ParseResult[ParseNode?] {
+  match arg_type {
+    OriginalArg => self.parse_argument_group(optional)
+    PrimitiveArg =>
+      if optional {
+        Err(
+          UnsupportedFeature(
+            feature="optional primitive argument for " + func,
+            token=None,
+          ),
+        )
+      } else {
+        match self.parse_group("argument to " + func) {
+          Err(err) => Err(err)
+          Ok(None) =>
+            Err(
+              InvalidArgument(
+                message="Expected argument for " + func,
+                token=None,
+              ),
+            )
+          Ok(Some(group)) => Ok(Some(group))
+        }
+      }
+  }
+}
+
+///|
+fn Parser::parse_argument_group(
+  self : Parser,
+  optional : Bool,
+) -> ParseResult[ParseNode?] {
+  match self.gullet.scan_argument(optional) {
+    Err(err) => Err(err)
+    Ok(None) => Ok(None)
+    Ok(Some(arg_token)) => {
+      self.gullet.begin_group()
+      let parsed = self.parse_expression(false, Some("EOF"))
+      let result = match parsed {
+        Err(err) => Err(err)
+        Ok(body) =>
+          match self.expect("EOF") {
+            Err(err) => Err(err)
+            Ok(_) =>
+              Ok(
+                Some(
+                  OrdGroup(
+                    mode=self.mode,
+                    loc=arg_token.loc,
+                    body~,
+                    semisimple=false,
+                  ),
+                ),
+              )
+          }
+      }
+      self.gullet.end_group()
+      result
     }
   }
 }
 
 ///|
-pub fn Parser::parse_arguments(
-  _self : Parser,
-  func : String,
-  func_data : FunctionSpec,
-) -> ParseResult[(Array[ParseNode], Array[ParseNode?])] {
-  if func_data.num_args == 0 && func_data.num_optional_args == 0 {
-    Ok(([], []))
-  } else {
-    Err(
-      Generic(
-        message="Argument parsing is not implemented yet for " + func,
-        token=None,
-      ),
-    )
-  }
-}
-
-///|
-pub fn Parser::parse_symbol(self : Parser) -> ParseResult[ParseNode?] {
+fn Parser::parse_symbol(self : Parser) -> ParseResult[ParseNode?] {
   match self.fetch() {
     Err(err) => Err(err)
     Ok(token) => {
@@ -498,6 +552,19 @@ fn make_symbol_node(
 }
 
 ///|
+fn format_unsupported_command(
+  mode : Mode,
+  settings : Settings,
+  text : String,
+) -> ParseNode {
+  let body : Array[ParseNode] = []
+  for _, ch in text {
+    body.push(TextOrd(mode=Text, loc=None, text=String::from_array([ch])))
+  }
+  Color(mode~, color=settings.error_color, body~)
+}
+
+///|
 fn is_binary_operator(text : String) -> Bool {
   text == "+" || text == "-" || text == "*" || text == "/"
 }
@@ -508,7 +575,7 @@ fn is_relation_operator(text : String) -> Bool {
 }
 
 ///|
-pub fn Parser::handle_infix_nodes(
+fn Parser::handle_infix_nodes(
   _self : Parser,
   body : Array[ParseNode],
 ) -> Array[ParseNode] {

@@ -1,34 +1,16 @@
 ///|
-pub(all) enum ArgType {
-  ColorArg
-  SizeArg
-  UrlArg
-  MathArg
-  TextArg
-  HBoxArg
-  RawArg
+priv enum ArgType {
   PrimitiveArg
   OriginalArg
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
-pub(all) struct FunctionContext {
-  func_name : String
-  parser : Parser
-  token : Token?
-  break_on_token_text : String?
-} derive(Debug)
+type FunctionHandler = (Parser, Array[ParseNode], Array[ParseNode?]) -> ParseResult[
+  ParseNode,
+]
 
 ///|
-pub type FunctionHandler = (
-  FunctionContext,
-  Array[ParseNode],
-  Array[ParseNode?],
-) -> ParseResult[ParseNode]
-
-///|
-pub(all) struct FunctionSpec {
-  type_name : String
+priv struct FunctionSpec {
   num_args : Int
   num_optional_args : Int
   arg_types : Array[ArgType]
@@ -41,14 +23,29 @@ pub(all) struct FunctionSpec {
 }
 
 ///|
-pub fn registered_functions() -> Map[String, FunctionSpec] {
-  { "\\relax": relax_spec() }
+fn lookup_function(name : String) -> FunctionSpec? {
+  match name {
+    "\\relax" => Some(relax_spec())
+    _ => None
+  }
+}
+
+///|
+fn is_registered_function(name : String) -> Bool {
+  lookup_function(name) is Some(_)
+}
+
+///|
+fn is_infix_function(name : String) -> Bool {
+  match lookup_function(name) {
+    Some(spec) => spec.infix
+    None => false
+  }
 }
 
 ///|
 fn relax_spec() -> FunctionSpec {
   {
-    type_name: "internal",
     num_args: 0,
     num_optional_args: 0,
     arg_types: [],
@@ -63,9 +60,9 @@ fn relax_spec() -> FunctionSpec {
 
 ///|
 fn relax_handler(
-  context : FunctionContext,
+  parser : Parser,
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
 ) -> ParseResult[ParseNode] {
-  Ok(Internal(mode=context.parser.mode))
+  Ok(Internal(mode=parser.mode))
 }

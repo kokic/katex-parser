@@ -1,19 +1,13 @@
 ///|
-pub(all) struct Lexer {
+priv struct Lexer {
   input : String
-  settings : Settings
   mut offset : Int
   catcodes : Map[String, Int]
-} derive(Debug)
-
-///|
-pub fn Lexer::make(input : String, settings : Settings) -> Lexer {
-  { input, settings, offset: 0, catcodes: { "%": 14, "~": 13 } }
 }
 
 ///|
-pub fn Lexer::set_catcode(self : Lexer, char : String, code : Int) -> Unit {
-  self.catcodes[char] = code
+fn Lexer::make(input : String, _settings : Settings) -> Lexer {
+  { input, offset: 0, catcodes: { "%": 14, "~": 13 } }
 }
 
 ///|
@@ -69,7 +63,7 @@ fn starts_with_at(input : String, offset : Int, prefix : String) -> Bool {
 }
 
 ///|
-pub fn Lexer::lex(self : Lexer) -> ParseResult[Token] {
+fn Lexer::lex(self : Lexer) -> ParseResult[Token] {
   let input = self.input
   let len = input.length()
   if self.offset >= len {

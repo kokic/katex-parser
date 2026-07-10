@@ -87,3 +87,48 @@ test "parse braced group" {
     ),
   )
 }
+
+///|
+test "Parser::parse_arguments parses original groups through gullet" {
+  let parser = Parser::make("{xy}", Settings::default())
+  let spec : FunctionSpec = {
+    num_args: 1,
+    num_optional_args: 0,
+    arg_types: [OriginalArg],
+    allowed_in_argument: false,
+    allowed_in_text: false,
+    allowed_in_math: true,
+    infix: false,
+    primitive: false,
+    handler: (_parser, _args, _opt_args) => Ok(Internal(mode=Math)),
+  }
+  debug_inspect(
+    parser.parse_arguments("\\test", spec),
+    content=(
+      #|Ok(
+      #|  (
+      #|    [
+      #|      OrdGroup(
+      #|        mode=Math,
+      #|        loc=Some({ input: "{xy}", start: 0, end: 4 }),
+      #|        body=[
+      #|          MathOrd(
+      #|            mode=Math,
+      #|            loc=Some({ input: "{xy}", start: 1, end: 2 }),
+      #|            text="x",
+      #|          ),
+      #|          MathOrd(
+      #|            mode=Math,
+      #|            loc=Some({ input: "{xy}", start: 2, end: 3 }),
+      #|            text="y",
+      #|          ),
+      #|        ],
+      #|        semisimple=false,
+      #|      ),
+      #|    ],
+      #|    [],
+      #|  ),
+      #|)
+    ),
+  )
+}
