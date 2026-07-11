@@ -14,6 +14,6 @@ pub fn Settings::default() -> Settings {
     error_color: "#cc0000",
     max_expand: 1000,
     global_group: false,
-    macros: {},
+    macros: Map([]),
   }
 }

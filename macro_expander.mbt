@@ -13,7 +13,7 @@ fn MacroExpander::make(input : String, settings : Settings) -> MacroExpander {
     settings,
     expansion_count: 0,
     lexer: Lexer::make(input),
-    macros: Namespace::make({}, settings.macros),
+    macros: Namespace::make(Map([]), settings.macros),
     stack: [],
   }
 }

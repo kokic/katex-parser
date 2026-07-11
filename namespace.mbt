@@ -16,16 +16,14 @@ fn[V] Namespace::make(
   builtins : Map[String, V],
   initial : Map[String, V],
 ) -> Namespace[V] {
-  let ns : Namespace[V] = { builtins, current: {}, stack: [] }
-  for key, value in initial {
-    ns.set(key, Some(value), global=true)
-  }
+  let ns : Namespace[V] = { builtins, current: Map([]), stack: [] }
+  initial.each((key, value) => ns.set(key, Some(value), global=true))
   ns
 }
 
 ///|
 fn[V] Namespace::begin_group(self : Namespace[V]) -> Unit {
-  self.stack.push({})
+  self.stack.push(Map([]))
 }
 
 ///|

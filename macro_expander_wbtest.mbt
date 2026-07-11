@@ -11,7 +11,7 @@ test "MacroExpander expands simple text macro" {
 
 ///|
 test "Namespace restores scoped macro values" {
-  let ns : Namespace[MacroDefinition] = Namespace::make({}, {
+  let ns : Namespace[MacroDefinition] = Namespace::make(Map([]), {
     "a": MacroDefinition::Text("x"),
   })
   ns.begin_group()
@@ -29,7 +29,7 @@ test "Namespace restores scoped macro values" {
 test "Namespace local deletion shadows builtins until group ends" {
   let ns : Namespace[MacroDefinition] = Namespace::make(
     { "a": MacroDefinition::Text("builtin") },
-    {},
+    Map([]),
   )
   ns.begin_group()
   ns.set("a", None)
