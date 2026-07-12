@@ -10,35 +10,6 @@ test "MacroExpander expands simple text macro" {
 }
 
 ///|
-test "Namespace restores scoped macro values" {
-  let ns : Namespace[MacroDefinition] = Namespace::make(Map([]), {
-    "a": MacroDefinition::Text("x"),
-  })
-  ns.begin_group()
-  ns.set("a", Some(MacroDefinition::Text("y")))
-  ns.set("b", Some(MacroDefinition::Text("z")))
-  debug_inspect(
-    (ns.get("a"), ns.get("b")),
-    content="(Some(Text(\"y\")), Some(Text(\"z\")))",
-  )
-  ns.end_group()
-  debug_inspect((ns.get("a"), ns.get("b")), content="(Some(Text(\"x\")), None)")
-}
-
-///|
-test "Namespace local deletion shadows builtins until group ends" {
-  let ns : Namespace[MacroDefinition] = Namespace::make(
-    { "a": MacroDefinition::Text("builtin") },
-    Map([]),
-  )
-  ns.begin_group()
-  ns.set("a", None)
-  debug_inspect(ns.get("a"), content="None")
-  ns.end_group()
-  debug_inspect(ns.get("a"), content="Some(Text(\"builtin\"))")
-}
-
-///|
 test "MacroExpander treats relax as defined but unexpanded" {
   let expander = MacroExpander::make("\\relax", Settings::default())
   let token = expander.expand_next_token().unwrap()

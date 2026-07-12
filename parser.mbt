@@ -85,11 +85,16 @@ fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
         Ok(_) => Ok(body)
       }
   }
-  if !self.settings.global_group {
+  let close_result = if !self.settings.global_group {
     self.gullet.end_group()
+  } else {
+    Ok(())
   }
   self.gullet.end_groups()
-  result
+  match close_result {
+    Err(err) => Err(err)
+    Ok(_) => result
+  }
 }
 
 ///|
@@ -288,26 +293,29 @@ fn Parser::parse_group(
               Ok(last) =>
                 match self.expect(group_end) {
                   Err(err) => Err(err)
-                  Ok(_) => {
-                    self.gullet.end_group()
-                    let loc = match (first_token.loc, last.loc) {
-                      (Some(start_loc), Some(end_loc)) =>
-                        Some(SourceLocation::range(start_loc, end_loc))
-                      _ => None
-                    }
-                    Ok(
-                      Some(
-                        EmitAtom(
-                          OrdGroup(
-                            mode=self.mode,
-                            loc~,
-                            body~,
-                            semisimple=text == "\\begingroup",
+                  Ok(_) =>
+                    match self.gullet.end_group() {
+                      Err(err) => Err(err)
+                      Ok(_) => {
+                        let loc = match (first_token.loc, last.loc) {
+                          (Some(start_loc), Some(end_loc)) =>
+                            Some(SourceLocation::range(start_loc, end_loc))
+                          _ => None
+                        }
+                        Ok(
+                          Some(
+                            EmitAtom(
+                              OrdGroup(
+                                mode=self.mode,
+                                loc~,
+                                body~,
+                                semisimple=text == "\\begingroup",
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    )
-                  }
+                        )
+                      }
+                    }
                 }
             }
           }
@@ -497,8 +505,10 @@ fn Parser::parse_argument_group(
               )
           }
       }
-      self.gullet.end_group()
-      result
+      match self.gullet.end_group() {
+        Err(err) => Err(err)
+        Ok(_) => result
+      }
     }
   }
 }

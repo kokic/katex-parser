@@ -24,7 +24,7 @@ fn MacroExpander::begin_group(self : MacroExpander) -> Unit {
 }
 
 ///|
-fn MacroExpander::end_group(self : MacroExpander) -> Unit {
+fn MacroExpander::end_group(self : MacroExpander) -> ParseResult[Unit] {
   self.macros.end_group()
 }
 
