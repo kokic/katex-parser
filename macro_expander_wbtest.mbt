@@ -51,11 +51,10 @@ test "MacroExpander propagates invalid macro body lexing" {
   settings.macros["\\bad"] = MacroDefinition::Text("\\")
   let expander = MacroExpander::make("\\bad", settings)
   match expander.expand_next_token() {
-    Err(UnexpectedCharacter(message~, loc~)) =>
-      debug_inspect(
-        (message, loc),
-        content="(\"Unexpected bare backslash\", Some({ input: \"\\\\\", start: 0, end: 1 }))",
-      )
+    Err(UnexpectedCharacter(message~, loc~)) => {
+      assert_eq(message, "Unexpected character: '\\'")
+      assert_eq(loc, Some(SourceLocation::make("\\", start=0, end=1)))
+    }
     _ => fail("expected UnexpectedCharacter")
   }
 }
