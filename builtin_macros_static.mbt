@@ -1,0 +1,612 @@
+///|
+let builtin_static_macro_definitions : Map[String, MacroDefinition] = Map::from_array([
+    ("\\@ifstar", MacroDefinition::text("\\@ifnextchar *{\\@firstoftwo{#1}}")),
+    ("\\bgroup", MacroDefinition::text("{")),
+    ("\\egroup", MacroDefinition::text("}")),
+    ("~", MacroDefinition::text("\\nobreakspace")),
+    ("\\lq", MacroDefinition::text("`")),
+    ("\\rq", MacroDefinition::text("'")),
+    ("\\aa", MacroDefinition::text("\\r a")),
+    ("\\AA", MacroDefinition::text("\\r A")),
+    (
+      "\\textcopyright",
+      MacroDefinition::text("\\html@mathml{\\textcircled{c}}{\\char`©}"),
+    ),
+    (
+      "\\copyright",
+      MacroDefinition::text(
+        "\\TextOrMath{\\textcopyright}{\\text{\\textcopyright}}",
+      ),
+    ),
+    (
+      "\\textregistered",
+      MacroDefinition::text(
+        "\\html@mathml{\\textcircled{\\scriptsize R}}{\\char`®}",
+      ),
+    ),
+    ("ℬ", MacroDefinition::text("\\mathscr{B}")),
+    ("ℰ", MacroDefinition::text("\\mathscr{E}")),
+    ("ℱ", MacroDefinition::text("\\mathscr{F}")),
+    ("ℋ", MacroDefinition::text("\\mathscr{H}")),
+    ("ℐ", MacroDefinition::text("\\mathscr{I}")),
+    ("ℒ", MacroDefinition::text("\\mathscr{L}")),
+    ("ℳ", MacroDefinition::text("\\mathscr{M}")),
+    ("ℛ", MacroDefinition::text("\\mathscr{R}")),
+    ("ℭ", MacroDefinition::text("\\mathfrak{C}")),
+    ("ℌ", MacroDefinition::text("\\mathfrak{H}")),
+    ("ℨ", MacroDefinition::text("\\mathfrak{Z}")),
+    ("\\Bbbk", MacroDefinition::text("\\Bbb{k}")),
+    ("\\llap", MacroDefinition::text("\\mathllap{\\textrm{#1}}")),
+    ("\\rlap", MacroDefinition::text("\\mathrlap{\\textrm{#1}}")),
+    ("\\clap", MacroDefinition::text("\\mathclap{\\textrm{#1}}")),
+    ("\\mathstrut", MacroDefinition::text("\\vphantom{(}")),
+    ("\\underbar", MacroDefinition::text("\\underline{\\text{#1}}")),
+    (
+      "\\not",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\mathrlap\\@not}\\nobreak}{\\char\"338}",
+      ),
+    ),
+    (
+      "\\neq",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\not=}}{\\mathrel{\\char`≠}}",
+      ),
+    ),
+    ("\\ne", MacroDefinition::text("\\neq")),
+    ("≠", MacroDefinition::text("\\neq")),
+    (
+      "\\notin",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{{\\in}\\mathllap{/\\mskip1mu}}}{\\mathrel{\\char`∉}}",
+      ),
+    ),
+    ("∉", MacroDefinition::text("\\notin")),
+    (
+      "≘",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{=\\kern{-1em}\\raisebox{0.4em}{$\\scriptsize\\frown$}}}{\\mathrel{\\char`≘}}",
+      ),
+    ),
+    (
+      "≙",
+      MacroDefinition::text(
+        "\\html@mathml{\\stackrel{\\tiny\\wedge}{=}}{\\mathrel{\\char`≘}}",
+      ),
+    ),
+    (
+      "≚",
+      MacroDefinition::text(
+        "\\html@mathml{\\stackrel{\\tiny\\vee}{=}}{\\mathrel{\\char`≚}}",
+      ),
+    ),
+    (
+      "≛",
+      MacroDefinition::text(
+        "\\html@mathml{\\stackrel{\\scriptsize\\star}{=}}{\\mathrel{\\char`≛}}",
+      ),
+    ),
+    (
+      "≝",
+      MacroDefinition::text(
+        "\\html@mathml{\\stackrel{\\tiny\\mathrm{def}}{=}}{\\mathrel{\\char`≝}}",
+      ),
+    ),
+    (
+      "≞",
+      MacroDefinition::text(
+        "\\html@mathml{\\stackrel{\\tiny\\mathrm{m}}{=}}{\\mathrel{\\char`≞}}",
+      ),
+    ),
+    (
+      "≟",
+      MacroDefinition::text(
+        "\\html@mathml{\\stackrel{\\tiny?}{=}}{\\mathrel{\\char`≟}}",
+      ),
+    ),
+    ("⟂", MacroDefinition::text("\\perp")),
+    ("‼", MacroDefinition::text("\\mathclose{!\\mkern-0.8mu!}")),
+    ("∌", MacroDefinition::text("\\notni")),
+    ("⌜", MacroDefinition::text("\\ulcorner")),
+    ("⌝", MacroDefinition::text("\\urcorner")),
+    ("⌞", MacroDefinition::text("\\llcorner")),
+    ("⌟", MacroDefinition::text("\\lrcorner")),
+    ("©", MacroDefinition::text("\\copyright")),
+    ("®", MacroDefinition::text("\\textregistered")),
+    (
+      "\\ulcorner",
+      MacroDefinition::text(
+        "\\html@mathml{\\@ulcorner}{\\mathop{\\char\"231c}}",
+      ),
+    ),
+    (
+      "\\urcorner",
+      MacroDefinition::text(
+        "\\html@mathml{\\@urcorner}{\\mathop{\\char\"231d}}",
+      ),
+    ),
+    (
+      "\\llcorner",
+      MacroDefinition::text(
+        "\\html@mathml{\\@llcorner}{\\mathop{\\char\"231e}}",
+      ),
+    ),
+    (
+      "\\lrcorner",
+      MacroDefinition::text(
+        "\\html@mathml{\\@lrcorner}{\\mathop{\\char\"231f}}",
+      ),
+    ),
+    ("\\vdots", MacroDefinition::text("{\\varvdots\\rule{0pt}{15pt}}")),
+    ("⋮", MacroDefinition::text("\\vdots")),
+    ("\\varGamma", MacroDefinition::text("\\mathit{\\Gamma}")),
+    ("\\varDelta", MacroDefinition::text("\\mathit{\\Delta}")),
+    ("\\varTheta", MacroDefinition::text("\\mathit{\\Theta}")),
+    ("\\varLambda", MacroDefinition::text("\\mathit{\\Lambda}")),
+    ("\\varXi", MacroDefinition::text("\\mathit{\\Xi}")),
+    ("\\varPi", MacroDefinition::text("\\mathit{\\Pi}")),
+    ("\\varSigma", MacroDefinition::text("\\mathit{\\Sigma}")),
+    ("\\varUpsilon", MacroDefinition::text("\\mathit{\\Upsilon}")),
+    ("\\varPhi", MacroDefinition::text("\\mathit{\\Phi}")),
+    ("\\varPsi", MacroDefinition::text("\\mathit{\\Psi}")),
+    ("\\varOmega", MacroDefinition::text("\\mathit{\\Omega}")),
+    (
+      "\\substack",
+      MacroDefinition::text("\\begin{subarray}{c}#1\\end{subarray}"),
+    ),
+    (
+      "\\colon",
+      MacroDefinition::text(
+        "\\nobreak\\mskip2mu\\mathpunct{}\\mathchoice{\\mkern-3mu}{\\mkern-3mu}{}{}{:}\\mskip6mu\\relax",
+      ),
+    ),
+    ("\\boxed", MacroDefinition::text("\\fbox{$\\displaystyle{#1}$}")),
+    ("\\iff", MacroDefinition::text("\\DOTSB\\;\\Longleftrightarrow\\;")),
+    ("\\implies", MacroDefinition::text("\\DOTSB\\;\\Longrightarrow\\;")),
+    ("\\impliedby", MacroDefinition::text("\\DOTSB\\;\\Longleftarrow\\;")),
+    (
+      "\\dddot",
+      MacroDefinition::text(
+        "{\\overset{\\raisebox{-0.1ex}{\\normalsize ...}}{#1}}",
+      ),
+    ),
+    (
+      "\\ddddot",
+      MacroDefinition::text(
+        "{\\overset{\\raisebox{-0.1ex}{\\normalsize ....}}{#1}}",
+      ),
+    ),
+    ("\\dotsb", MacroDefinition::text("\\cdots")),
+    ("\\dotsm", MacroDefinition::text("\\cdots")),
+    ("\\dotsi", MacroDefinition::text("\\!\\cdots")),
+    ("\\dotsx", MacroDefinition::text("\\ldots\\,")),
+    ("\\DOTSI", MacroDefinition::text("\\relax")),
+    ("\\DOTSB", MacroDefinition::text("\\relax")),
+    ("\\DOTSX", MacroDefinition::text("\\relax")),
+    (
+      "\\tmspace",
+      MacroDefinition::text("\\TextOrMath{\\kern#1#3}{\\mskip#1#2}\\relax"),
+    ),
+    ("\\,", MacroDefinition::text("\\tmspace+{3mu}{.1667em}")),
+    ("\\thinspace", MacroDefinition::text("\\,")),
+    ("\\>", MacroDefinition::text("\\mskip{4mu}")),
+    ("\\:", MacroDefinition::text("\\tmspace+{4mu}{.2222em}")),
+    ("\\medspace", MacroDefinition::text("\\:")),
+    ("\\;", MacroDefinition::text("\\tmspace+{5mu}{.2777em}")),
+    ("\\thickspace", MacroDefinition::text("\\;")),
+    ("\\!", MacroDefinition::text("\\tmspace-{3mu}{.1667em}")),
+    ("\\negthinspace", MacroDefinition::text("\\!")),
+    ("\\negmedspace", MacroDefinition::text("\\tmspace-{4mu}{.2222em}")),
+    ("\\negthickspace", MacroDefinition::text("\\tmspace-{5mu}{.277em}")),
+    ("\\enspace", MacroDefinition::text("\\kern.5em ")),
+    ("\\enskip", MacroDefinition::text("\\hskip.5em\\relax")),
+    ("\\quad", MacroDefinition::text("\\hskip1em\\relax")),
+    ("\\qquad", MacroDefinition::text("\\hskip2em\\relax")),
+    ("\\tag", MacroDefinition::text("\\@ifstar\\tag@literal\\tag@paren")),
+    ("\\tag@paren", MacroDefinition::text("\\tag@literal{({#1})}")),
+    (
+      "\\bmod",
+      MacroDefinition::text(
+        "\\mathchoice{\\mskip1mu}{\\mskip1mu}{\\mskip5mu}{\\mskip5mu}\\mathbin{\\rm mod}\\mathchoice{\\mskip1mu}{\\mskip1mu}{\\mskip5mu}{\\mskip5mu}",
+      ),
+    ),
+    (
+      "\\pod",
+      MacroDefinition::text(
+        "\\allowbreak\\mathchoice{\\mkern18mu}{\\mkern8mu}{\\mkern8mu}{\\mkern8mu}(#1)",
+      ),
+    ),
+    ("\\pmod", MacroDefinition::text("\\pod{{\\rm mod}\\mkern6mu#1}")),
+    (
+      "\\mod",
+      MacroDefinition::text(
+        "\\allowbreak\\mathchoice{\\mkern18mu}{\\mkern12mu}{\\mkern12mu}{\\mkern12mu}{\\rm mod}\\,\\,#1",
+      ),
+    ),
+    ("\\newline", MacroDefinition::text("\\\\\\relax")),
+    (
+      "\\TeX",
+      MacroDefinition::text(
+        "\\textrm{\\html@mathml{T\\kern-.1667em\\raisebox{-.5ex}{E}\\kern-.125emX}{TeX}}",
+      ),
+    ),
+    (
+      "\\LaTeX",
+      MacroDefinition::text(
+        "\\textrm{\\html@mathml{L\\kern-.36em\\raisebox{0.205em}{\\scriptstyle A}\\kern-.15em\\TeX}{LaTeX}}",
+      ),
+    ),
+    (
+      "\\KaTeX",
+      MacroDefinition::text(
+        "\\textrm{\\html@mathml{K\\kern-.17em\\raisebox{0.205em}{\\scriptstyle A}\\kern-.15em\\TeX}{KaTeX}}",
+      ),
+    ),
+    ("\\hspace", MacroDefinition::text("\\@ifstar\\@hspacer\\@hspace")),
+    ("\\@hspace", MacroDefinition::text("\\hskip #1\\relax")),
+    ("\\@hspacer", MacroDefinition::text("\\rule{0pt}{0pt}\\hskip #1\\relax")),
+    ("\\ordinarycolon", MacroDefinition::text(":")),
+    (
+      "\\vcentcolon",
+      MacroDefinition::text("\\mathrel{\\mathop\\ordinarycolon}"),
+    ),
+    (
+      "\\dblcolon",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-.9mu}\\vcentcolon}}{\\mathop{\\char\"2237}}",
+      ),
+    ),
+    (
+      "\\coloneqq",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-1.2mu}=}}{\\mathop{\\char\"2254}}",
+      ),
+    ),
+    (
+      "\\Coloneqq",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\dblcolon\\mathrel{\\mkern-1.2mu}=}}{\\mathop{\\char\"2237\\char\"3d}}",
+      ),
+    ),
+    (
+      "\\coloneq",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-1.2mu}\\mathrel{-}}}{\\mathop{\\char\"3a\\char\"2212}}",
+      ),
+    ),
+    (
+      "\\Coloneq",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\dblcolon\\mathrel{\\mkern-1.2mu}\\mathrel{-}}}{\\mathop{\\char\"2237\\char\"2212}}",
+      ),
+    ),
+    (
+      "\\eqqcolon",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{=\\mathrel{\\mkern-1.2mu}\\vcentcolon}}{\\mathop{\\char\"2255}}",
+      ),
+    ),
+    (
+      "\\Eqqcolon",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{=\\mathrel{\\mkern-1.2mu}\\dblcolon}}{\\mathop{\\char\"3d\\char\"2237}}",
+      ),
+    ),
+    (
+      "\\eqcolon",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\mathrel{-}\\mathrel{\\mkern-1.2mu}\\vcentcolon}}{\\mathop{\\char\"2239}}",
+      ),
+    ),
+    (
+      "\\Eqcolon",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\mathrel{-}\\mathrel{\\mkern-1.2mu}\\dblcolon}}{\\mathop{\\char\"2212\\char\"2237}}",
+      ),
+    ),
+    (
+      "\\colonapprox",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-1.2mu}\\approx}}{\\mathop{\\char\"3a\\char\"2248}}",
+      ),
+    ),
+    (
+      "\\Colonapprox",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\dblcolon\\mathrel{\\mkern-1.2mu}\\approx}}{\\mathop{\\char\"2237\\char\"2248}}",
+      ),
+    ),
+    (
+      "\\colonsim",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-1.2mu}\\sim}}{\\mathop{\\char\"3a\\char\"223c}}",
+      ),
+    ),
+    (
+      "\\Colonsim",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathrel{\\dblcolon\\mathrel{\\mkern-1.2mu}\\sim}}{\\mathop{\\char\"2237\\char\"223c}}",
+      ),
+    ),
+    ("∷", MacroDefinition::text("\\dblcolon")),
+    ("∹", MacroDefinition::text("\\eqcolon")),
+    ("≔", MacroDefinition::text("\\coloneqq")),
+    ("≕", MacroDefinition::text("\\eqqcolon")),
+    ("⩴", MacroDefinition::text("\\Coloneqq")),
+    ("\\ratio", MacroDefinition::text("\\vcentcolon")),
+    ("\\coloncolon", MacroDefinition::text("\\dblcolon")),
+    ("\\colonequals", MacroDefinition::text("\\coloneqq")),
+    ("\\coloncolonequals", MacroDefinition::text("\\Coloneqq")),
+    ("\\equalscolon", MacroDefinition::text("\\eqqcolon")),
+    ("\\equalscoloncolon", MacroDefinition::text("\\Eqqcolon")),
+    ("\\colonminus", MacroDefinition::text("\\coloneq")),
+    ("\\coloncolonminus", MacroDefinition::text("\\Coloneq")),
+    ("\\minuscolon", MacroDefinition::text("\\eqcolon")),
+    ("\\minuscoloncolon", MacroDefinition::text("\\Eqcolon")),
+    ("\\coloncolonapprox", MacroDefinition::text("\\Colonapprox")),
+    ("\\coloncolonsim", MacroDefinition::text("\\Colonsim")),
+    (
+      "\\simcolon",
+      MacroDefinition::text(
+        "\\mathrel{\\sim\\mathrel{\\mkern-1.2mu}\\vcentcolon}",
+      ),
+    ),
+    (
+      "\\simcoloncolon",
+      MacroDefinition::text(
+        "\\mathrel{\\sim\\mathrel{\\mkern-1.2mu}\\dblcolon}",
+      ),
+    ),
+    (
+      "\\approxcolon",
+      MacroDefinition::text(
+        "\\mathrel{\\approx\\mathrel{\\mkern-1.2mu}\\vcentcolon}",
+      ),
+    ),
+    (
+      "\\approxcoloncolon",
+      MacroDefinition::text(
+        "\\mathrel{\\approx\\mathrel{\\mkern-1.2mu}\\dblcolon}",
+      ),
+    ),
+    (
+      "\\notni",
+      MacroDefinition::text("\\html@mathml{\\not\\ni}{\\mathrel{\\char`∌}}"),
+    ),
+    ("\\limsup", MacroDefinition::text("\\DOTSB\\operatorname*{lim\\,sup}")),
+    ("\\liminf", MacroDefinition::text("\\DOTSB\\operatorname*{lim\\,inf}")),
+    ("\\injlim", MacroDefinition::text("\\DOTSB\\operatorname*{inj\\,lim}")),
+    ("\\projlim", MacroDefinition::text("\\DOTSB\\operatorname*{proj\\,lim}")),
+    (
+      "\\varlimsup",
+      MacroDefinition::text("\\DOTSB\\operatorname*{\\overline{lim}}"),
+    ),
+    (
+      "\\varliminf",
+      MacroDefinition::text("\\DOTSB\\operatorname*{\\underline{lim}}"),
+    ),
+    (
+      "\\varinjlim",
+      MacroDefinition::text("\\DOTSB\\operatorname*{\\underrightarrow{lim}}"),
+    ),
+    (
+      "\\varprojlim",
+      MacroDefinition::text("\\DOTSB\\operatorname*{\\underleftarrow{lim}}"),
+    ),
+    ("\\gvertneqq", MacroDefinition::text("\\html@mathml{\\@gvertneqq}{≩}")),
+    ("\\lvertneqq", MacroDefinition::text("\\html@mathml{\\@lvertneqq}{≨}")),
+    ("\\ngeqq", MacroDefinition::text("\\html@mathml{\\@ngeqq}{≱}")),
+    ("\\ngeqslant", MacroDefinition::text("\\html@mathml{\\@ngeqslant}{≱}")),
+    ("\\nleqq", MacroDefinition::text("\\html@mathml{\\@nleqq}{≰}")),
+    ("\\nleqslant", MacroDefinition::text("\\html@mathml{\\@nleqslant}{≰}")),
+    ("\\nshortmid", MacroDefinition::text("\\html@mathml{\\@nshortmid}{∤}")),
+    (
+      "\\nshortparallel",
+      MacroDefinition::text("\\html@mathml{\\@nshortparallel}{∦}"),
+    ),
+    ("\\nsubseteqq", MacroDefinition::text("\\html@mathml{\\@nsubseteqq}{⊈}")),
+    ("\\nsupseteqq", MacroDefinition::text("\\html@mathml{\\@nsupseteqq}{⊉}")),
+    (
+      "\\varsubsetneq",
+      MacroDefinition::text("\\html@mathml{\\@varsubsetneq}{⊊}"),
+    ),
+    (
+      "\\varsubsetneqq",
+      MacroDefinition::text("\\html@mathml{\\@varsubsetneqq}{⫋}"),
+    ),
+    (
+      "\\varsupsetneq",
+      MacroDefinition::text("\\html@mathml{\\@varsupsetneq}{⊋}"),
+    ),
+    (
+      "\\varsupsetneqq",
+      MacroDefinition::text("\\html@mathml{\\@varsupsetneqq}{⫌}"),
+    ),
+    ("\\imath", MacroDefinition::text("\\html@mathml{\\@imath}{ı}")),
+    ("\\jmath", MacroDefinition::text("\\html@mathml{\\@jmath}{ȷ}")),
+    (
+      "\\llbracket",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathopen{[\\mkern-3.2mu[}}{\\mathopen{\\char`⟦}}",
+      ),
+    ),
+    (
+      "\\rrbracket",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathclose{]\\mkern-3.2mu]}}{\\mathclose{\\char`⟧}}",
+      ),
+    ),
+    ("⟦", MacroDefinition::text("\\llbracket")),
+    ("⟧", MacroDefinition::text("\\rrbracket")),
+    (
+      "\\lBrace",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathopen{\\{\\mkern-3.2mu[}}{\\mathopen{\\char`⦃}}",
+      ),
+    ),
+    (
+      "\\rBrace",
+      MacroDefinition::text(
+        "\\html@mathml{\\mathclose{]\\mkern-3.2mu\\}}}{\\mathclose{\\char`⦄}}",
+      ),
+    ),
+    ("⦃", MacroDefinition::text("\\lBrace")),
+    ("⦄", MacroDefinition::text("\\rBrace")),
+    (
+      "\\minuso",
+      MacroDefinition::text(
+        "\\mathbin{\\html@mathml{{\\mathrlap{\\mathchoice{\\kern{0.145em}}{\\kern{0.145em}}{\\kern{0.1015em}}{\\kern{0.0725em}}\\circ}{-}}}{\\char`⦵}}",
+      ),
+    ),
+    ("⦵", MacroDefinition::text("\\minuso")),
+    ("\\darr", MacroDefinition::text("\\downarrow")),
+    ("\\dArr", MacroDefinition::text("\\Downarrow")),
+    ("\\Darr", MacroDefinition::text("\\Downarrow")),
+    ("\\lang", MacroDefinition::text("\\langle")),
+    ("\\rang", MacroDefinition::text("\\rangle")),
+    ("\\uarr", MacroDefinition::text("\\uparrow")),
+    ("\\uArr", MacroDefinition::text("\\Uparrow")),
+    ("\\Uarr", MacroDefinition::text("\\Uparrow")),
+    ("\\N", MacroDefinition::text("\\mathbb{N}")),
+    ("\\R", MacroDefinition::text("\\mathbb{R}")),
+    ("\\Z", MacroDefinition::text("\\mathbb{Z}")),
+    ("\\alef", MacroDefinition::text("\\aleph")),
+    ("\\alefsym", MacroDefinition::text("\\aleph")),
+    ("\\Alpha", MacroDefinition::text("\\mathrm{A}")),
+    ("\\Beta", MacroDefinition::text("\\mathrm{B}")),
+    ("\\bull", MacroDefinition::text("\\bullet")),
+    ("\\Chi", MacroDefinition::text("\\mathrm{X}")),
+    ("\\clubs", MacroDefinition::text("\\clubsuit")),
+    ("\\cnums", MacroDefinition::text("\\mathbb{C}")),
+    ("\\Complex", MacroDefinition::text("\\mathbb{C}")),
+    ("\\Dagger", MacroDefinition::text("\\ddagger")),
+    ("\\diamonds", MacroDefinition::text("\\diamondsuit")),
+    ("\\empty", MacroDefinition::text("\\emptyset")),
+    ("\\Epsilon", MacroDefinition::text("\\mathrm{E}")),
+    ("\\Eta", MacroDefinition::text("\\mathrm{H}")),
+    ("\\exist", MacroDefinition::text("\\exists")),
+    ("\\harr", MacroDefinition::text("\\leftrightarrow")),
+    ("\\hArr", MacroDefinition::text("\\Leftrightarrow")),
+    ("\\Harr", MacroDefinition::text("\\Leftrightarrow")),
+    ("\\hearts", MacroDefinition::text("\\heartsuit")),
+    ("\\image", MacroDefinition::text("\\Im")),
+    ("\\infin", MacroDefinition::text("\\infty")),
+    ("\\Iota", MacroDefinition::text("\\mathrm{I}")),
+    ("\\isin", MacroDefinition::text("\\in")),
+    ("\\Kappa", MacroDefinition::text("\\mathrm{K}")),
+    ("\\larr", MacroDefinition::text("\\leftarrow")),
+    ("\\lArr", MacroDefinition::text("\\Leftarrow")),
+    ("\\Larr", MacroDefinition::text("\\Leftarrow")),
+    ("\\lrarr", MacroDefinition::text("\\leftrightarrow")),
+    ("\\lrArr", MacroDefinition::text("\\Leftrightarrow")),
+    ("\\Lrarr", MacroDefinition::text("\\Leftrightarrow")),
+    ("\\Mu", MacroDefinition::text("\\mathrm{M}")),
+    ("\\natnums", MacroDefinition::text("\\mathbb{N}")),
+    ("\\Nu", MacroDefinition::text("\\mathrm{N}")),
+    ("\\Omicron", MacroDefinition::text("\\mathrm{O}")),
+    ("\\plusmn", MacroDefinition::text("\\pm")),
+    ("\\rarr", MacroDefinition::text("\\rightarrow")),
+    ("\\rArr", MacroDefinition::text("\\Rightarrow")),
+    ("\\Rarr", MacroDefinition::text("\\Rightarrow")),
+    ("\\real", MacroDefinition::text("\\Re")),
+    ("\\reals", MacroDefinition::text("\\mathbb{R}")),
+    ("\\Reals", MacroDefinition::text("\\mathbb{R}")),
+    ("\\Rho", MacroDefinition::text("\\mathrm{P}")),
+    ("\\sdot", MacroDefinition::text("\\cdot")),
+    ("\\sect", MacroDefinition::text("\\S")),
+    ("\\spades", MacroDefinition::text("\\spadesuit")),
+    ("\\sub", MacroDefinition::text("\\subset")),
+    ("\\sube", MacroDefinition::text("\\subseteq")),
+    ("\\supe", MacroDefinition::text("\\supseteq")),
+    ("\\Tau", MacroDefinition::text("\\mathrm{T}")),
+    ("\\thetasym", MacroDefinition::text("\\vartheta")),
+    ("\\weierp", MacroDefinition::text("\\wp")),
+    ("\\Zeta", MacroDefinition::text("\\mathrm{Z}")),
+    ("\\argmin", MacroDefinition::text("\\DOTSB\\operatorname*{arg\\,min}")),
+    ("\\argmax", MacroDefinition::text("\\DOTSB\\operatorname*{arg\\,max}")),
+    (
+      "\\plim",
+      MacroDefinition::text("\\DOTSB\\mathop{\\operatorname{plim}}\\limits"),
+    ),
+    ("\\bra", MacroDefinition::text("\\mathinner{\\langle{#1}|}")),
+    ("\\ket", MacroDefinition::text("\\mathinner{|{#1}\\rangle}")),
+    ("\\braket", MacroDefinition::text("\\mathinner{\\langle{#1}\\rangle}")),
+    ("\\Bra", MacroDefinition::text("\\left\\langle#1\\right|")),
+    ("\\Ket", MacroDefinition::text("\\left|#1\\right\\rangle")),
+    (
+      "\\Braket",
+      MacroDefinition::text(
+        "\\bra@ket{\\left\\langle}{\\,\\middle\\vert\\,}{\\,\\middle\\vert\\,}{\\right\\rangle}",
+      ),
+    ),
+    (
+      "\\Set",
+      MacroDefinition::text(
+        "\\bra@set{\\left\\{\\:}{\\;\\middle\\vert\\;}{\\;\\middle\\Vert\\;}{\\:\\right\\}}",
+      ),
+    ),
+    ("\\set", MacroDefinition::text("\\bra@set{\\{\\,}{\\mid}{}{\\,\\}}")),
+    ("\\angln", MacroDefinition::text("{\\angl n}")),
+    ("\\blue", MacroDefinition::text("\\textcolor{##6495ed}{#1}")),
+    ("\\orange", MacroDefinition::text("\\textcolor{##ffa500}{#1}")),
+    ("\\pink", MacroDefinition::text("\\textcolor{##ff00af}{#1}")),
+    ("\\red", MacroDefinition::text("\\textcolor{##df0030}{#1}")),
+    ("\\green", MacroDefinition::text("\\textcolor{##28ae7b}{#1}")),
+    ("\\gray", MacroDefinition::text("\\textcolor{gray}{#1}")),
+    ("\\purple", MacroDefinition::text("\\textcolor{##9d38bd}{#1}")),
+    ("\\blueA", MacroDefinition::text("\\textcolor{##ccfaff}{#1}")),
+    ("\\blueB", MacroDefinition::text("\\textcolor{##80f6ff}{#1}")),
+    ("\\blueC", MacroDefinition::text("\\textcolor{##63d9ea}{#1}")),
+    ("\\blueD", MacroDefinition::text("\\textcolor{##11accd}{#1}")),
+    ("\\blueE", MacroDefinition::text("\\textcolor{##0c7f99}{#1}")),
+    ("\\tealA", MacroDefinition::text("\\textcolor{##94fff5}{#1}")),
+    ("\\tealB", MacroDefinition::text("\\textcolor{##26edd5}{#1}")),
+    ("\\tealC", MacroDefinition::text("\\textcolor{##01d1c1}{#1}")),
+    ("\\tealD", MacroDefinition::text("\\textcolor{##01a995}{#1}")),
+    ("\\tealE", MacroDefinition::text("\\textcolor{##208170}{#1}")),
+    ("\\greenA", MacroDefinition::text("\\textcolor{##b6ffb0}{#1}")),
+    ("\\greenB", MacroDefinition::text("\\textcolor{##8af281}{#1}")),
+    ("\\greenC", MacroDefinition::text("\\textcolor{##74cf70}{#1}")),
+    ("\\greenD", MacroDefinition::text("\\textcolor{##1fab54}{#1}")),
+    ("\\greenE", MacroDefinition::text("\\textcolor{##0d923f}{#1}")),
+    ("\\goldA", MacroDefinition::text("\\textcolor{##ffd0a9}{#1}")),
+    ("\\goldB", MacroDefinition::text("\\textcolor{##ffbb71}{#1}")),
+    ("\\goldC", MacroDefinition::text("\\textcolor{##ff9c39}{#1}")),
+    ("\\goldD", MacroDefinition::text("\\textcolor{##e07d10}{#1}")),
+    ("\\goldE", MacroDefinition::text("\\textcolor{##a75a05}{#1}")),
+    ("\\redA", MacroDefinition::text("\\textcolor{##fca9a9}{#1}")),
+    ("\\redB", MacroDefinition::text("\\textcolor{##ff8482}{#1}")),
+    ("\\redC", MacroDefinition::text("\\textcolor{##f9685d}{#1}")),
+    ("\\redD", MacroDefinition::text("\\textcolor{##e84d39}{#1}")),
+    ("\\redE", MacroDefinition::text("\\textcolor{##bc2612}{#1}")),
+    ("\\maroonA", MacroDefinition::text("\\textcolor{##ffbde0}{#1}")),
+    ("\\maroonB", MacroDefinition::text("\\textcolor{##ff92c6}{#1}")),
+    ("\\maroonC", MacroDefinition::text("\\textcolor{##ed5fa6}{#1}")),
+    ("\\maroonD", MacroDefinition::text("\\textcolor{##ca337c}{#1}")),
+    ("\\maroonE", MacroDefinition::text("\\textcolor{##9e034e}{#1}")),
+    ("\\purpleA", MacroDefinition::text("\\textcolor{##ddd7ff}{#1}")),
+    ("\\purpleB", MacroDefinition::text("\\textcolor{##c6b9fc}{#1}")),
+    ("\\purpleC", MacroDefinition::text("\\textcolor{##aa87ff}{#1}")),
+    ("\\purpleD", MacroDefinition::text("\\textcolor{##7854ab}{#1}")),
+    ("\\purpleE", MacroDefinition::text("\\textcolor{##543b78}{#1}")),
+    ("\\mintA", MacroDefinition::text("\\textcolor{##f5f9e8}{#1}")),
+    ("\\mintB", MacroDefinition::text("\\textcolor{##edf2df}{#1}")),
+    ("\\mintC", MacroDefinition::text("\\textcolor{##e0e5cc}{#1}")),
+    ("\\grayA", MacroDefinition::text("\\textcolor{##f6f7f7}{#1}")),
+    ("\\grayB", MacroDefinition::text("\\textcolor{##f0f1f2}{#1}")),
+    ("\\grayC", MacroDefinition::text("\\textcolor{##e3e5e6}{#1}")),
+    ("\\grayD", MacroDefinition::text("\\textcolor{##d6d8da}{#1}")),
+    ("\\grayE", MacroDefinition::text("\\textcolor{##babec2}{#1}")),
+    ("\\grayF", MacroDefinition::text("\\textcolor{##888d93}{#1}")),
+    ("\\grayG", MacroDefinition::text("\\textcolor{##626569}{#1}")),
+    ("\\grayH", MacroDefinition::text("\\textcolor{##3b3e40}{#1}")),
+    ("\\grayI", MacroDefinition::text("\\textcolor{##21242c}{#1}")),
+    ("\\kaBlue", MacroDefinition::text("\\textcolor{##314453}{#1}")),
+    ("\\kaGreen", MacroDefinition::text("\\textcolor{##71B307}{#1}")),
+  ],
+)
+
+///|
+fn builtin_static_macros() -> Map[String, MacroDefinition] {
+  builtin_static_macro_definitions
+}

@@ -41,11 +41,13 @@ priv struct MacroExpander {
   mut expansion_count : Int
   mut lexer : Lexer
   macros : Namespace[MacroDefinition]
-  dynamic_macros : Map[String, MacroHandler]
+  dynamic_macros : Namespace[MacroHandler]
   stack : Array[Token]
   mut mode : Mode
   report_nonstrict : LexerReporter
   command_status : CommandStatusResolver
+  math_symbol_group : MathSymbolGroupResolver
+  macro_reporter : MacroReporter
 }
 
 ///|
@@ -53,21 +55,25 @@ fn MacroExpander::make(
   input : String,
   settings : Settings,
   mode? : Mode = Math,
-  builtins? : Map[String, MacroDefinition] = Map([]),
-  dynamic_macros? : Map[String, MacroHandler] = Map([]),
+  builtins? : Map[String, MacroDefinition] = builtin_static_macros(),
+  dynamic_macros? : Map[String, MacroHandler] = builtin_dynamic_macros(),
   report_nonstrict? : LexerReporter = discard_lexer_diagnostic,
   command_status? : CommandStatusResolver = default_command_status,
+  math_symbol_group? : MathSymbolGroupResolver = default_math_symbol_group,
+  macro_reporter? : MacroReporter = default_macro_reporter,
 ) -> MacroExpander {
   {
     settings,
     expansion_count: 0,
     lexer: Lexer::make(input, report_nonstrict~),
     macros: Namespace::make(builtins, settings.macros),
-    dynamic_macros,
+    dynamic_macros: Namespace::make(dynamic_macros, Map([])),
     stack: [],
     mode,
     report_nonstrict,
     command_status,
+    math_symbol_group,
+    macro_reporter,
   }
 }
 
@@ -88,16 +94,21 @@ fn MacroExpander::switch_mode(self : MacroExpander, mode : Mode) -> Unit {
 ///|
 fn MacroExpander::begin_group(self : MacroExpander) -> Unit {
   self.macros.begin_group()
+  self.dynamic_macros.begin_group()
 }
 
 ///|
 fn MacroExpander::end_group(self : MacroExpander) -> ParseResult[Unit] {
-  self.macros.end_group()
+  match self.dynamic_macros.end_group() {
+    Err(err) => Err(err)
+    Ok(_) => self.macros.end_group()
+  }
 }
 
 ///|
 fn MacroExpander::end_groups(self : MacroExpander) -> Unit {
   self.macros.end_groups()
+  self.dynamic_macros.end_groups()
 }
 
 ///|
@@ -569,7 +580,7 @@ fn MacroExpander::expand_macro(
   self : MacroExpander,
   name : String,
 ) -> ParseResult[Array[Token]?] {
-  if !self.macros.has(name) && !self.dynamic_macros.contains(name) {
+  if !self.macros.has(name) && !self.dynamic_macros.has(name) {
     Ok(None)
   } else {
     match self.expand_tokens([Token::make(name)]) {
@@ -670,6 +681,25 @@ fn MacroExpander::get_expansion(
   if name.length() == 1 && self.lexer.catcode(name) is Some(code) && code != 13 {
     return Ok(None)
   }
+  match self.dynamic_macros.get_current(name) {
+    Some(handler) =>
+      match handler(self) {
+        Err(err) => Err(err)
+        Ok(replacement) =>
+          match self.resolve_replacement(replacement) {
+            Err(err) => Err(err)
+            Ok(value) => Ok(Some(value))
+          }
+      }
+    None => self.get_static_or_builtin_dynamic_expansion(name)
+  }
+}
+
+///|
+fn MacroExpander::get_static_or_builtin_dynamic_expansion(
+  self : MacroExpander,
+  name : String,
+) -> ParseResult[MacroExpansion?] {
   match self.macros.get(name) {
     Some(definition) =>
       match definition {
@@ -681,7 +711,7 @@ fn MacroExpander::get_expansion(
         Expansion(expansion) => Ok(Some(expansion))
       }
     None =>
-      match self.dynamic_macros.get(name) {
+      match self.dynamic_macros.get_builtin(name) {
         None => Ok(None)
         Some(handler) =>
           match handler(self) {
@@ -703,7 +733,7 @@ fn MacroExpander::is_defined(self : MacroExpander, name : String) -> Bool {
     ExternalExpandable | ExternalUnexpandable => true
   }
   self.macros.has(name) ||
-  self.dynamic_macros.contains(name) ||
+  self.dynamic_macros.has(name) ||
   external_defined ||
   is_implicit_command(name)
 }
@@ -711,6 +741,17 @@ fn MacroExpander::is_defined(self : MacroExpander, name : String) -> Bool {
 ///|
 #warnings("-unused_value")
 fn MacroExpander::is_expandable(self : MacroExpander, name : String) -> Bool {
+  match self.dynamic_macros.get_current(name) {
+    Some(_) => true
+    None => self.is_static_or_builtin_dynamic_expandable(name)
+  }
+}
+
+///|
+fn MacroExpander::is_static_or_builtin_dynamic_expandable(
+  self : MacroExpander,
+  name : String,
+) -> Bool {
   match self.macros.get(name) {
     Some(definition) =>
       match definition {
@@ -718,7 +759,7 @@ fn MacroExpander::is_expandable(self : MacroExpander, name : String) -> Bool {
         Expansion(value) => !value.unexpandable
       }
     None =>
-      if self.dynamic_macros.contains(name) {
+      if self.dynamic_macros.get_builtin(name) is Some(_) {
         true
       } else {
         match (self.command_status)(name) {

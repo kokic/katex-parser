@@ -71,6 +71,16 @@ fn[V] Namespace::get(self : Namespace[V], key : String) -> V? {
 }
 
 ///|
+fn[V] Namespace::get_current(self : Namespace[V], key : String) -> V? {
+  self.current.get(key)
+}
+
+///|
+fn[V] Namespace::get_builtin(self : Namespace[V], key : String) -> V? {
+  self.builtins.get(key)
+}
+
+///|
 #warnings("-unused_value")
 fn[V] Namespace::set(
   self : Namespace[V],
