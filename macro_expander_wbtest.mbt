@@ -1,7 +1,7 @@
 ///|
 test "MacroExpander expands simple text macro" {
   let settings = Settings::default()
-  settings.macros["\\foo"] = MacroDefinition::Text("xy")
+  settings.macros["\\foo"] = MacroDefinition::text("xy")
   let expander = MacroExpander::make("\\foo", settings)
   let t0 = expander.expand_next_token().unwrap()
   let t1 = expander.expand_next_token().unwrap()
@@ -19,7 +19,7 @@ test "MacroExpander treats relax as defined but unexpanded" {
 ///|
 test "MacroExpander propagates invalid macro body lexing" {
   let settings = Settings::default()
-  settings.macros["\\bad"] = MacroDefinition::Text("\\")
+  settings.macros["\\bad"] = MacroDefinition::text("\\")
   let expander = MacroExpander::make("\\bad", settings)
   match expander.expand_next_token() {
     Err(UnexpectedCharacter(message~, loc~)) => {
@@ -78,8 +78,21 @@ test "MacroExpander::scan_argument uses one non-braced token as required argumen
 
 ///|
 test "MacroExpander::scan_argument leaves absent optional argument untouched" {
-  let expander = MacroExpander::make("x", Settings::default())
+  let expander = MacroExpander::make("  x", Settings::default())
   let arg = expander.scan_argument(true).unwrap()
   let t0 = expander.expand_next_token().unwrap()
   debug_inspect((arg is None, t0.text), content="(true, \"x\")")
+}
+
+///|
+test "MacroExpander::scan_argument pushes nested optional argument job" {
+  let expander = MacroExpander::make("[x{y}]z", Settings::default())
+  let arg = expander.scan_argument(true).unwrap().unwrap()
+  let tokens : Array[String] = []
+  for _ in 0..<5 {
+    tokens.push(expander.expand_next_token().unwrap().text)
+  }
+  assert_eq(tokens, ["x", "{", "y", "}", "EOF"])
+  assert_eq(arg.loc, Some(SourceLocation::make("[x{y}]z", start=0, end=6)))
+  assert_eq(expander.expand_next_token().unwrap().text, "z")
 }

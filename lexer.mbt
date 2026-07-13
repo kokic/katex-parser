@@ -34,6 +34,11 @@ fn Lexer::set_catcode(self : Lexer, char : String, code : Int) -> Unit {
 }
 
 ///|
+fn Lexer::catcode(self : Lexer, char : String) -> Int? {
+  self.catcodes.get(char)
+}
+
+///|
 fn is_space_code_unit(c : UInt16) -> Bool {
   c == ' ' || c == '\r' || c == '\n' || c == '\t'
 }

@@ -1,7 +1,37 @@
 ///|
-pub(all) enum MacroDefinition {
+pub struct MacroExpansion {
+  tokens : Array[Token]
+  num_args : Int
+  delimiters : Array[Array[String]]?
+  unexpandable : Bool
+} derive(Debug, Eq, ToJson)
+
+///|
+pub enum MacroDefinition {
   Text(String)
-} derive(Debug, ToJson, Eq)
+  Expansion(MacroExpansion)
+} derive(Debug, Eq, ToJson)
+
+///|
+pub fn MacroDefinition::text(expansion : String) -> MacroDefinition {
+  Text(expansion)
+}
+
+///|
+#warnings("-unused_value")
+fn MacroDefinition::expansion(expansion : MacroExpansion) -> MacroDefinition {
+  Expansion(expansion)
+}
+
+///|
+fn MacroExpansion::make(
+  tokens : Array[Token],
+  num_args? : Int = 0,
+  delimiters? : Array[Array[String]],
+  unexpandable? : Bool = false,
+) -> MacroExpansion {
+  { tokens, num_args, delimiters, unexpandable }
+}
 
 ///|
 priv struct MacroArgument {
@@ -9,5 +39,3 @@ priv struct MacroArgument {
   end : Token
   tokens : Array[Token]
 }
-
-///|

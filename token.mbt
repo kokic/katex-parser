@@ -1,12 +1,14 @@
 ///|
-priv struct Token {
-  text : String
+pub struct Token {
+  mut text : String
   loc : SourceLocation?
-}
+  mut noexpand : Bool
+  mut treat_as_relax : Bool
+} derive(Debug, Eq, ToJson)
 
 ///|
 fn Token::make(text : String, loc? : SourceLocation) -> Token {
-  { text, loc }
+  { text, loc, noexpand: false, treat_as_relax: false }
 }
 
 ///|
