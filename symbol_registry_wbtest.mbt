@@ -42,29 +42,19 @@ fn symbol_group_name(group : SymbolGroup) -> String {
 }
 
 ///|
-fn symbol_entry_fingerprint(entry : String) -> Int64 {
-  let modulus : Int64 = 2147483647
-  let mut hash : Int64 = 0
-  for index in 0..<entry.length() {
-    hash = (hash * 131 + Int64::from_int(entry[index].to_int())) % modulus
-  }
-  hash
-}
-
-///|
 fn symbol_registry_fingerprint() -> (Int64, Int64) {
   let modulus : Int64 = 2147483647
   let mut sum : Int64 = 0
   let mut squares : Int64 = 0
   for name, spec in builtin_symbols.math {
     let entry = "math:\{name.length()}:\{name}:\{symbol_group_name(spec.group)}"
-    let hash = symbol_entry_fingerprint(entry)
+    let hash = test_string_fingerprint(entry)
     sum = (sum + hash) % modulus
     squares = (squares + hash * hash) % modulus
   }
   for name, spec in builtin_symbols.text {
     let entry = "text:\{name.length()}:\{name}:\{symbol_group_name(spec.group)}"
-    let hash = symbol_entry_fingerprint(entry)
+    let hash = test_string_fingerprint(entry)
     sum = (sum + hash) % modulus
     squares = (squares + hash * hash) % modulus
   }

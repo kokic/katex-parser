@@ -30,6 +30,14 @@ pub(all) enum ParseNode {
   Spacing(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
   AccentToken(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
   OperatorToken(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
+  Accent(
+    mode~ : Mode,
+    loc~ : SourceLocation?,
+    label~ : String,
+    is_stretchy~ : Bool,
+    is_shifty~ : Bool,
+    base~ : ParseNode
+  )
   Atom(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -49,6 +57,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Spacing(mode~, ..) => mode
     AccentToken(mode~, ..) => mode
     OperatorToken(mode~, ..) => mode
+    Accent(mode~, ..) => mode
     Atom(mode~, ..) => mode
     Color(mode~, ..) => mode
   }

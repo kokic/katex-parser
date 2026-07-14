@@ -86,3 +86,13 @@ fn test_command_status(name : String) -> ExternalCommandStatus {
     _ => ExternalUndefined
   }
 }
+
+///|
+fn test_string_fingerprint(text : String) -> Int64 {
+  let modulus : Int64 = 2147483647
+  let mut hash : Int64 = 0
+  for index in 0..<text.length() {
+    hash = (hash * 131 + Int64::from_int(text[index].to_int())) % modulus
+  }
+  hash
+}

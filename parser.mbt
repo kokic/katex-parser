@@ -518,31 +518,95 @@ fn Parser::parse_symbol(self : Parser) -> ParseResult[ParseNode?] {
   match self.fetch() {
     Err(err) => Err(err)
     Ok(token) => {
-      let text = token.text
-      if text == "EOF" ||
-        text == "^" ||
-        text == "_" ||
-        text == "{" ||
-        text == "}" ||
-        text == "&" {
+      let original_text = token.text
+      if original_text == "EOF" ||
+        original_text == "^" ||
+        original_text == "_" ||
+        original_text == "{" ||
+        original_text == "}" ||
+        original_text == "&" {
         Ok(None)
       } else {
-        match lookup_symbol(self.mode, text) {
-          Some(spec) => {
+        let normalized = normalize_unicode_symbol(self.mode, original_text)
+        let mark_start = trailing_combining_mark_start(normalized)
+        let text = match mark_start {
+          Some(start) => normalized.unsafe_substring(start=0, end=start)
+          None => normalized
+        }
+        let text = match mark_start {
+          Some(_) if text == "i" => "ı"
+          Some(_) if text == "j" => "ȷ"
+          _ => text
+        }
+        match make_base_symbol_node(self.mode, text, token.loc) {
+          None => Ok(None)
+          Some(base) => {
             self.consume()
-            Ok(Some(make_symbol_node(self.mode, text, token.loc, spec)))
-          }
-          None =>
-            if text.length() > 0 && text[0] >= 0x80 {
-              self.consume()
-              Ok(Some(TextOrd(mode=Text, loc=token.loc, text~)))
-            } else {
-              Ok(None)
+            match mark_start {
+              None => Ok(Some(base))
+              Some(start) =>
+                match
+                  apply_unicode_accents(
+                    self.mode,
+                    token.loc,
+                    base,
+                    normalized.unsafe_substring(start~, end=normalized.length()),
+                  ) {
+                  Err(err) => Err(err)
+                  Ok(node) => Ok(Some(node))
+                }
             }
+          }
         }
       }
     }
   }
+}
+
+///|
+fn make_base_symbol_node(
+  mode : Mode,
+  text : String,
+  loc : SourceLocation?,
+) -> ParseNode? {
+  match lookup_symbol(mode, text) {
+    Some(spec) => Some(make_symbol_node(mode, text, loc, spec))
+    None =>
+      if text.length() > 0 && text[0] >= 0x80 {
+        Some(TextOrd(mode=Text, loc~, text~))
+      } else {
+        None
+      }
+  }
+}
+
+///|
+fn apply_unicode_accents(
+  mode : Mode,
+  loc : SourceLocation?,
+  base : ParseNode,
+  accents : String,
+) -> ParseResult[ParseNode] {
+  let mut result = base
+  for accent in accents {
+    let accent_text = String::from_array([accent])
+    let label = match unicode_accent_command(mode, accent_text) {
+      Some(command) => command
+      None =>
+        return Err(
+          InvalidArgument(message="Unknown accent ' \{accent_text}'", loc~),
+        )
+    }
+    result = Accent(
+      mode~,
+      loc~,
+      label~,
+      is_stretchy=false,
+      is_shifty=true,
+      base=result,
+    )
+  }
+  Ok(result)
 }
 
 ///|
