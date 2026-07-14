@@ -596,6 +596,12 @@ fn Parser::parse_symbol(self : Parser) -> ParseResult[ParseNode?] {
         original_text == "}" ||
         original_text == "&" {
         Ok(None)
+      } else if is_verb_token(original_text) {
+        self.consume()
+        match parse_verb_token(original_text) {
+          Err(err) => Err(err)
+          Ok(node) => Ok(Some(node))
+        }
       } else {
         let normalized = normalize_unicode_symbol(self.mode, original_text)
         let mark_start = trailing_combining_mark_start(normalized)
@@ -630,6 +636,40 @@ fn Parser::parse_symbol(self : Parser) -> ParseResult[ParseNode?] {
         }
       }
     }
+  }
+}
+
+///|
+fn is_verb_token(text : String) -> Bool {
+  text.length() > 5 &&
+  starts_with_at(text, 0, "\\verb") &&
+  !is_ascii_alphabetic(text[5])
+}
+
+///|
+fn parse_verb_token(text : String) -> ParseResult[ParseNode] {
+  let raw_argument = text.unsafe_substring(start=5, end=text.length())
+  let star = raw_argument.length() > 0 && raw_argument[0] == '*'
+  let argument = if star {
+    raw_argument.unsafe_substring(start=1, end=raw_argument.length())
+  } else {
+    raw_argument
+  }
+  if argument.length() < 2 || argument[0] != argument[argument.length() - 1] {
+    Err(
+      InternalInvariant(
+        message="\\verb assertion failed -- please report what input caused this bug",
+      ),
+    )
+  } else {
+    Ok(
+      Verb(
+        mode=Text,
+        loc=None,
+        body=argument.unsafe_substring(start=1, end=argument.length() - 1),
+        star~,
+      ),
+    )
   }
 }
 

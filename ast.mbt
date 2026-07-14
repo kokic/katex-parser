@@ -38,6 +38,7 @@ pub(all) enum ParseNode {
     is_shifty~ : Bool,
     base~ : ParseNode
   )
+  Verb(mode~ : Mode, loc~ : SourceLocation?, body~ : String, star~ : Bool)
   Atom(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -58,6 +59,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     AccentToken(mode~, ..) => mode
     OperatorToken(mode~, ..) => mode
     Accent(mode~, ..) => mode
+    Verb(mode~, ..) => mode
     Atom(mode~, ..) => mode
     Color(mode~, ..) => mode
   }
