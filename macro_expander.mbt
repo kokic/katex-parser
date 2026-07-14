@@ -30,6 +30,8 @@ type MacroHandler = (MacroExpander) -> ParseResult[MacroReplacement]
 fn default_command_status(name : String) -> ExternalCommandStatus {
   if is_registered_function(name) {
     ExternalExpandable
+  } else if is_registered_symbol(name) {
+    ExternalUnexpandable
   } else {
     ExternalUndefined
   }

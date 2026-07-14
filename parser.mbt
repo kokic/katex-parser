@@ -526,11 +526,20 @@ fn Parser::parse_symbol(self : Parser) -> ParseResult[ParseNode?] {
         text == "}" ||
         text == "&" {
         Ok(None)
-      } else if text.length() > 0 && text[0] == '\\' {
-        Ok(None)
       } else {
-        self.consume()
-        Ok(Some(make_symbol_node(self.mode, text, token.loc)))
+        match lookup_symbol(self.mode, text) {
+          Some(spec) => {
+            self.consume()
+            Ok(Some(make_symbol_node(self.mode, text, token.loc, spec)))
+          }
+          None =>
+            if text.length() > 0 && text[0] >= 0x80 {
+              self.consume()
+              Ok(Some(TextOrd(mode=Text, loc=token.loc, text~)))
+            } else {
+              Ok(None)
+            }
+        }
       }
     }
   }
@@ -541,15 +550,20 @@ fn make_symbol_node(
   mode : Mode,
   text : String,
   loc : SourceLocation?,
+  spec : SymbolSpec,
 ) -> ParseNode {
-  if mode == Text {
-    TextOrd(mode~, loc~, text~)
-  } else if is_binary_operator(text) {
-    Atom(mode~, loc~, family=Mbin, text~)
-  } else if is_relation_operator(text) {
-    Atom(mode~, loc~, family=Mrel, text~)
-  } else {
-    MathOrd(mode~, loc~, text~)
+  match spec.group {
+    AccentTokenGroup => AccentToken(mode~, loc~, text~)
+    BinaryGroup => Atom(mode~, loc~, family=Mbin, text~)
+    CloseGroup => Atom(mode~, loc~, family=Mclose, text~)
+    InnerGroup => Atom(mode~, loc~, family=Minner, text~)
+    MathOrdGroup => MathOrd(mode~, loc~, text~)
+    OperatorTokenGroup => OperatorToken(mode~, loc~, text~)
+    OpenGroup => Atom(mode~, loc~, family=Mopen, text~)
+    PunctuationGroup => Atom(mode~, loc~, family=Mpunct, text~)
+    RelationGroup => Atom(mode~, loc~, family=Mrel, text~)
+    SpacingGroup => Spacing(mode~, loc~, text~)
+    TextOrdGroup => TextOrd(mode~, loc~, text~)
   }
 }
 
@@ -567,11 +581,3 @@ fn format_unsupported_command(
 }
 
 ///|
-fn is_binary_operator(text : String) -> Bool {
-  text == "+" || text == "-" || text == "*" || text == "/"
-}
-
-///|
-fn is_relation_operator(text : String) -> Bool {
-  text == "=" || text == "<" || text == ">"
-}

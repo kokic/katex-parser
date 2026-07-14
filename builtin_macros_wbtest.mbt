@@ -134,19 +134,8 @@ test "newcommand renewcommand and providecommand implement scoped definitions" {
 
 ///|
 test "newcommand validates existence and argument count" {
-  let resolver = fn(name) {
-    if name == "\\lambda" {
-      ExternalUnexpandable
-    } else {
-      ExternalUndefined
-    }
-  }
   match
-    MacroExpander::make(
-      "\\newcommand\\lambda{x}",
-      Settings::default(),
-      command_status=resolver,
-    ).expand_next_token() {
+    MacroExpander::make("\\newcommand\\lambda{x}", Settings::default()).expand_next_token() {
     Err(InvalidArgument(message~, ..)) =>
       assert_true(starts_with_at(message, 0, "\\newcommand"))
     _ => fail("expected redefinition error")

@@ -27,6 +27,9 @@ pub(all) enum ParseNode {
   SupSub(mode~ : Mode, base~ : ParseNode?, sup~ : ParseNode?, sub~ : ParseNode?)
   TextOrd(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
   MathOrd(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
+  Spacing(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
+  AccentToken(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
+  OperatorToken(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
   Atom(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -43,6 +46,9 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
     MathOrd(mode~, ..) => mode
+    Spacing(mode~, ..) => mode
+    AccentToken(mode~, ..) => mode
+    OperatorToken(mode~, ..) => mode
     Atom(mode~, ..) => mode
     Color(mode~, ..) => mode
   }

@@ -16,7 +16,7 @@ test "parse simple math symbols" {
       #|      family=Mbin,
       #|      text="+",
       #|    ),
-      #|    MathOrd(
+      #|    TextOrd(
       #|      mode=Math,
       #|      loc=Some({ input: "x+1", start: 2, end: 3 }),
       #|      text="1",
@@ -44,7 +44,7 @@ test "parse superscript" {
       #|        ),
       #|      ),
       #|      sup=Some(
-      #|        MathOrd(
+      #|        TextOrd(
       #|          mode=Math,
       #|          loc=Some({ input: "x^2", start: 2, end: 3 }),
       #|          text="2",
