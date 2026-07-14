@@ -98,6 +98,28 @@ fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
 }
 
 ///|
+fn Parser::subparse(
+  self : Parser,
+  tokens : Array[Token],
+) -> ParseResult[Array[ParseNode]] {
+  let old_token = self.next_token
+  self.consume()
+  self.gullet.push_token(Token::make("}"))
+  self.gullet.push_tokens(tokens)
+  let parsed = self.parse_expression(Some("}"))
+  let result = match parsed {
+    Err(err) => Err(err)
+    Ok(body) =>
+      match self.expect("}") {
+        Err(err) => Err(err)
+        Ok(_) => Ok(body)
+      }
+  }
+  self.next_token = old_token
+  result
+}
+
+///|
 fn Parser::parse_expression(
   self : Parser,
   break_on_token_text : String?,
@@ -225,8 +247,56 @@ fn Parser::parse_scripts(
             }
           }
         } else {
-          break Ok(Some(make_supsub_or_base(self.mode, base, sup, sub)))
+          match lookup_unicode_script(token.text) {
+            None =>
+              break Ok(Some(make_supsub_or_base(self.mode, base, sup, sub)))
+            Some(first_script) => {
+              let (is_subscript, script_tokens) = match
+                self.consume_unicode_script_run(first_script) {
+                Err(err) => break Err(err)
+                Ok(value) => value
+              }
+              let body = match self.subparse(script_tokens) {
+                Err(err) => break Err(err)
+                Ok(value) => value
+              }
+              let group = OrdGroup(mode=Math, loc=None, body~, semisimple=false)
+              if is_subscript {
+                sub = Some(group)
+              } else {
+                sup = Some(group)
+              }
+              continue
+            }
+          }
         }
+    }
+  }
+}
+
+///|
+fn Parser::consume_unicode_script_run(
+  self : Parser,
+  first : UnicodeScript,
+) -> ParseResult[(Bool, Array[Token])] {
+  let is_subscript = first.kind is UnicodeSubscript
+  let tokens : Array[Token] = [Token::make(first.replacement)]
+  self.consume()
+  for ;; {
+    let next = match self.fetch() {
+      Err(err) => break Err(err)
+      Ok(value) => value
+    }
+    match lookup_unicode_script(next.text) {
+      Some(script) if (script.kind is UnicodeSubscript) == is_subscript => {
+        tokens.push(Token::make(script.replacement))
+        self.consume()
+        continue
+      }
+      _ => {
+        tokens.rev_in_place()
+        break Ok((is_subscript, tokens))
+      }
     }
   }
 }
