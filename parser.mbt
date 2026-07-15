@@ -71,7 +71,7 @@ fn Parser::parse(self : Parser) -> Array[ParseNode] raise ParseFailure {
   }
   let result : Result[Array[ParseNode], ParseFailure] = Ok(
     {
-      let body = self.parse_expression(None)
+      let body = self.parse_expression(false, None)
       self.expect("EOF")
       body
     },
@@ -107,7 +107,7 @@ fn Parser::subparse(
   self.gullet.push_tokens(tokens)
   let result : Result[Array[ParseNode], ParseFailure] = Ok(
     {
-      let body = self.parse_expression(Some("}"))
+      let body = self.parse_expression(false, Some("}"))
       self.expect("}")
       body
     },
@@ -124,6 +124,7 @@ fn Parser::subparse(
 ///|
 fn Parser::parse_expression(
   self : Parser,
+  break_on_infix : Bool,
   break_on_token_text : String?,
 ) -> Array[ParseNode] raise ParseFailure {
   let body : Array[ParseNode] = []
@@ -135,6 +136,10 @@ fn Parser::parse_expression(
     if is_end_of_expression(token.text) {
       break self.finish_expression(body)
     } else if break_on_token_text is Some(stop) && token.text == stop {
+      break self.finish_expression(body)
+    } else if break_on_infix &&
+      lookup_function(token.text) is Some(spec) &&
+      spec.infix {
       break self.finish_expression(body)
     } else {
       match self.parse_atom(break_on_token_text) {
@@ -154,10 +159,10 @@ fn Parser::parse_expression(
 
 ///|
 fn Parser::finish_expression(
-  _self : Parser,
+  self : Parser,
   body : Array[ParseNode],
-) -> Array[ParseNode] {
-  body
+) -> Array[ParseNode] raise ParseFailure {
+  self.handle_infix_nodes(body)
 }
 
 ///|
@@ -308,7 +313,7 @@ fn Parser::parse_group(
     self.consume()
     let group_end = if text == "{" { "}" } else { "\\endgroup" }
     self.gullet.begin_group()
-    let body = self.parse_expression(Some(group_end))
+    let body = self.parse_expression(false, Some(group_end))
     let last = self.fetch()
     self.expect(group_end)
     self.gullet.end_group()

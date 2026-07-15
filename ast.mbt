@@ -44,6 +44,22 @@ pub(all) enum ParseNode {
     reset_font~ : Bool
   )
   Sqrt(mode~ : Mode, body~ : ParseNode, index~ : ParseNode?)
+  Infix(
+    mode~ : Mode,
+    replace_with~ : String,
+    size~ : Measurement?,
+    token~ : Token?
+  )
+  GenFrac(
+    mode~ : Mode,
+    numer~ : ParseNode,
+    denom~ : ParseNode,
+    continued~ : Bool,
+    has_bar_line~ : Bool,
+    bar_size~ : Measurement?,
+    left_delim~ : String?,
+    right_delim~ : String?
+  )
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -84,6 +100,8 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Url(mode~, ..) => mode
     Styling(mode~, ..) => mode
     Sqrt(mode~, ..) => mode
+    Infix(mode~, ..) => mode
+    GenFrac(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode

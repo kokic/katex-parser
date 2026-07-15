@@ -123,7 +123,7 @@ fn Parser::parse_argument_group(
       self.gullet.begin_group()
       let result : Result[ParseNode, ParseFailure] = Ok(
         {
-          let body = self.parse_expression(Some("EOF"))
+          let body = self.parse_expression(false, Some("EOF"))
           self.expect("EOF")
           OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
         },
