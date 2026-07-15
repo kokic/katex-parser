@@ -74,6 +74,7 @@ fn settings_with_max_expand(max_expand : Int) -> Settings {
   {
     throw_on_error: true,
     error_color: "#cc0000",
+    color_is_text_color: false,
     max_expand,
     global_group: false,
     macros: Map([]),

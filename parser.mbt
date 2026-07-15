@@ -28,7 +28,10 @@ pub fn parse(
   settings? : Settings = Settings::default(),
 ) -> Array[ParseNode] raise ParseFailure {
   let parser = Parser::make(input, settings)
-  parser.parse()
+  let body = parser.parse()
+  parser.gullet.macros.set("\\current@color", None)
+  parser.gullet.macros.set("\\color", None)
+  body
 }
 
 ///|
@@ -68,6 +71,12 @@ fn Parser::expect(
 fn Parser::parse(self : Parser) -> Array[ParseNode] raise ParseFailure {
   if !self.settings.global_group {
     self.gullet.begin_group()
+  }
+  if self.settings.color_is_text_color {
+    self.gullet.macros.set(
+      "\\color",
+      Some(MacroDefinition::text("\\textcolor")),
+    )
   }
   let result : Result[Array[ParseNode], ParseFailure] = Ok(
     {
@@ -418,9 +427,13 @@ fn Parser::call_function(
 ) -> ParseNode raise ParseFailure {
   let context : FunctionContext = {
     func_name,
-    parser: self,
+    mode: self.mode,
     token,
     break_on_token_text,
+    set_macro: (name, definition) => self.gullet.macros.set(name, definition),
+    parse_expression: (break_on_infix, break_on_token_text) => {
+      self.parse_expression(break_on_infix, break_on_token_text)
+    },
   }
   match lookup_function(func_name) {
     None => raise MissingFunctionHandler(func_name~, loc=None)

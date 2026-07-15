@@ -1,12 +1,4 @@
 ///|
-fn ord_argument(arg : ParseNode) -> Array[ParseNode] {
-  match arg {
-    OrdGroup(body~, ..) => body
-    _ => [arg]
-  }
-}
-
-///|
 fn text_spec() -> FunctionSpec {
   FunctionSpec::make(
     [
@@ -28,7 +20,7 @@ fn text_handler(
   _opt_args : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   Text(
-    mode=context.parser.mode,
+    mode=context.mode,
     body=ord_argument(require_function_arg(args, 0, context.func_name)),
     font=context.func_name,
   )

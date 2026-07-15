@@ -8,21 +8,6 @@ priv struct GenFracConfig {
 }
 
 ///|
-fn require_function_arg(
-  args : Array[ParseNode],
-  index : Int,
-  func_name : String,
-) -> ParseNode raise ParseFailure {
-  match args.get(index) {
-    Some(arg) => arg
-    None =>
-      raise InternalInvariant(
-        message="Missing argument \{index} for " + func_name,
-      )
-  }
-}
-
-///|
 fn wrap_genfrac_style(node : ParseNode, style : StyleLevel?) -> ParseNode {
   match style {
     None => node
@@ -144,7 +129,7 @@ fn standard_genfrac_handler(
 ) -> ParseNode raise ParseFailure {
   let config = standard_genfrac_config(context.func_name)
   let node = GenFrac(
-    mode=context.parser.mode,
+    mode=context.mode,
     numer=require_function_arg(args, 0, context.func_name),
     denom=require_function_arg(args, 1, context.func_name),
     continued=config.continued,
@@ -188,7 +173,7 @@ fn infix_genfrac_handler(
   _opt_args : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   Infix(
-    mode=context.parser.mode,
+    mode=context.mode,
     replace_with=infix_replacement(context.func_name),
     size=None,
     token=context.token,
@@ -274,7 +259,7 @@ fn general_genfrac_handler(
   let has_bar_line = is_blank || value.number > 0.0
   let bar_size = if is_blank { None } else { Some(value) }
   let node = GenFrac(
-    mode=context.parser.mode,
+    mode=context.mode,
     numer~,
     denom~,
     continued=false,
@@ -307,7 +292,7 @@ fn above_handler(
     raise InternalInvariant(message="\\above argument was not a size")
   }
   Infix(
-    mode=context.parser.mode,
+    mode=context.mode,
     replace_with="\\\\abovefrac",
     size=Some(value),
     token=context.token,
@@ -337,7 +322,7 @@ fn abovefrac_handler(
     raise InternalInvariant(message="\\\\abovefrac expected an infix size")
   }
   GenFrac(
-    mode=context.parser.mode,
+    mode=context.mode,
     numer~,
     denom~,
     continued=false,

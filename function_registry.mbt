@@ -13,12 +13,13 @@ priv enum ArgType {
 }
 
 ///|
-#warnings("-unused_field")
 priv struct FunctionContext {
   func_name : String
-  parser : Parser
+  mode : Mode
   token : Token?
   break_on_token_text : String?
+  set_macro : (String, MacroDefinition?) -> Unit
+  parse_expression : (Bool, String?) -> Array[ParseNode] raise ParseFailure
 }
 
 ///|
@@ -140,7 +141,7 @@ fn relax_handler(
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
 ) -> ParseNode {
-  Internal(mode=_context.parser.mode)
+  Internal(mode=_context.mode)
 }
 
 ///|
@@ -154,6 +155,8 @@ let builtin_function_specs : Array[FunctionSpec] = [
   above_spec(),
   abovefrac_spec(),
   text_spec(),
+  textcolor_spec(),
+  color_spec(),
 ]
 
 ///|

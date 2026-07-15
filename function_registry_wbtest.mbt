@@ -11,8 +11,8 @@ fn require_function(
 
 ///|
 test "builtin function registry preserves KaTeX parser defaults" {
-  assert_eq(builtin_function_specs.length(), 9)
-  assert_eq(builtin_function_registry.entries.length(), 31)
+  assert_eq(builtin_function_specs.length(), 11)
+  assert_eq(builtin_function_registry.entries.length(), 33)
   let verb = require_function(builtin_function_registry, "\\verb")
   assert_eq(verb.names, ["\\verb"])
   assert_eq(verb.num_args, 0)
@@ -65,14 +65,18 @@ test "FunctionContext preserves handler metadata" {
   parser.consume()
   let context : FunctionContext = {
     func_name: token.text,
-    parser,
+    mode: parser.mode,
     token: Some(token),
     break_on_token_text: Some("}"),
+    set_macro: (name, definition) => parser.gullet.macros.set(name, definition),
+    parse_expression: (break_on_infix, break_on_token_text) => {
+      parser.parse_expression(break_on_infix, break_on_token_text)
+    },
   }
   assert_eq(context.func_name, "\\relax")
+  assert_true(context.mode is Math)
   assert_eq(context.token, Some(token))
   assert_eq(context.break_on_token_text, Some("}"))
-  assert_true(context.parser.next_token is None)
 }
 
 ///|

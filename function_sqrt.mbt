@@ -21,5 +21,5 @@ fn sqrt_handler(
   guard opt_args.get(0) is Some(index) else {
     raise InternalInvariant(message="Missing optional argument slot for \\sqrt")
   }
-  Sqrt(mode=context.parser.mode, body~, index~)
+  Sqrt(mode=context.mode, body~, index~)
 }
