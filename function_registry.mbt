@@ -144,7 +144,11 @@ fn relax_handler(
 }
 
 ///|
-let builtin_function_specs : Array[FunctionSpec] = [verb_spec(), relax_spec()]
+let builtin_function_specs : Array[FunctionSpec] = [
+  verb_spec(),
+  relax_spec(),
+  sqrt_spec(),
+]
 
 ///|
 fn build_builtin_function_registry() -> FunctionRegistry {

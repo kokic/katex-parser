@@ -43,6 +43,7 @@ pub(all) enum ParseNode {
     style~ : StyleLevel,
     reset_font~ : Bool
   )
+  Sqrt(mode~ : Mode, body~ : ParseNode, index~ : ParseNode?)
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -82,6 +83,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Size(mode~, ..) => mode
     Url(mode~, ..) => mode
     Styling(mode~, ..) => mode
+    Sqrt(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
