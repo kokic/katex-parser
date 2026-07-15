@@ -1,6 +1,6 @@
 ///|
 priv struct Parser {
-  mode : Mode
+  mut mode : Mode
   gullet : MacroExpander
   settings : Settings
   mut next_token : Token?
@@ -137,7 +137,7 @@ fn Parser::parse_expression(
     } else if break_on_token_text is Some(stop) && token.text == stop {
       break self.finish_expression(body)
     } else {
-      match self.parse_atom() {
+      match self.parse_atom(break_on_token_text) {
         None => break self.finish_expression(body)
         Some(atom) =>
           match atom {
@@ -182,10 +182,14 @@ fn Parser::consume_spaces(self : Parser) -> Unit raise ParseFailure {
 }
 
 ///|
-fn Parser::parse_atom(self : Parser) -> AtomResult? raise ParseFailure {
-  match self.parse_group("atom") {
+fn Parser::parse_atom(
+  self : Parser,
+  break_on_token_text : String?,
+) -> AtomResult? raise ParseFailure {
+  match self.parse_group("atom", break_on_token_text) {
     None => None
     Some(SkipAtom) => Some(SkipAtom)
+    Some(EmitAtom(Internal(..))) => Some(SkipAtom)
     Some(EmitAtom(base)) =>
       if self.mode == Text {
         Some(EmitAtom(base))
@@ -283,10 +287,12 @@ fn Parser::handle_sup_subscript(
   let token = self.fetch()
   self.consume()
   self.consume_spaces()
-  match self.parse_group(name) {
-    Some(EmitAtom(group)) => group
-    Some(SkipAtom) | None =>
-      raise ExpectedGroupAfter(symbol=token.text, loc=token.loc)
+  for ;; {
+    match self.parse_group(name, None) {
+      Some(EmitAtom(Internal(..))) | Some(SkipAtom) => continue
+      Some(EmitAtom(group)) => break group
+      None => raise ExpectedGroupAfter(symbol=token.text, loc=token.loc)
+    }
   }
 }
 
@@ -294,6 +300,7 @@ fn Parser::handle_sup_subscript(
 fn Parser::parse_group(
   self : Parser,
   name : String,
+  break_on_token_text : String?,
 ) -> AtomResult? raise ParseFailure {
   let first_token = self.fetch()
   let text = first_token.text
@@ -316,7 +323,7 @@ fn Parser::parse_group(
       ),
     )
   } else {
-    match self.parse_function(Some(name)) {
+    match self.parse_function(break_on_token_text, Some(name)) {
       Some(result) => Some(result)
       None =>
         match self.parse_symbol() {
@@ -344,6 +351,7 @@ fn Parser::parse_group(
 ///|
 fn Parser::parse_function(
   self : Parser,
+  break_on_token_text : String?,
   name : String?,
 ) -> AtomResult? raise ParseFailure {
   let token = self.fetch()
@@ -373,10 +381,17 @@ fn Parser::parse_function(
         )
       } else {
         let (args, opt_args) = self.parse_arguments(token.text, func_data)
-        match self.call_function(token.text, args, opt_args) {
-          Some(node) => Some(EmitAtom(node))
-          None => Some(SkipAtom)
-        }
+        Some(
+          EmitAtom(
+            self.call_function(
+              token.text,
+              args,
+              opt_args,
+              Some(token),
+              break_on_token_text,
+            ),
+          ),
+        )
       }
     }
   }
@@ -388,96 +403,22 @@ fn Parser::call_function(
   func_name : String,
   args : Array[ParseNode],
   opt_args : Array[ParseNode?],
-) -> ParseNode? raise ParseFailure {
+  token : Token?,
+  break_on_token_text : String?,
+) -> ParseNode raise ParseFailure {
+  let context : FunctionContext = {
+    func_name,
+    parser: self,
+    token,
+    break_on_token_text,
+  }
   match lookup_function(func_name) {
     None => raise MissingFunctionHandler(func_name~, loc=None)
-    Some(spec) => (spec.handler)(self, args, opt_args)
-  }
-}
-
-///|
-fn Parser::parse_arguments(
-  self : Parser,
-  func : String,
-  func_data : FunctionSpec,
-) -> (Array[ParseNode], Array[ParseNode?]) raise ParseFailure {
-  let args : Array[ParseNode] = []
-  let opt_args : Array[ParseNode?] = []
-  let total_args = func_data.num_args + func_data.num_optional_args
-  for i in 0..<total_args {
-    let optional = i < func_data.num_optional_args
-    let arg_type = match func_data.arg_types.get(i) {
-      Some(kind) => kind
-      None => OriginalArg
-    }
-    match self.parse_group_of_type(arg_type, optional) {
-      None =>
-        if optional {
-          opt_args.push(None)
-          continue
-        } else {
-          raise InvalidArgument(
-            message="Missing argument for " + func,
-            loc=None,
-          )
-        }
-      Some(arg) => {
-        if optional {
-          opt_args.push(Some(arg))
-        } else {
-          args.push(arg)
-        }
-        continue
+    Some(spec) =>
+      match spec.handler {
+        None => raise MissingFunctionHandler(func_name~, loc=None)
+        Some(handler) => handler(context, args, opt_args)
       }
-    }
-  } nobreak {
-    (args, opt_args)
-  }
-}
-
-///|
-fn Parser::parse_group_of_type(
-  self : Parser,
-  arg_type : ArgType,
-  optional : Bool,
-) -> ParseNode? raise ParseFailure {
-  match arg_type {
-    OriginalArg => self.parse_argument_group(optional)
-  }
-}
-
-///|
-fn Parser::parse_argument_group(
-  self : Parser,
-  optional : Bool,
-) -> ParseNode? raise ParseFailure {
-  match self.gullet.scan_argument(optional) {
-    None => None
-    Some(arg_token) => {
-      self.gullet.begin_group()
-      let result : Result[ParseNode, ParseFailure] = Ok(
-        {
-          let body = self.parse_expression(Some("EOF"))
-          self.expect("EOF")
-          OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
-        },
-      ) catch {
-        err => Err(err)
-      }
-      let close_result : Result[Unit, ParseFailure] = Ok(
-        self.gullet.end_group(),
-      ) catch {
-        err => Err(err)
-      }
-      match close_result {
-        Err(err) => raise err
-        Ok(_) =>
-          match result {
-            Err(err) => raise err
-            Ok(node) => Some(node)
-          }
-      }
-    }
   }
 }
 

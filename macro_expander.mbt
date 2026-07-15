@@ -28,12 +28,19 @@ type MacroHandler = (MacroExpander) -> MacroReplacement raise ParseFailure
 
 ///|
 fn default_command_status(name : String) -> ExternalCommandStatus {
-  if is_registered_function(name) {
-    ExternalExpandable
-  } else if is_registered_symbol(name) {
-    ExternalUnexpandable
-  } else {
-    ExternalUndefined
+  match lookup_function(name) {
+    Some(spec) =>
+      if spec.is_expandable() {
+        ExternalExpandable
+      } else {
+        ExternalUnexpandable
+      }
+    None =>
+      if is_registered_symbol(name) {
+        ExternalUnexpandable
+      } else {
+        ExternalUndefined
+      }
   }
 }
 

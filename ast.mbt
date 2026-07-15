@@ -17,7 +17,32 @@ pub(all) enum AtomFamily {
 } derive(Debug, ToJson, Eq)
 
 ///|
+pub(all) struct Measurement {
+  number : Double
+  unit : String
+} derive(Debug, ToJson, Eq)
+
+///|
+pub(all) enum StyleLevel {
+  DisplayStyle
+  TextStyle
+  ScriptStyle
+  ScriptScriptStyle
+} derive(Debug, ToJson, Eq)
+
+///|
 pub(all) enum ParseNode {
+  Internal(mode~ : Mode)
+  Raw(mode~ : Mode, string~ : String)
+  ColorToken(mode~ : Mode, color~ : String)
+  Size(mode~ : Mode, value~ : Measurement, is_blank~ : Bool)
+  Url(mode~ : Mode, url~ : String)
+  Styling(
+    mode~ : Mode,
+    body~ : Array[ParseNode],
+    style~ : StyleLevel,
+    reset_font~ : Bool
+  )
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -51,6 +76,12 @@ pub(all) enum ParseNode {
 ///|
 pub fn ParseNode::mode(self : ParseNode) -> Mode {
   match self {
+    Internal(mode~) => mode
+    Raw(mode~, ..) => mode
+    ColorToken(mode~, ..) => mode
+    Size(mode~, ..) => mode
+    Url(mode~, ..) => mode
+    Styling(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode

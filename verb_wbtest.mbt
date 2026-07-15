@@ -33,10 +33,12 @@ test "verb preserves TeX-special characters without parsing" {
 test "unterminated verb uses the registered fallback error" {
   for input in ["\\verb|hello", "\\verb*|hello", "\\verb|hello\nworld|"] {
     match capture_parse_result(() => parse(input)) {
-      Err(InvalidArgument(message~, loc=None)) =>
+      Err(InvalidArgument(message~, loc~)) => {
         assert_eq(
           message, "\\verb ended by end of line instead of matching delimiter",
         )
+        assert_eq(loc, Some(SourceLocation::make(input, start=0, end=5)))
+      }
       _ => fail("expected unterminated verb error")
     }
   }

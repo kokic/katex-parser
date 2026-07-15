@@ -85,15 +85,11 @@ test "parse braced group" {
 ///|
 test "Parser::parse_arguments parses original groups through gullet" {
   let parser = Parser::make("{xy}", Settings::default())
-  let spec : FunctionSpec = {
-    num_args: 1,
-    num_optional_args: 0,
-    arg_types: [OriginalArg],
-    allowed_in_argument: false,
-    allowed_in_text: false,
-    allowed_in_math: true,
-    handler: (_parser, _args, _opt_args) => None,
-  }
+  let spec = FunctionSpec::make(["\\test"], 1, arg_types=[OriginalArg], handler=(
+    _context,
+    _args,
+    _opt_args,
+  ) => Internal(mode=Math))
   debug_inspect(
     parser.parse_arguments("\\test", spec),
     content=(
@@ -150,7 +146,7 @@ test "Parser::subparse restores lookahead after an error" {
 ///|
 test "Parser::parse_argument_group closes its namespace after an error" {
   let parser = Parser::make("{\\missing}", Settings::default())
-  match capture_parse_result(() => parser.parse_argument_group(false)) {
+  match capture_parse_result(() => parser.parse_argument_group(false, None)) {
     Err(UndefinedControlSequence(name="\\missing", ..)) => ()
     _ => fail("expected undefined control sequence")
   }

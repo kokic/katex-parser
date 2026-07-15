@@ -1,80 +1,164 @@
 ///|
+#warnings("-unused_constructor")
 priv enum ArgType {
+  ColorArg
+  SizeArg
+  UrlArg
+  RawArg
   OriginalArg
+  HboxArg
+  PrimitiveArg
+  MathArg
+  TextArg
 }
 
 ///|
-type FunctionHandler = (Parser, Array[ParseNode], Array[ParseNode?]) -> ParseNode? raise ParseFailure
+#warnings("-unused_field")
+priv struct FunctionContext {
+  func_name : String
+  parser : Parser
+  token : Token?
+  break_on_token_text : String?
+}
 
 ///|
+type FunctionHandler = (FunctionContext, Array[ParseNode], Array[ParseNode?]) -> ParseNode raise ParseFailure
+
+///|
+#warnings("-unused_field")
 priv struct FunctionSpec {
+  names : Array[String]
   num_args : Int
   num_optional_args : Int
   arg_types : Array[ArgType]
   allowed_in_argument : Bool
   allowed_in_text : Bool
   allowed_in_math : Bool
-  handler : FunctionHandler
+  infix : Bool
+  primitive : Bool
+  primitive_after_missing_optional : Int?
+  handler : FunctionHandler?
 }
 
 ///|
-fn lookup_function(name : String) -> FunctionSpec? {
-  match name {
-    "\\relax" => Some(relax_spec())
-    "\\verb" => Some(verb_spec())
-    _ => None
+fn FunctionSpec::make(
+  names : Array[String],
+  num_args : Int,
+  num_optional_args? : Int = 0,
+  arg_types? : Array[ArgType] = [],
+  allowed_in_argument? : Bool = false,
+  allowed_in_text? : Bool = false,
+  allowed_in_math? : Bool = true,
+  infix? : Bool = false,
+  primitive? : Bool = false,
+  primitive_after_missing_optional? : Int,
+  handler? : FunctionHandler,
+) -> FunctionSpec {
+  {
+    names,
+    num_args,
+    num_optional_args,
+    arg_types,
+    allowed_in_argument,
+    allowed_in_text,
+    allowed_in_math,
+    infix,
+    primitive,
+    primitive_after_missing_optional,
+    handler,
   }
+}
+
+///|
+fn FunctionSpec::is_expandable(self : FunctionSpec) -> Bool {
+  !self.primitive
+}
+
+///|
+priv struct FunctionRegistry {
+  entries : Map[String, FunctionSpec]
+}
+
+///|
+fn FunctionRegistry::make() -> FunctionRegistry {
+  { entries: Map([]) }
+}
+
+///|
+fn FunctionRegistry::register(
+  self : FunctionRegistry,
+  spec : FunctionSpec,
+) -> Unit {
+  for name in spec.names {
+    self.entries[name] = spec
+  }
+}
+
+///|
+fn FunctionRegistry::get(
+  self : FunctionRegistry,
+  name : String,
+) -> FunctionSpec? {
+  self.entries.get(name)
 }
 
 ///|
 fn verb_spec() -> FunctionSpec {
-  {
-    num_args: 0,
-    num_optional_args: 0,
-    arg_types: [],
-    allowed_in_argument: false,
-    allowed_in_text: true,
-    allowed_in_math: true,
-    handler: verb_handler,
-  }
+  FunctionSpec::make(["\\verb"], 0, allowed_in_text=true, handler=verb_handler)
 }
 
 ///|
 fn verb_handler(
-  _parser : Parser,
+  context : FunctionContext,
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
-) -> ParseNode? raise ParseFailure {
+) -> ParseNode raise ParseFailure {
+  let loc = match context.token {
+    Some(token) => token.loc
+    None => None
+  }
   raise InvalidArgument(
     message="\\verb ended by end of line instead of matching delimiter",
-    loc=None,
+    loc~,
   )
 }
 
 ///|
-fn is_registered_function(name : String) -> Bool {
-  lookup_function(name) is Some(_)
-}
-
-///|
 fn relax_spec() -> FunctionSpec {
-  {
-    num_args: 0,
-    num_optional_args: 0,
-    arg_types: [],
-    allowed_in_argument: true,
-    allowed_in_text: true,
-    allowed_in_math: true,
-    handler: (parser, args, opt_args) => relax_handler(parser, args, opt_args),
-  }
+  FunctionSpec::make(
+    ["\\relax"],
+    0,
+    allowed_in_argument=true,
+    allowed_in_text=true,
+    handler=(context, args, opt_args) => relax_handler(context, args, opt_args),
+  )
 }
 
 ///|
 fn relax_handler(
-  parser : Parser,
+  _context : FunctionContext,
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
-) -> ParseNode? {
-  let _ = parser
-  None
+) -> ParseNode {
+  Internal(mode=_context.parser.mode)
+}
+
+///|
+let builtin_function_specs : Array[FunctionSpec] = [verb_spec(), relax_spec()]
+
+///|
+fn build_builtin_function_registry() -> FunctionRegistry {
+  let registry = FunctionRegistry::make()
+  for spec in builtin_function_specs {
+    registry.register(spec)
+  }
+  registry
+}
+
+///|
+let builtin_function_registry : FunctionRegistry = build_builtin_function_registry()
+
+///|
+fn lookup_function(name : String) -> FunctionSpec? {
+  builtin_function_registry.get(name)
 }
