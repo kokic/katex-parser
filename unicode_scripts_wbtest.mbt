@@ -37,26 +37,24 @@ test "Unicode script registry matches official data" {
 ///|
 test "consecutive Unicode superscripts form one parsed ordgroup" {
   match parse("x²³") {
-    Ok(
-      [
-        SupSub(
-          mode=Math,
-          base=Some(MathOrd(mode=Math, text="x", ..)),
-          sup=Some(
-            OrdGroup(
-              mode=Math,
-              loc=None,
-              body=[
-                TextOrd(mode=Math, loc=None, text="2"),
-                TextOrd(mode=Math, loc=None, text="3"),
-              ],
-              semisimple=false
-            )
-          ),
-          sub=None
+    [
+      SupSub(
+        mode=Math,
+        base=Some(MathOrd(mode=Math, text="x", ..)),
+        sup=Some(
+          OrdGroup(
+            mode=Math,
+            loc=None,
+            body=[
+              TextOrd(mode=Math, loc=None, text="2"),
+              TextOrd(mode=Math, loc=None, text="3"),
+            ],
+            semisimple=false
+          )
         ),
-      ]
-    ) => ()
+        sub=None
+      ),
+    ] => ()
     _ => fail("unexpected Unicode superscript AST")
   }
 }
@@ -64,18 +62,16 @@ test "consecutive Unicode superscripts form one parsed ordgroup" {
 ///|
 test "Unicode subscript and superscript runs remain separate" {
   match parse("x₂ₙ³") {
-    Ok(
-      [
-        SupSub(
-          base=Some(MathOrd(text="x", ..)),
-          sup=Some(OrdGroup(body=[TextOrd(text="3", ..)], ..)),
-          sub=Some(
-            OrdGroup(body=[TextOrd(text="2", ..), MathOrd(text="n", ..)], ..)
-          ),
-          ..
+    [
+      SupSub(
+        base=Some(MathOrd(text="x", ..)),
+        sup=Some(OrdGroup(body=[TextOrd(text="3", ..)], ..)),
+        sub=Some(
+          OrdGroup(body=[TextOrd(text="2", ..), MathOrd(text="n", ..)], ..)
         ),
-      ]
-    ) => ()
+        ..
+      ),
+    ] => ()
     _ => fail("unexpected mixed Unicode script AST")
   }
 }
@@ -83,28 +79,26 @@ test "Unicode subscript and superscript runs remain separate" {
 ///|
 test "Unicode script body uses normal parser symbol families" {
   match parse("x⁺ᵝ₍₎") {
-    Ok(
-      [
-        SupSub(
-          sup=Some(
-            OrdGroup(
-              body=[Atom(family=Mbin, text="+", ..), MathOrd(text="β", ..)],
-              ..
-            )
-          ),
-          sub=Some(
-            OrdGroup(
-              body=[
-                Atom(family=Mopen, text="(", ..),
-                Atom(family=Mclose, text=")", ..),
-              ],
-              ..
-            )
-          ),
-          ..
+    [
+      SupSub(
+        sup=Some(
+          OrdGroup(
+            body=[Atom(family=Mbin, text="+", ..), MathOrd(text="β", ..)],
+            ..
+          )
         ),
-      ]
-    ) => ()
+        sub=Some(
+          OrdGroup(
+            body=[
+              Atom(family=Mopen, text="(", ..),
+              Atom(family=Mclose, text=")", ..),
+            ],
+            ..
+          )
+        ),
+        ..
+      ),
+    ] => ()
     _ => fail("unexpected parsed Unicode script body")
   }
 }
@@ -112,7 +106,7 @@ test "Unicode script body uses normal parser symbol families" {
 ///|
 test "Unicode superscript follows KaTeX replacement semantics" {
   match parse("x^2³") {
-    Ok([SupSub(sup=Some(OrdGroup(body=[TextOrd(text="3", ..)], ..)), ..)]) => ()
+    [SupSub(sup=Some(OrdGroup(body=[TextOrd(text="3", ..)], ..)), ..)] => ()
     _ => fail("Unicode superscript should replace an existing superscript")
   }
 }
@@ -120,13 +114,11 @@ test "Unicode superscript follows KaTeX replacement semantics" {
 ///|
 test "subparse restores the main token stream" {
   match parse("x²+y") {
-    Ok(
-      [
-        SupSub(sup=Some(OrdGroup(body=[TextOrd(text="2", ..)], ..)), ..),
-        Atom(family=Mbin, text="+", ..),
-        MathOrd(text="y", ..),
-      ]
-    ) => ()
+    [
+      SupSub(sup=Some(OrdGroup(body=[TextOrd(text="2", ..)], ..)), ..),
+      Atom(family=Mbin, text="+", ..),
+      MathOrd(text="y", ..),
+    ] => ()
     _ => fail("main token stream was not restored after Unicode script")
   }
 }

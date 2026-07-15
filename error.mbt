@@ -1,5 +1,5 @@
 ///|
-pub(all) enum ParseFailure {
+pub(all) suberror ParseFailure {
   UnexpectedCharacter(message~ : String, loc~ : SourceLocation?)
   ExpectedToken(expected~ : String, actual~ : Diagnostic)
   UndefinedControlSequence(name~ : String, loc~ : SourceLocation?)
@@ -16,9 +16,6 @@ pub(all) enum ParseFailure {
   TooManyExpansions(limit~ : Int)
   InternalInvariant(message~ : String)
 } derive(Debug, ToJson, Eq)
-
-///|
-pub type ParseResult[T] = Result[T, ParseFailure]
 
 ///|
 pub(all) struct Diagnostic {

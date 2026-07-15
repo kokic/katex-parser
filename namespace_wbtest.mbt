@@ -18,7 +18,7 @@ test "Namespace local sets restore first value at group end" {
   ns.set("a", Some(3))
   ns.set("b", Some(4))
   assert_eq((ns.get("a"), ns.get("b")), (Some(3), Some(4)))
-  ns.end_group().unwrap()
+  ns.end_group()
   assert_eq((ns.get("a"), ns.get("b")), (Some(1), None))
 }
 
@@ -29,7 +29,7 @@ test "Namespace deletion exposes builtin and restores global override" {
   ns.set("a", None)
   assert_true(ns.has("a"))
   assert_eq(ns.get("a"), Some(1))
-  ns.end_group().unwrap()
+  ns.end_group()
   assert_eq(ns.get("a"), Some(2))
 }
 
@@ -39,7 +39,7 @@ test "Namespace local builtin override restores builtin" {
   ns.begin_group()
   ns.set("a", Some(2))
   assert_eq(ns.get("a"), Some(2))
-  ns.end_group().unwrap()
+  ns.end_group()
   assert_eq(ns.get("a"), Some(1))
 }
 
@@ -54,9 +54,9 @@ test "Namespace global set survives every surrounding group" {
   ns.set("a", Some(3), global=true)
   ns.set("a", Some(4))
   assert_eq(ns.get("a"), Some(4))
-  ns.end_group().unwrap()
+  ns.end_group()
   assert_eq(ns.get("a"), Some(3))
-  ns.end_group().unwrap()
+  ns.end_group()
   assert_eq(ns.get("a"), Some(3))
   assert_eq(globals.get("a"), Some(3))
 }
@@ -71,9 +71,9 @@ test "Namespace global deletion survives every surrounding group" {
   ns.set("a", None, global=true)
   ns.set("a", Some(2))
   assert_eq(ns.get("a"), Some(2))
-  ns.end_group().unwrap()
+  ns.end_group()
   assert_eq(ns.get("a"), Some(9))
-  ns.end_group().unwrap()
+  ns.end_group()
   assert_eq(ns.get("a"), Some(9))
   assert_false(globals.contains("a"))
 }
@@ -93,7 +93,7 @@ test "Namespace end_groups restores all local changes" {
 ///|
 test "Namespace rejects ending the global namespace" {
   let ns : Namespace[Int] = Namespace::make(Map([]), Map([]))
-  match ns.end_group() {
+  match capture_parse_result(() => ns.end_group()) {
     Err(InternalInvariant(message~)) =>
       assert_eq(
         message, "Unbalanced namespace destruction: attempt to pop global namespace; please report this as a bug",

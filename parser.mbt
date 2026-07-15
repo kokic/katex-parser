@@ -26,23 +26,20 @@ fn Parser::make(input : String, settings : Settings) -> Parser {
 pub fn parse(
   input : String,
   settings? : Settings = Settings::default(),
-) -> ParseResult[Array[ParseNode]] {
+) -> Array[ParseNode] raise ParseFailure {
   let parser = Parser::make(input, settings)
   parser.parse()
 }
 
 ///|
-fn Parser::fetch(self : Parser) -> ParseResult[Token] {
+fn Parser::fetch(self : Parser) -> Token raise ParseFailure {
   match self.next_token {
-    Some(token) => Ok(token)
-    None =>
-      match self.gullet.expand_next_token() {
-        Ok(token) => {
-          self.next_token = Some(token)
-          Ok(token)
-        }
-        Err(err) => Err(err)
-      }
+    Some(token) => token
+    None => {
+      let token = self.gullet.expand_next_token()
+      self.next_token = Some(token)
+      token
+    }
   }
 }
 
@@ -56,44 +53,46 @@ fn Parser::expect(
   self : Parser,
   text : String,
   consume? : Bool = true,
-) -> ParseResult[Unit] {
-  match self.fetch() {
-    Err(err) => Err(err)
-    Ok(token) =>
-      if token.text == text {
-        if consume {
-          self.consume()
-        }
-        Ok(())
-      } else {
-        Err(ExpectedToken(expected=text, actual=Diagnostic::from_token(token)))
-      }
+) -> Unit raise ParseFailure {
+  let token = self.fetch()
+  if token.text == text {
+    if consume {
+      self.consume()
+    }
+  } else {
+    raise ExpectedToken(expected=text, actual=Diagnostic::from_token(token))
   }
 }
 
 ///|
-fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
+fn Parser::parse(self : Parser) -> Array[ParseNode] raise ParseFailure {
   if !self.settings.global_group {
     self.gullet.begin_group()
   }
-  let parsed = self.parse_expression(None)
-  let result = match parsed {
-    Err(err) => Err(err)
-    Ok(body) =>
-      match self.expect("EOF") {
-        Err(err) => Err(err)
-        Ok(_) => Ok(body)
-      }
+  let result : Result[Array[ParseNode], ParseFailure] = Ok(
+    {
+      let body = self.parse_expression(None)
+      self.expect("EOF")
+      body
+    },
+  ) catch {
+    err => Err(err)
   }
-  let close_result = if !self.settings.global_group {
-    self.gullet.end_group()
+  let close_result : Result[Unit, ParseFailure] = if !self.settings.global_group {
+    Ok(self.gullet.end_group()) catch {
+      err => Err(err)
+    }
   } else {
     Ok(())
   }
   self.gullet.end_groups()
   match close_result {
-    Err(err) => Err(err)
-    Ok(_) => result
+    Err(err) => raise err
+    Ok(_) =>
+      match result {
+        Err(err) => raise err
+        Ok(body) => body
+      }
   }
 }
 
@@ -101,58 +100,54 @@ fn Parser::parse(self : Parser) -> ParseResult[Array[ParseNode]] {
 fn Parser::subparse(
   self : Parser,
   tokens : Array[Token],
-) -> ParseResult[Array[ParseNode]] {
+) -> Array[ParseNode] raise ParseFailure {
   let old_token = self.next_token
   self.consume()
   self.gullet.push_token(Token::make("}"))
   self.gullet.push_tokens(tokens)
-  let parsed = self.parse_expression(Some("}"))
-  let result = match parsed {
-    Err(err) => Err(err)
-    Ok(body) =>
-      match self.expect("}") {
-        Err(err) => Err(err)
-        Ok(_) => Ok(body)
-      }
+  let result : Result[Array[ParseNode], ParseFailure] = Ok(
+    {
+      let body = self.parse_expression(Some("}"))
+      self.expect("}")
+      body
+    },
+  ) catch {
+    err => Err(err)
   }
   self.next_token = old_token
-  result
+  match result {
+    Err(err) => raise err
+    Ok(body) => body
+  }
 }
 
 ///|
 fn Parser::parse_expression(
   self : Parser,
   break_on_token_text : String?,
-) -> ParseResult[Array[ParseNode]] {
+) -> Array[ParseNode] raise ParseFailure {
   let body : Array[ParseNode] = []
   for ;; {
     if self.mode == Math {
-      match self.consume_spaces() {
-        Err(err) => break Err(err)
-        Ok(_) => ()
-      }
+      self.consume_spaces()
     }
-    match self.fetch() {
-      Err(err) => break Err(err)
-      Ok(token) =>
-        if is_end_of_expression(token.text) {
-          break Ok(self.finish_expression(body))
-        } else if break_on_token_text is Some(stop) && token.text == stop {
-          break Ok(self.finish_expression(body))
-        } else {
-          match self.parse_atom() {
-            Err(err) => break Err(err)
-            Ok(None) => break Ok(self.finish_expression(body))
-            Ok(Some(atom)) =>
-              match atom {
-                SkipAtom => continue
-                EmitAtom(node) => {
-                  body.push(node)
-                  continue
-                }
-              }
+    let token = self.fetch()
+    if is_end_of_expression(token.text) {
+      break self.finish_expression(body)
+    } else if break_on_token_text is Some(stop) && token.text == stop {
+      break self.finish_expression(body)
+    } else {
+      match self.parse_atom() {
+        None => break self.finish_expression(body)
+        Some(atom) =>
+          match atom {
+            SkipAtom => continue
+            EmitAtom(node) => {
+              body.push(node)
+              continue
+            }
           }
-        }
+      }
     }
   }
 }
@@ -175,36 +170,27 @@ fn is_end_of_expression(text : String) -> Bool {
 }
 
 ///|
-fn Parser::consume_spaces(self : Parser) -> ParseResult[Unit] {
+fn Parser::consume_spaces(self : Parser) -> Unit raise ParseFailure {
   for ;; {
-    match self.fetch() {
-      Err(err) => break Err(err)
-      Ok(token) =>
-        if token.text == " " {
-          self.consume()
-          continue
-        } else {
-          break Ok(())
-        }
+    if self.fetch().text == " " {
+      self.consume()
+      continue
+    } else {
+      break
     }
   }
 }
 
 ///|
-fn Parser::parse_atom(self : Parser) -> ParseResult[AtomResult?] {
+fn Parser::parse_atom(self : Parser) -> AtomResult? raise ParseFailure {
   match self.parse_group("atom") {
-    Err(err) => Err(err)
-    Ok(None) => Ok(None)
-    Ok(Some(SkipAtom)) => Ok(Some(SkipAtom))
-    Ok(Some(EmitAtom(base))) =>
+    None => None
+    Some(SkipAtom) => Some(SkipAtom)
+    Some(EmitAtom(base)) =>
       if self.mode == Text {
-        Ok(Some(EmitAtom(base)))
+        Some(EmitAtom(base))
       } else {
-        match self.parse_scripts(base) {
-          Err(err) => Err(err)
-          Ok(None) => Ok(None)
-          Ok(Some(node)) => Ok(Some(EmitAtom(node)))
-        }
+        Some(EmitAtom(self.parse_scripts(base)))
       }
   }
 }
@@ -213,63 +199,41 @@ fn Parser::parse_atom(self : Parser) -> ParseResult[AtomResult?] {
 fn Parser::parse_scripts(
   self : Parser,
   base : ParseNode,
-) -> ParseResult[ParseNode?] {
+) -> ParseNode raise ParseFailure {
   let mut sup : ParseNode? = None
   let mut sub : ParseNode? = None
   for ;; {
-    match self.consume_spaces() {
-      Err(err) => break Err(err)
-      Ok(_) => ()
-    }
-    match self.fetch() {
-      Err(err) => break Err(err)
-      Ok(token) =>
-        if token.text == "^" {
-          if sup is Some(_) {
-            break Err(DoubleSuperscript(loc=token.loc))
+    self.consume_spaces()
+    let token = self.fetch()
+    if token.text == "^" {
+      if sup is Some(_) {
+        raise DoubleSuperscript(loc=token.loc)
+      }
+      sup = Some(self.handle_sup_subscript("superscript"))
+      continue
+    } else if token.text == "_" {
+      if sub is Some(_) {
+        raise DoubleSubscript(loc=token.loc)
+      }
+      sub = Some(self.handle_sup_subscript("subscript"))
+      continue
+    } else {
+      match lookup_unicode_script(token.text) {
+        None => break make_supsub_or_base(self.mode, base, sup, sub)
+        Some(first_script) => {
+          let (is_subscript, script_tokens) = self.consume_unicode_script_run(
+            first_script,
+          )
+          let body = self.subparse(script_tokens)
+          let group = OrdGroup(mode=Math, loc=None, body~, semisimple=false)
+          if is_subscript {
+            sub = Some(group)
+          } else {
+            sup = Some(group)
           }
-          match self.handle_sup_subscript("superscript") {
-            Err(err) => break Err(err)
-            Ok(group) => {
-              sup = Some(group)
-              continue
-            }
-          }
-        } else if token.text == "_" {
-          if sub is Some(_) {
-            break Err(DoubleSubscript(loc=token.loc))
-          }
-          match self.handle_sup_subscript("subscript") {
-            Err(err) => break Err(err)
-            Ok(group) => {
-              sub = Some(group)
-              continue
-            }
-          }
-        } else {
-          match lookup_unicode_script(token.text) {
-            None =>
-              break Ok(Some(make_supsub_or_base(self.mode, base, sup, sub)))
-            Some(first_script) => {
-              let (is_subscript, script_tokens) = match
-                self.consume_unicode_script_run(first_script) {
-                Err(err) => break Err(err)
-                Ok(value) => value
-              }
-              let body = match self.subparse(script_tokens) {
-                Err(err) => break Err(err)
-                Ok(value) => value
-              }
-              let group = OrdGroup(mode=Math, loc=None, body~, semisimple=false)
-              if is_subscript {
-                sub = Some(group)
-              } else {
-                sup = Some(group)
-              }
-              continue
-            }
-          }
+          continue
         }
+      }
     }
   }
 }
@@ -278,15 +242,12 @@ fn Parser::parse_scripts(
 fn Parser::consume_unicode_script_run(
   self : Parser,
   first : UnicodeScript,
-) -> ParseResult[(Bool, Array[Token])] {
+) -> (Bool, Array[Token]) raise ParseFailure {
   let is_subscript = first.kind is UnicodeSubscript
   let tokens : Array[Token] = [Token::make(first.replacement)]
   self.consume()
   for ;; {
-    let next = match self.fetch() {
-      Err(err) => break Err(err)
-      Ok(value) => value
-    }
+    let next = self.fetch()
     match lookup_unicode_script(next.text) {
       Some(script) if (script.kind is UnicodeSubscript) == is_subscript => {
         tokens.push(Token::make(script.replacement))
@@ -295,7 +256,7 @@ fn Parser::consume_unicode_script_run(
       }
       _ => {
         tokens.rev_in_place()
-        break Ok((is_subscript, tokens))
+        break (is_subscript, tokens)
       }
     }
   }
@@ -318,25 +279,14 @@ fn make_supsub_or_base(
 fn Parser::handle_sup_subscript(
   self : Parser,
   name : String,
-) -> ParseResult[ParseNode] {
-  let symbol_token = self.fetch()
-  match symbol_token {
-    Err(err) => Err(err)
-    Ok(token) => {
-      self.consume()
-      match self.consume_spaces() {
-        Err(err) => Err(err)
-        Ok(_) =>
-          match self.parse_group(name) {
-            Err(err) => Err(err)
-            Ok(Some(EmitAtom(group))) => Ok(group)
-            Ok(Some(SkipAtom)) =>
-              Err(ExpectedGroupAfter(symbol=token.text, loc=token.loc))
-            Ok(None) =>
-              Err(ExpectedGroupAfter(symbol=token.text, loc=token.loc))
-          }
-      }
-    }
+) -> ParseNode raise ParseFailure {
+  let token = self.fetch()
+  self.consume()
+  self.consume_spaces()
+  match self.parse_group(name) {
+    Some(EmitAtom(group)) => group
+    Some(SkipAtom) | None =>
+      raise ExpectedGroupAfter(symbol=token.text, loc=token.loc)
   }
 }
 
@@ -344,86 +294,49 @@ fn Parser::handle_sup_subscript(
 fn Parser::parse_group(
   self : Parser,
   name : String,
-) -> ParseResult[AtomResult?] {
-  match self.fetch() {
-    Err(err) => Err(err)
-    Ok(first_token) => {
-      let text = first_token.text
-      if text == "{" || text == "\\begingroup" {
-        self.consume()
-        let group_end = if text == "{" { "}" } else { "\\endgroup" }
-        self.gullet.begin_group()
-        let expression = self.parse_expression(Some(group_end))
-        match expression {
-          Err(err) => Err(err)
-          Ok(body) => {
-            let last_token = self.fetch()
-            match last_token {
-              Err(err) => Err(err)
-              Ok(last) =>
-                match self.expect(group_end) {
-                  Err(err) => Err(err)
-                  Ok(_) =>
-                    match self.gullet.end_group() {
-                      Err(err) => Err(err)
-                      Ok(_) => {
-                        let loc = match (first_token.loc, last.loc) {
-                          (Some(start_loc), Some(end_loc)) =>
-                            Some(SourceLocation::range(start_loc, end_loc))
-                          _ => None
-                        }
-                        Ok(
-                          Some(
-                            EmitAtom(
-                              OrdGroup(
-                                mode=self.mode,
-                                loc~,
-                                body~,
-                                semisimple=text == "\\begingroup",
-                              ),
-                            ),
-                          ),
-                        )
-                      }
-                    }
-                }
-            }
-          }
-        }
-      } else {
-        match self.parse_function(Some(name)) {
-          Err(err) => Err(err)
-          Ok(Some(result)) => Ok(Some(result))
-          Ok(None) =>
-            match self.parse_symbol() {
-              Err(err) => Err(err)
-              Ok(Some(node)) => Ok(Some(EmitAtom(node)))
-              Ok(None) =>
-                if text.length() > 0 && text[0] == '\\' {
-                  if self.settings.throw_on_error {
-                    Err(
-                      UndefinedControlSequence(name=text, loc=first_token.loc),
-                    )
-                  } else {
-                    self.consume()
-                    Ok(
-                      Some(
-                        EmitAtom(
-                          format_unsupported_command(
-                            self.mode,
-                            self.settings,
-                            text,
-                          ),
-                        ),
-                      ),
-                    )
-                  }
-                } else {
-                  Ok(None)
-                }
+) -> AtomResult? raise ParseFailure {
+  let first_token = self.fetch()
+  let text = first_token.text
+  if text == "{" || text == "\\begingroup" {
+    self.consume()
+    let group_end = if text == "{" { "}" } else { "\\endgroup" }
+    self.gullet.begin_group()
+    let body = self.parse_expression(Some(group_end))
+    let last = self.fetch()
+    self.expect(group_end)
+    self.gullet.end_group()
+    let loc = match (first_token.loc, last.loc) {
+      (Some(start_loc), Some(end_loc)) =>
+        Some(SourceLocation::range(start_loc, end_loc))
+      _ => None
+    }
+    Some(
+      EmitAtom(
+        OrdGroup(mode=self.mode, loc~, body~, semisimple=text == "\\begingroup"),
+      ),
+    )
+  } else {
+    match self.parse_function(Some(name)) {
+      Some(result) => Some(result)
+      None =>
+        match self.parse_symbol() {
+          Some(node) => Some(EmitAtom(node))
+          None =>
+            if text.length() > 0 && text[0] == '\\' {
+              if self.settings.throw_on_error {
+                raise UndefinedControlSequence(name=text, loc=first_token.loc)
+              } else {
+                self.consume()
+                Some(
+                  EmitAtom(
+                    format_unsupported_command(self.mode, self.settings, text),
+                  ),
+                )
+              }
+            } else {
+              None
             }
         }
-      }
     }
   }
 }
@@ -432,53 +345,40 @@ fn Parser::parse_group(
 fn Parser::parse_function(
   self : Parser,
   name : String?,
-) -> ParseResult[AtomResult?] {
-  match self.fetch() {
-    Err(err) => Err(err)
-    Ok(token) =>
-      match lookup_function(token.text) {
-        None => Ok(None)
-        Some(func_data) => {
-          self.consume()
-          if name is Some(context_name) &&
-            context_name != "atom" &&
-            !func_data.allowed_in_argument {
-            Err(
-              FunctionNotAllowed(
-                func_name=token.text,
-                context=context_name,
-                loc=token.loc,
-              ),
-            )
-          } else if self.mode == Text && !func_data.allowed_in_text {
-            Err(
-              FunctionNotAllowed(
-                func_name=token.text,
-                context="text mode",
-                loc=token.loc,
-              ),
-            )
-          } else if self.mode == Math && !func_data.allowed_in_math {
-            Err(
-              FunctionNotAllowed(
-                func_name=token.text,
-                context="math mode",
-                loc=token.loc,
-              ),
-            )
-          } else {
-            match self.parse_arguments(token.text, func_data) {
-              Err(err) => Err(err)
-              Ok((args, opt_args)) =>
-                match self.call_function(token.text, args, opt_args) {
-                  Err(err) => Err(err)
-                  Ok(Some(node)) => Ok(Some(EmitAtom(node)))
-                  Ok(None) => Ok(Some(SkipAtom))
-                }
-            }
-          }
+) -> AtomResult? raise ParseFailure {
+  let token = self.fetch()
+  match lookup_function(token.text) {
+    None => None
+    Some(func_data) => {
+      self.consume()
+      if name is Some(context_name) &&
+        context_name != "atom" &&
+        !func_data.allowed_in_argument {
+        raise FunctionNotAllowed(
+          func_name=token.text,
+          context=context_name,
+          loc=token.loc,
+        )
+      } else if self.mode == Text && !func_data.allowed_in_text {
+        raise FunctionNotAllowed(
+          func_name=token.text,
+          context="text mode",
+          loc=token.loc,
+        )
+      } else if self.mode == Math && !func_data.allowed_in_math {
+        raise FunctionNotAllowed(
+          func_name=token.text,
+          context="math mode",
+          loc=token.loc,
+        )
+      } else {
+        let (args, opt_args) = self.parse_arguments(token.text, func_data)
+        match self.call_function(token.text, args, opt_args) {
+          Some(node) => Some(EmitAtom(node))
+          None => Some(SkipAtom)
         }
       }
+    }
   }
 }
 
@@ -488,9 +388,9 @@ fn Parser::call_function(
   func_name : String,
   args : Array[ParseNode],
   opt_args : Array[ParseNode?],
-) -> ParseResult[ParseNode?] {
+) -> ParseNode? raise ParseFailure {
   match lookup_function(func_name) {
-    None => Err(MissingFunctionHandler(func_name~, loc=None))
+    None => raise MissingFunctionHandler(func_name~, loc=None)
     Some(spec) => (spec.handler)(self, args, opt_args)
   }
 }
@@ -500,7 +400,7 @@ fn Parser::parse_arguments(
   self : Parser,
   func : String,
   func_data : FunctionSpec,
-) -> ParseResult[(Array[ParseNode], Array[ParseNode?])] {
+) -> (Array[ParseNode], Array[ParseNode?]) raise ParseFailure {
   let args : Array[ParseNode] = []
   let opt_args : Array[ParseNode?] = []
   let total_args = func_data.num_args + func_data.num_optional_args
@@ -511,17 +411,17 @@ fn Parser::parse_arguments(
       None => OriginalArg
     }
     match self.parse_group_of_type(arg_type, optional) {
-      Err(err) => break Err(err)
-      Ok(None) =>
+      None =>
         if optional {
           opt_args.push(None)
           continue
         } else {
-          break Err(
-            InvalidArgument(message="Missing argument for " + func, loc=None),
+          raise InvalidArgument(
+            message="Missing argument for " + func,
+            loc=None,
           )
         }
-      Ok(Some(arg)) => {
+      Some(arg) => {
         if optional {
           opt_args.push(Some(arg))
         } else {
@@ -531,7 +431,7 @@ fn Parser::parse_arguments(
       }
     }
   } nobreak {
-    Ok((args, opt_args))
+    (args, opt_args)
   }
 }
 
@@ -540,7 +440,7 @@ fn Parser::parse_group_of_type(
   self : Parser,
   arg_type : ArgType,
   optional : Bool,
-) -> ParseResult[ParseNode?] {
+) -> ParseNode? raise ParseFailure {
   match arg_type {
     OriginalArg => self.parse_argument_group(optional)
   }
@@ -550,89 +450,78 @@ fn Parser::parse_group_of_type(
 fn Parser::parse_argument_group(
   self : Parser,
   optional : Bool,
-) -> ParseResult[ParseNode?] {
+) -> ParseNode? raise ParseFailure {
   match self.gullet.scan_argument(optional) {
-    Err(err) => Err(err)
-    Ok(None) => Ok(None)
-    Ok(Some(arg_token)) => {
+    None => None
+    Some(arg_token) => {
       self.gullet.begin_group()
-      let parsed = self.parse_expression(Some("EOF"))
-      let result = match parsed {
-        Err(err) => Err(err)
-        Ok(body) =>
-          match self.expect("EOF") {
-            Err(err) => Err(err)
-            Ok(_) =>
-              Ok(
-                Some(
-                  OrdGroup(
-                    mode=self.mode,
-                    loc=arg_token.loc,
-                    body~,
-                    semisimple=false,
-                  ),
-                ),
-              )
-          }
+      let result : Result[ParseNode, ParseFailure] = Ok(
+        {
+          let body = self.parse_expression(Some("EOF"))
+          self.expect("EOF")
+          OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
+        },
+      ) catch {
+        err => Err(err)
       }
-      match self.gullet.end_group() {
-        Err(err) => Err(err)
-        Ok(_) => result
+      let close_result : Result[Unit, ParseFailure] = Ok(
+        self.gullet.end_group(),
+      ) catch {
+        err => Err(err)
+      }
+      match close_result {
+        Err(err) => raise err
+        Ok(_) =>
+          match result {
+            Err(err) => raise err
+            Ok(node) => Some(node)
+          }
       }
     }
   }
 }
 
 ///|
-fn Parser::parse_symbol(self : Parser) -> ParseResult[ParseNode?] {
-  match self.fetch() {
-    Err(err) => Err(err)
-    Ok(token) => {
-      let original_text = token.text
-      if original_text == "EOF" ||
-        original_text == "^" ||
-        original_text == "_" ||
-        original_text == "{" ||
-        original_text == "}" ||
-        original_text == "&" {
-        Ok(None)
-      } else if is_verb_token(original_text) {
+fn Parser::parse_symbol(self : Parser) -> ParseNode? raise ParseFailure {
+  let token = self.fetch()
+  let original_text = token.text
+  if original_text == "EOF" ||
+    original_text == "^" ||
+    original_text == "_" ||
+    original_text == "{" ||
+    original_text == "}" ||
+    original_text == "&" {
+    None
+  } else if is_verb_token(original_text) {
+    self.consume()
+    Some(parse_verb_token(original_text))
+  } else {
+    let normalized = normalize_unicode_symbol(self.mode, original_text)
+    let mark_start = trailing_combining_mark_start(normalized)
+    let text = match mark_start {
+      Some(start) => normalized.unsafe_substring(start=0, end=start)
+      None => normalized
+    }
+    let text = match mark_start {
+      Some(_) if text == "i" => "ı"
+      Some(_) if text == "j" => "ȷ"
+      _ => text
+    }
+    match make_base_symbol_node(self.mode, text, token.loc) {
+      None => None
+      Some(base) => {
         self.consume()
-        match parse_verb_token(original_text) {
-          Err(err) => Err(err)
-          Ok(node) => Ok(Some(node))
-        }
-      } else {
-        let normalized = normalize_unicode_symbol(self.mode, original_text)
-        let mark_start = trailing_combining_mark_start(normalized)
-        let text = match mark_start {
-          Some(start) => normalized.unsafe_substring(start=0, end=start)
-          None => normalized
-        }
-        let text = match mark_start {
-          Some(_) if text == "i" => "ı"
-          Some(_) if text == "j" => "ȷ"
-          _ => text
-        }
-        match make_base_symbol_node(self.mode, text, token.loc) {
-          None => Ok(None)
-          Some(base) => {
-            self.consume()
-            match mark_start {
-              None => Ok(Some(base))
-              Some(start) =>
-                match
-                  apply_unicode_accents(
-                    self.mode,
-                    token.loc,
-                    base,
-                    normalized.unsafe_substring(start~, end=normalized.length()),
-                  ) {
-                  Err(err) => Err(err)
-                  Ok(node) => Ok(Some(node))
-                }
-            }
-          }
+        match mark_start {
+          None => Some(base)
+          Some(start) =>
+            Some(
+              apply_unicode_accents(
+                self.mode,
+                token.loc,
+                base,
+                normalized.unsafe_substring(start~, end=normalized.length()),
+              ),
+            )
         }
       }
     }
@@ -647,7 +536,7 @@ fn is_verb_token(text : String) -> Bool {
 }
 
 ///|
-fn parse_verb_token(text : String) -> ParseResult[ParseNode] {
+fn parse_verb_token(text : String) -> ParseNode raise ParseFailure {
   let raw_argument = text.unsafe_substring(start=5, end=text.length())
   let star = raw_argument.length() > 0 && raw_argument[0] == '*'
   let argument = if star {
@@ -656,19 +545,15 @@ fn parse_verb_token(text : String) -> ParseResult[ParseNode] {
     raw_argument
   }
   if argument.length() < 2 || argument[0] != argument[argument.length() - 1] {
-    Err(
-      InternalInvariant(
-        message="\\verb assertion failed -- please report what input caused this bug",
-      ),
+    raise InternalInvariant(
+      message="\\verb assertion failed -- please report what input caused this bug",
     )
   } else {
-    Ok(
-      Verb(
-        mode=Text,
-        loc=None,
-        body=argument.unsafe_substring(start=1, end=argument.length() - 1),
-        star~,
-      ),
+    Verb(
+      mode=Text,
+      loc=None,
+      body=argument.unsafe_substring(start=1, end=argument.length() - 1),
+      star~,
     )
   }
 }
@@ -696,16 +581,14 @@ fn apply_unicode_accents(
   loc : SourceLocation?,
   base : ParseNode,
   accents : String,
-) -> ParseResult[ParseNode] {
+) -> ParseNode raise ParseFailure {
   let mut result = base
   for accent in accents {
     let accent_text = String::from_array([accent])
     let label = match unicode_accent_command(mode, accent_text) {
       Some(command) => command
       None =>
-        return Err(
-          InvalidArgument(message="Unknown accent ' \{accent_text}'", loc~),
-        )
+        raise InvalidArgument(message="Unknown accent ' \{accent_text}'", loc~)
     }
     result = Accent(
       mode~,
@@ -716,7 +599,7 @@ fn apply_unicode_accents(
       base=result,
     )
   }
-  Ok(result)
+  result
 }
 
 ///|

@@ -46,38 +46,39 @@ test "MacroExpander consumes delimited arguments at group depth zero" {
 ///|
 test "MacroExpander permits empty delimited argument" {
   let expander = MacroExpander::make(",x", Settings::default())
-  let arg = expander.consume_arg(Some([","])).unwrap()
+  let arg = expander.consume_arg(Some([","]))
   assert_true(arg.tokens.is_empty())
-  assert_eq(expander.pop_token().unwrap().text, "x")
+  assert_eq(expander.pop_token().text, "x")
 }
 
 ///|
 test "MacroExpander matches multi-token delimiter after partial mismatch" {
   let expander = MacroExpander::make("xacaby", Settings::default())
-  let arg = expander.consume_arg(Some(["a", "b"])).unwrap()
+  let arg = expander.consume_arg(Some(["a", "b"]))
   assert_eq([arg.tokens[0].text, arg.tokens[1].text, arg.tokens[2].text], [
     "c", "a", "x",
   ])
-  assert_eq(expander.pop_token().unwrap().text, "y")
+  assert_eq(expander.pop_token().text, "y")
 }
 
 ///|
 test "MacroExpander permits opening brace as a definition delimiter" {
   let expander = MacroExpander::make("{x", Settings::default())
-  let arg = expander.consume_arg(Some(["{"])).unwrap()
+  let arg = expander.consume_arg(Some(["{"]))
   assert_true(arg.tokens.is_empty())
-  assert_eq(expander.pop_token().unwrap().text, "x")
+  assert_eq(expander.pop_token().text, "x")
 }
 
 ///|
 test "MacroExpander checks macro invocation prefix delimiters" {
   let expander = MacroExpander::make("[x", Settings::default())
-  let args = expander.consume_args(1, Some([["["], []])).unwrap()
+  let args = expander.consume_args(1, Some([["["], []]))
   assert_eq(args.length(), 1)
   assert_eq(args[0][0].text, "x")
 
   let mismatch = MacroExpander::make("(x", Settings::default())
-  match mismatch.consume_args(1, Some([["["], []])) {
+  match
+    capture_parse_result(() => mismatch.consume_args(1, Some([["["], []]))) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(message, "Use of the macro doesn't match its definition")
     _ => fail("expected delimiter mismatch")
@@ -87,7 +88,7 @@ test "MacroExpander checks macro invocation prefix delimiters" {
 ///|
 test "MacroExpander validates delimiter table arity" {
   let expander = MacroExpander::make("", Settings::default())
-  match expander.consume_args(2, Some([[]])) {
+  match capture_parse_result(() => expander.consume_args(2, Some([[]]))) {
     Err(InvalidArgument(message~, loc~)) => {
       assert_eq(
         message, "The length of delimiters doesn't match the number of args!",
@@ -105,7 +106,7 @@ test "MacroExpander reports incomplete and invalid placeholders" {
     make_macro_expansion("#", num_args=1),
   )
   let incomplete = MacroExpander::make("\\bad{x}", incomplete_settings)
-  match incomplete.expand_next_token() {
+  match capture_parse_result(() => incomplete.expand_next_token()) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(message, "Incomplete placeholder at end of macro body")
     _ => fail("expected incomplete placeholder error")
@@ -116,7 +117,7 @@ test "MacroExpander reports incomplete and invalid placeholders" {
     make_macro_expansion("#x", num_args=1),
   )
   let invalid = MacroExpander::make("\\bad{y}", invalid_settings)
-  match invalid.expand_next_token() {
+  match capture_parse_result(() => invalid.expand_next_token()) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(message, "Not a valid argument number")
     _ => fail("expected invalid placeholder error")
@@ -126,7 +127,7 @@ test "MacroExpander reports incomplete and invalid placeholders" {
 ///|
 test "MacroExpander reports EOF and extra brace in arguments" {
   let eof = MacroExpander::make("{x", Settings::default())
-  match eof.consume_arg(None) {
+  match capture_parse_result(() => eof.consume_arg(None)) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(
         message, "Unexpected end of input in a macro argument, expected '}'",
@@ -135,7 +136,7 @@ test "MacroExpander reports EOF and extra brace in arguments" {
   }
 
   let extra = MacroExpander::make("}", Settings::default())
-  match extra.consume_arg(None) {
+  match capture_parse_result(() => extra.consume_arg(None)) {
     Err(InvalidArgument(message~, ..)) => assert_eq(message, "Extra }")
     _ => fail("expected extra brace error")
   }
@@ -144,7 +145,7 @@ test "MacroExpander reports EOF and extra brace in arguments" {
 ///|
 test "MacroExpander reports the unmatched part of delimiter sequence" {
   let expander = MacroExpander::make("xa", Settings::default())
-  match expander.consume_arg(Some(["a", "b"])) {
+  match capture_parse_result(() => expander.consume_arg(Some(["a", "b"]))) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(
         message, "Unexpected end of input in a macro argument, expected 'b'",

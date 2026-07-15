@@ -1,6 +1,6 @@
 ///|
 fn expect_unexpected_character(input : String) -> Unit raise {
-  match Lexer::make(input).lex() {
+  match capture_parse_result(() => Lexer::make(input).lex()) {
     Err(UnexpectedCharacter(message~, loc~)) => {
       assert_eq(message, "Unexpected character: '" + input + "'")
       assert_eq(loc, Some(SourceLocation::make(input, start=0, end=1)))
@@ -12,8 +12,8 @@ fn expect_unexpected_character(input : String) -> Unit raise {
 ///|
 test "Lexer::lex collapses regular whitespace with exact location" {
   let lexer = Lexer::make(" \r\n\tx")
-  let whitespace = lexer.lex().unwrap()
-  let x = lexer.lex().unwrap()
+  let whitespace = lexer.lex()
+  let x = lexer.lex()
   debug_inspect(
     (whitespace.text, whitespace.loc, x.text, x.loc),
     content=(
@@ -32,7 +32,7 @@ test "Lexer::lex matches KaTeX control-space newline rules" {
   let lexer = Lexer::make("\\ \r\t\n \tx\\\n \ty\\\n\nz")
   let tokens : Array[(String, SourceLocation?)] = []
   for _ in 0..<8 {
-    let token = lexer.lex().unwrap()
+    let token = lexer.lex()
     tokens.push((token.text, token.loc))
   }
   let input = "\\ \r\t\n \tx\\\n \ty\\\n\nz"
@@ -51,8 +51,8 @@ test "Lexer::lex matches KaTeX control-space newline rules" {
 ///|
 test "Lexer::lex strips trailing whitespace from control-word text" {
   let lexer = Lexer::make("\\frac \r\n\tx")
-  let control_word = lexer.lex().unwrap()
-  let x = lexer.lex().unwrap()
+  let control_word = lexer.lex()
+  let x = lexer.lex()
   debug_inspect(
     (control_word.text, control_word.loc, x.text, x.loc),
     content=(
@@ -69,8 +69,8 @@ test "Lexer::lex strips trailing whitespace from control-word text" {
 ///|
 test "Lexer::lex treats at-sign as a control-word letter" {
   let lexer = Lexer::make("\\foo@bar x")
-  let control_word = lexer.lex().unwrap()
-  let x = lexer.lex().unwrap()
+  let control_word = lexer.lex()
+  let x = lexer.lex()
   assert_eq(control_word.text, "\\foo@bar")
   assert_eq(
     control_word.loc,
@@ -82,8 +82,8 @@ test "Lexer::lex treats at-sign as a control-word letter" {
 ///|
 test "Lexer::lex returns a control symbol as one token" {
   let lexer = Lexer::make("\\%x")
-  let control_symbol = lexer.lex().unwrap()
-  let x = lexer.lex().unwrap()
+  let control_symbol = lexer.lex()
+  let x = lexer.lex()
   debug_inspect(
     (control_symbol.text, control_symbol.loc, x.text),
     content=(
@@ -95,8 +95,8 @@ test "Lexer::lex returns a control symbol as one token" {
 ///|
 test "Lexer::lex attaches combining marks to BMP and astral bases" {
   let lexer = Lexer::make("a\u{0301}\u{036f}𝛼\u{0302}")
-  let bmp = lexer.lex().unwrap()
-  let astral = lexer.lex().unwrap()
+  let bmp = lexer.lex()
+  let astral = lexer.lex()
   debug_inspect(
     (bmp.text, bmp.loc, astral.text, astral.loc),
     content=(
@@ -113,12 +113,12 @@ test "Lexer::lex attaches combining marks to BMP and astral bases" {
 ///|
 test "Lexer::lex captures complete starred and unstarred verb tokens" {
   let lexer = Lexer::make("\\verb|a b|x\\verb*+c d+y\\verb@e f@z")
-  let verb = lexer.lex().unwrap()
-  let x = lexer.lex().unwrap()
-  let starred = lexer.lex().unwrap()
-  let y = lexer.lex().unwrap()
-  let at_delimiter = lexer.lex().unwrap()
-  let z = lexer.lex().unwrap()
+  let verb = lexer.lex()
+  let x = lexer.lex()
+  let starred = lexer.lex()
+  let y = lexer.lex()
+  let at_delimiter = lexer.lex()
+  let z = lexer.lex()
   debug_inspect(
     [verb.text, x.text, starred.text, y.text, at_delimiter.text, z.text],
     content="[\"\\\\verb|a b|\", \"x\", \"\\\\verb*+c d+\", \"y\", \"\\\\verb@e f@\", \"z\"]",
@@ -138,7 +138,7 @@ test "Lexer::lex captures complete starred and unstarred verb tokens" {
 ///|
 test "Lexer::lex allows alphabetic delimiter for starred verb" {
   let lexer = Lexer::make("\\verb*a bodya")
-  let token = lexer.lex().unwrap()
+  let token = lexer.lex()
   assert_eq(token.text, "\\verb*a bodya")
 }
 
@@ -146,10 +146,10 @@ test "Lexer::lex allows alphabetic delimiter for starred verb" {
 test "Lexer::lex falls back to control word for unterminated verb" {
   let newline = Lexer::make("\\verb|hello\nworld|")
   let at_eof = Lexer::make("\\verb*|hello")
-  let n0 = newline.lex().unwrap()
-  let n1 = newline.lex().unwrap()
-  let e0 = at_eof.lex().unwrap()
-  let e1 = at_eof.lex().unwrap()
+  let n0 = newline.lex()
+  let n1 = newline.lex()
+  let e0 = at_eof.lex()
+  let e1 = at_eof.lex()
   debug_inspect(
     [n0.text, n1.text, e0.text, e1.text],
     content="[\"\\\\verb\", \"|\", \"\\\\verb\", \"*\"]",
@@ -159,9 +159,9 @@ test "Lexer::lex falls back to control word for unterminated verb" {
 ///|
 test "Lexer::lex skips comments through terminating newline" {
   let lexer = Lexer::make("x% comment\ny")
-  let x = lexer.lex().unwrap()
-  let y = lexer.lex().unwrap()
-  let eof = lexer.lex().unwrap()
+  let x = lexer.lex()
+  let y = lexer.lex()
+  let eof = lexer.lex()
   debug_inspect([x.text, y.text, eof.text], content="[\"x\", \"y\", \"EOF\"]")
 }
 
@@ -170,9 +170,9 @@ test "Lexer::lex reports comment at end before EOF" {
   let diagnostics : Array[(String, String)] = []
   let lexer = Lexer::make("% comment", report_nonstrict=(code, message) => {
     diagnostics.push((code, message))
-    Ok(())
+    ()
   })
-  let eof = lexer.lex().unwrap()
+  let eof = lexer.lex()
   assert_eq(eof.text, "EOF")
   assert_eq(diagnostics, [
     (
@@ -184,9 +184,9 @@ test "Lexer::lex reports comment at end before EOF" {
 ///|
 test "Lexer::lex propagates a nonstrict reporter error" {
   let lexer = Lexer::make("% comment", report_nonstrict=(_code, _message) => {
-    Err(InvalidArgument(message="strict commentAtEnd", loc=None))
+    raise InvalidArgument(message="strict commentAtEnd", loc=None)
   })
-  match lexer.lex() {
+  match capture_parse_result(() => lexer.lex()) {
     Err(InvalidArgument(message~, loc~)) => {
       assert_eq(message, "strict commentAtEnd")
       assert_eq(loc, None)
@@ -199,11 +199,11 @@ test "Lexer::lex propagates a nonstrict reporter error" {
 test "Lexer::set_catcode changes comment characters" {
   let percent = Lexer::make("%x")
   percent.set_catcode("%", 13)
-  let p0 = percent.lex().unwrap()
-  let p1 = percent.lex().unwrap()
+  let p0 = percent.lex()
+  let p1 = percent.lex()
   let custom = Lexer::make("! ignored\nx")
   custom.set_catcode("!", 14)
-  let c0 = custom.lex().unwrap()
+  let c0 = custom.lex()
   debug_inspect([p0.text, p1.text, c0.text], content="[\"%\", \"x\", \"x\"]")
 }
 
@@ -220,9 +220,9 @@ test "Lexer::lex rejects KaTeX-excluded BMP ranges" {
 ///|
 test "Lexer::lex permits excluded bare characters as control symbols" {
   let lexer = Lexer::make("\\\u{0000}\\\u{2028}\\\u{e000}")
-  let control = lexer.lex().unwrap()
-  let line_separator = lexer.lex().unwrap()
-  let private_use = lexer.lex().unwrap()
+  let control = lexer.lex()
+  let line_separator = lexer.lex()
+  let private_use = lexer.lex()
   assert_eq(control.text, "\\\u{0000}")
   assert_eq(line_separator.text, "\\\u{2028}")
   assert_eq(private_use.text, "\\\u{e000}")
@@ -232,8 +232,8 @@ test "Lexer::lex permits excluded bare characters as control symbols" {
 test "Lexer::lex reports unexpected character at current UTF-16 offset" {
   let input = "x\u{e000}"
   let lexer = Lexer::make(input)
-  assert_eq(lexer.lex().unwrap().text, "x")
-  match lexer.lex() {
+  assert_eq(lexer.lex().text, "x")
+  match capture_parse_result(() => lexer.lex()) {
     Err(UnexpectedCharacter(message~, loc~)) => {
       assert_eq(message, "Unexpected character: '\u{e000}'")
       assert_eq(loc, Some(SourceLocation::make(input, start=1, end=2)))

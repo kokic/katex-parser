@@ -8,51 +8,43 @@ fn tokens_to_text(tokens : Array[Token]) -> String {
 }
 
 ///|
-fn message_macro(context : MacroExpander) -> ParseResult[MacroReplacement] {
-  match context.consume_args(1, None) {
-    Err(err) => Err(err)
-    Ok(args) => {
-      (context.macro_reporter)(MacroMessage(tokens_to_text(args[0])))
-      Ok(ReplacementText(""))
-    }
-  }
+fn message_macro(
+  context : MacroExpander,
+) -> MacroReplacement raise ParseFailure {
+  let args = context.consume_args(1, None)
+  (context.macro_reporter)(MacroMessage(tokens_to_text(args[0])))
+  ReplacementText("")
 }
 
 ///|
 fn error_message_macro(
   context : MacroExpander,
-) -> ParseResult[MacroReplacement] {
-  match context.consume_args(1, None) {
-    Err(err) => Err(err)
-    Ok(args) => {
-      (context.macro_reporter)(MacroErrorMessage(tokens_to_text(args[0])))
-      Ok(ReplacementText(""))
-    }
-  }
+) -> MacroReplacement raise ParseFailure {
+  let args = context.consume_args(1, None)
+  (context.macro_reporter)(MacroErrorMessage(tokens_to_text(args[0])))
+  ReplacementText("")
 }
 
 ///|
-fn show_macro(context : MacroExpander) -> ParseResult[MacroReplacement] {
-  match context.pop_token() {
-    Err(err) => Err(err)
-    Ok(token) => {
-      let status = if context.is_defined(token.text) {
-        "defined"
-      } else {
-        "undefined"
-      }
-      (context.macro_reporter)(MacroShow("\{token.text}: \{status}"))
-      Ok(ReplacementText(""))
-    }
-  }
-}
-
-///|
-fn tag_literal_macro(context : MacroExpander) -> ParseResult[MacroReplacement] {
-  if context.macros.has("\\df@tag") {
-    Err(InvalidArgument(message="Multiple \\tag", loc=None))
+fn show_macro(context : MacroExpander) -> MacroReplacement raise ParseFailure {
+  let token = context.pop_token()
+  let status = if context.is_defined(token.text) {
+    "defined"
   } else {
-    Ok(ReplacementText("\\gdef\\df@tag{\\text{#1}}"))
+    "undefined"
+  }
+  (context.macro_reporter)(MacroShow("\{token.text}: \{status}"))
+  ReplacementText("")
+}
+
+///|
+fn tag_literal_macro(
+  context : MacroExpander,
+) -> MacroReplacement raise ParseFailure {
+  if context.macros.has("\\df@tag") {
+    raise InvalidArgument(message="Multiple \\tag", loc=None)
+  } else {
+    ReplacementText("\\gdef\\df@tag{\\text{#1}}")
   }
 }
 
@@ -74,7 +66,7 @@ fn braket_separator_handler(
   old_middle : MacroHandler?,
   old_middle_double : MacroHandler?,
 ) -> MacroHandler {
-  fn(context) {
+  context => {
     if one {
       restore_dynamic_macro(context, "|", old_middle)
       if !middle_double.is_empty() {
@@ -83,21 +75,16 @@ fn braket_separator_handler(
     }
     let mut use_double = doubled
     if !doubled && !middle_double.is_empty() {
-      let next = match context.future() {
-        Err(err) => return Err(err)
-        Ok(value) => value
-      }
+      let next = context.future()
       if next.text == "|" {
-        match context.pop_token() {
-          Err(err) => return Err(err)
-          Ok(_) => use_double = true
-        }
+        let _ = context.pop_token()
+        use_double = true
       }
     }
     if use_double {
-      Ok(token_expansion(middle_double))
+      token_expansion(middle_double)
     } else {
-      Ok(token_expansion(middle))
+      token_expansion(middle)
     }
   }
 }
@@ -106,11 +93,8 @@ fn braket_separator_handler(
 fn braket_helper(
   context : MacroExpander,
   one : Bool,
-) -> ParseResult[MacroReplacement] {
-  let parts = match context.consume_args(4, None) {
-    Err(err) => return Err(err)
-    Ok(value) => value
-  }
+) -> MacroReplacement raise ParseFailure {
+  let parts = context.consume_args(4, None)
   let left = parts[0]
   let middle = parts[1]
   let middle_double = parts[2]
@@ -136,34 +120,36 @@ fn braket_helper(
       ),
     )
   }
-  let argument = match context.consume_arg(None) {
-    Err(err) => {
-      let _ = context.end_group()
-      return Err(err)
-    }
-    Ok(value) => value.tokens
+  let expanded : Result[Array[Token], ParseFailure] = Ok(
+    {
+      let argument = context.consume_arg(None).tokens
+      let input = right.copy()
+      input.append(argument)
+      input.append(left)
+      context.expand_tokens(input)
+    },
+  ) catch {
+    err => Err(err)
   }
-  let input = right.copy()
-  input.append(argument)
-  input.append(left)
-  let expanded = context.expand_tokens(input)
-  let close_result = context.end_group()
+  let close_result : Result[Unit, ParseFailure] = Ok(context.end_group()) catch {
+    err => Err(err)
+  }
   match (expanded, close_result) {
-    (Err(err), _) => Err(err)
-    (Ok(_), Err(err)) => Err(err)
+    (Err(err), _) => raise err
+    (Ok(_), Err(err)) => raise err
     (Ok(tokens), Ok(_)) => {
       tokens.rev_in_place()
-      Ok(token_expansion(tokens))
+      token_expansion(tokens)
     }
   }
 }
 
 ///|
-fn braket_macro(context : MacroExpander) -> ParseResult[MacroReplacement] {
+fn braket_macro(context : MacroExpander) -> MacroReplacement raise ParseFailure {
   braket_helper(context, false)
 }
 
 ///|
-fn set_macro(context : MacroExpander) -> ParseResult[MacroReplacement] {
+fn set_macro(context : MacroExpander) -> MacroReplacement raise ParseFailure {
   braket_helper(context, true)
 }

@@ -62,9 +62,9 @@ test "local dynamic macros override unexpandable static definitions" {
   let expander = MacroExpander::make("", settings)
   assert_false(expander.is_expandable("\\x"))
   expander.dynamic_macros.begin_group()
-  expander.dynamic_macros.set("\\x", Some(mode_handler))
+  expander.dynamic_macros.set("\\x", Some(context => mode_handler(context)))
   assert_true(expander.is_expandable("\\x"))
-  expander.dynamic_macros.end_group().unwrap()
+  expander.dynamic_macros.end_group()
   assert_false(expander.is_expandable("\\x"))
 }
 
@@ -100,13 +100,17 @@ test "char accepts decimal octal hexadecimal and backtick forms" {
 ///|
 test "char rejects missing and invalid digits" {
   match
-    MacroExpander::make("\\char'8", Settings::default()).expand_next_token() {
+    capture_parse_result(() => {
+      MacroExpander::make("\\char'8", Settings::default()).expand_next_token()
+    }) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(message, "Invalid base-8 digit 8")
     _ => fail("expected invalid octal digit")
   }
   match
-    MacroExpander::make("\\char`", Settings::default()).expand_next_token() {
+    capture_parse_result(() => {
+      MacroExpander::make("\\char`", Settings::default()).expand_next_token()
+    }) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(message, "\\char` missing argument")
     _ => fail("expected missing backtick argument")
@@ -121,7 +125,7 @@ test "newcommand renewcommand and providecommand implement scoped definitions" {
   )
   expander.begin_group()
   assert_eq(expanded_text(expander), "ba")
-  expander.end_group().unwrap()
+  expander.end_group()
   expander.feed("\\foo")
   assert_eq(expanded_text(expander), "\\foo")
 
@@ -135,13 +139,17 @@ test "newcommand renewcommand and providecommand implement scoped definitions" {
 ///|
 test "newcommand validates existence and argument count" {
   match
-    MacroExpander::make("\\newcommand\\lambda{x}", Settings::default()).expand_next_token() {
+    capture_parse_result(() => {
+      MacroExpander::make("\\newcommand\\lambda{x}", Settings::default()).expand_next_token()
+    }) {
     Err(InvalidArgument(message~, ..)) =>
       assert_true(starts_with_at(message, 0, "\\newcommand"))
     _ => fail("expected redefinition error")
   }
   match
-    MacroExpander::make("\\newcommand\\foo[1.5]{x}", Settings::default()).expand_next_token() {
+    capture_parse_result(() => {
+      MacroExpander::make("\\newcommand\\foo[1.5]{x}", Settings::default()).expand_next_token()
+    }) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(message, "Invalid number of arguments: 1.5")
     _ => fail("expected invalid argument count")
@@ -182,7 +190,10 @@ test "dots selects comma binary relation integral and punctuation forms" {
 test "tag literal rejects a second tag definition" {
   let settings = Settings::default()
   settings.macros["\\df@tag"] = MacroDefinition::text("x")
-  match MacroExpander::make("\\tag@literal{x}", settings).expand_next_token() {
+  match
+    capture_parse_result(() => {
+      MacroExpander::make("\\tag@literal{x}", settings).expand_next_token()
+    }) {
     Err(InvalidArgument(message~, ..)) => assert_eq(message, "Multiple \\tag")
     _ => fail("expected duplicate tag error")
   }
@@ -214,4 +225,21 @@ test "Set only replaces the first separator" {
     expanded_text(expander),
     "\\left\\{\\mskip+4mu\\relaxx\\mskip+5mu\\relax\\middle\\vert\\mskip+5mu\\relaxx>0|x<1\\mskip+4mu\\relax\\right\\}",
   )
+}
+
+///|
+test "Braket closes temporary bindings when its argument raises" {
+  let expander = MacroExpander::make(
+    "\\Braket{a",
+    Settings::default(),
+    command_status=all_control_sequences_are_unexpandable,
+  )
+  match capture_parse_result(() => expander.expand_next_token()) {
+    Err(InvalidArgument(..)) => ()
+    _ => fail("expected unterminated Braket argument")
+  }
+  assert_true(expander.macros.undo_stack.is_empty())
+  assert_true(expander.dynamic_macros.undo_stack.is_empty())
+  assert_true(expander.dynamic_macros.get_current("|") is None)
+  assert_true(expander.dynamic_macros.get_current("\\|") is None)
 }

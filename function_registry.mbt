@@ -4,9 +4,7 @@ priv enum ArgType {
 }
 
 ///|
-type FunctionHandler = (Parser, Array[ParseNode], Array[ParseNode?]) -> ParseResult[
-  ParseNode?,
-]
+type FunctionHandler = (Parser, Array[ParseNode], Array[ParseNode?]) -> ParseNode? raise ParseFailure
 
 ///|
 priv struct FunctionSpec {
@@ -46,12 +44,10 @@ fn verb_handler(
   _parser : Parser,
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
-) -> ParseResult[ParseNode?] {
-  Err(
-    InvalidArgument(
-      message="\\verb ended by end of line instead of matching delimiter",
-      loc=None,
-    ),
+) -> ParseNode? raise ParseFailure {
+  raise InvalidArgument(
+    message="\\verb ended by end of line instead of matching delimiter",
+    loc=None,
   )
 }
 
@@ -69,7 +65,7 @@ fn relax_spec() -> FunctionSpec {
     allowed_in_argument: true,
     allowed_in_text: true,
     allowed_in_math: true,
-    handler: relax_handler,
+    handler: (parser, args, opt_args) => relax_handler(parser, args, opt_args),
   }
 }
 
@@ -78,7 +74,7 @@ fn relax_handler(
   parser : Parser,
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
-) -> ParseResult[ParseNode?] {
+) -> ParseNode? {
   let _ = parser
-  Ok(None)
+  None
 }

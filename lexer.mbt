@@ -1,5 +1,5 @@
 ///|
-type LexerReporter = (String, String) -> ParseResult[Unit]
+type LexerReporter = (String, String) -> Unit raise ParseFailure
 
 ///|
 priv struct Lexer {
@@ -10,17 +10,9 @@ priv struct Lexer {
 }
 
 ///|
-fn discard_lexer_diagnostic(
-  _code : String,
-  _message : String,
-) -> ParseResult[Unit] {
-  Ok(())
-}
-
-///|
 fn Lexer::make(
   input : String,
-  report_nonstrict? : LexerReporter = discard_lexer_diagnostic,
+  report_nonstrict? : LexerReporter = (_code, _message) => (),
 ) -> Lexer {
   let lexer : Lexer = { input, offset: 0, catcodes: Map([]), report_nonstrict }
   lexer.set_catcode("%", 14)
@@ -223,7 +215,7 @@ fn unexpected_character(input : String, offset : Int) -> ParseFailure {
 }
 
 ///|
-fn Lexer::match_token(self : Lexer) -> ParseResult[Token] {
+fn Lexer::match_token(self : Lexer) -> Token raise ParseFailure {
   let input = self.input
   let len = input.length()
   let start = self.offset
@@ -231,36 +223,34 @@ fn Lexer::match_token(self : Lexer) -> ParseResult[Token] {
   if is_space_code_unit(c) {
     let end = whitespace_end(input, start + 1)
     self.offset = end
-    Ok(token_at(input, start, end, " "))
+    token_at(input, start, end, " ")
   } else if c == '\\' {
     match control_space_end(input, start) {
       Some(end) => {
         self.offset = end
-        Ok(token_at(input, start, end, "\\ "))
+        token_at(input, start, end, "\\ ")
       }
       None =>
         match verb_end(input, start, true) {
           Some(end) => {
             self.offset = end
-            Ok(token_at(input, start, end, token_text(input, start, end)))
+            token_at(input, start, end, token_text(input, start, end))
           }
           None =>
             match verb_end(input, start, false) {
               Some(end) => {
                 self.offset = end
-                Ok(token_at(input, start, end, token_text(input, start, end)))
+                token_at(input, start, end, token_text(input, start, end))
               }
               None =>
                 match control_word_end(input, start) {
                   Some((raw_end, end)) => {
                     self.offset = end
-                    Ok(
-                      token_at(
-                        input,
-                        start,
-                        end,
-                        token_text(input, start, raw_end),
-                      ),
+                    token_at(
+                      input,
+                      start,
+                      end,
+                      token_text(input, start, raw_end),
                     )
                   }
                   None =>
@@ -269,16 +259,9 @@ fn Lexer::match_token(self : Lexer) -> ParseResult[Token] {
                       !is_low_surrogate(input[start + 1]) {
                       let end = start + 2
                       self.offset = end
-                      Ok(
-                        token_at(
-                          input,
-                          start,
-                          end,
-                          token_text(input, start, end),
-                        ),
-                      )
+                      token_at(input, start, end, token_text(input, start, end))
                     } else {
-                      Err(unexpected_character(input, start))
+                      raise unexpected_character(input, start)
                     }
                 }
             }
@@ -287,47 +270,41 @@ fn Lexer::match_token(self : Lexer) -> ParseResult[Token] {
   } else if is_regular_code_unit(c) {
     let end = combining_marks_end(input, start + 1)
     self.offset = end
-    Ok(token_at(input, start, end, token_text(input, start, end)))
+    token_at(input, start, end, token_text(input, start, end))
   } else if is_high_surrogate(c) &&
     start + 1 < len &&
     is_low_surrogate(input[start + 1]) {
     let end = combining_marks_end(input, start + 2)
     self.offset = end
-    Ok(token_at(input, start, end, token_text(input, start, end)))
+    token_at(input, start, end, token_text(input, start, end))
   } else {
-    Err(unexpected_character(input, start))
+    raise unexpected_character(input, start)
   }
 }
 
 ///|
-fn Lexer::lex(self : Lexer) -> ParseResult[Token] {
+fn Lexer::lex(self : Lexer) -> Token raise ParseFailure {
   for ;; {
     if self.offset == self.input.length() {
-      break Ok(Token::eof(self.input, self.offset))
+      break Token::eof(self.input, self.offset)
     }
-    match self.match_token() {
-      Err(err) => break Err(err)
-      Ok(token) =>
-        if self.catcodes.get(token.text) == Some(14) {
-          match next_line_start(self.input, self.offset) {
-            Some(offset) => {
-              self.offset = offset
-              continue
-            }
-            None => {
-              self.offset = self.input.length()
-              match
-                (self.report_nonstrict)(
-                  "commentAtEnd", "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)",
-                ) {
-                Ok(_) => continue
-                Err(err) => break Err(err)
-              }
-            }
-          }
-        } else {
-          break Ok(token)
+    let token = self.match_token()
+    if self.catcodes.get(token.text) == Some(14) {
+      match next_line_start(self.input, self.offset) {
+        Some(offset) => {
+          self.offset = offset
+          continue
         }
+        None => {
+          self.offset = self.input.length()
+          (self.report_nonstrict)(
+            "commentAtEnd", "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)",
+          )
+          continue
+        }
+      }
+    } else {
+      break token
     }
   }
 }

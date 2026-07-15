@@ -15,18 +15,16 @@ fn unicode_decomposition_fingerprint() -> (Int64, Int64) {
 ///|
 fn assert_acute_ast(input : String) -> Unit raise {
   match parse(input) {
-    Ok(
-      [
-        Accent(
-          mode=Math,
-          label="\\acute",
-          is_stretchy=false,
-          is_shifty=true,
-          base=MathOrd(mode=Math, text="e", ..),
-          ..
-        ),
-      ]
-    ) => ()
+    [
+      Accent(
+        mode=Math,
+        label="\\acute",
+        is_stretchy=false,
+        is_shifty=true,
+        base=MathOrd(mode=Math, text="e", ..),
+        ..
+      ),
+    ] => ()
     _ => fail("unexpected acute AST for " + input)
   }
 }
@@ -34,21 +32,19 @@ fn assert_acute_ast(input : String) -> Unit raise {
 ///|
 fn assert_double_accent_ast(input : String) -> Unit raise {
   match parse(input) {
-    Ok(
-      [
-        Accent(
+    [
+      Accent(
+        mode=Math,
+        label="\\acute",
+        base=Accent(
           mode=Math,
-          label="\\acute",
-          base=Accent(
-            mode=Math,
-            label="\\mathring",
-            base=MathOrd(mode=Math, text="a", ..),
-            ..
-          ),
+          label="\\mathring",
+          base=MathOrd(mode=Math, text="a", ..),
           ..
         ),
-      ]
-    ) => ()
+        ..
+      ),
+    ] => ()
     _ => fail("unexpected double-accent AST for " + input)
   }
 }
@@ -101,19 +97,17 @@ test "multiple combining accents preserve KaTeX nesting order" {
 ///|
 test "combining accents use dotless i and j bases" {
   match parse("îj́") {
-    Ok(
-      [
-        Accent(label="\\hat", base=TextOrd(mode=Math, text="ı", ..), ..),
-        Accent(label="\\acute", base=TextOrd(mode=Math, text="ȷ", ..), ..),
-      ]
-    ) => ()
+    [
+      Accent(label="\\hat", base=TextOrd(mode=Math, text="ı", ..), ..),
+      Accent(label="\\acute", base=TextOrd(mode=Math, text="ȷ", ..), ..),
+    ] => ()
     _ => fail("expected dotless accent bases")
   }
 }
 
 ///|
 test "unknown combining accent is rejected" {
-  match parse("a̅") {
+  match capture_parse_result(() => parse("a̅")) {
     Err(InvalidArgument(message~, ..)) =>
       assert_eq(message, "Unknown accent ' ̅'")
     _ => fail("expected unknown accent error")

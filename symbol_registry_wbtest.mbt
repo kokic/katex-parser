@@ -131,13 +131,11 @@ test "symbol groups map to their exact AST node kinds" {
 ///|
 test "parser recognizes named and Unicode symbols through the registry" {
   match parse("\\alpha≡\\beta") {
-    Ok(
-      [
-        MathOrd(mode=Math, text="\\alpha", ..),
-        Atom(mode=Math, family=Mrel, text="≡", ..),
-        MathOrd(mode=Math, text="\\beta", ..),
-      ]
-    ) => ()
+    [
+      MathOrd(mode=Math, text="\\alpha", ..),
+      Atom(mode=Math, family=Mrel, text="≡", ..),
+      MathOrd(mode=Math, text="\\beta", ..),
+    ] => ()
     _ => fail("unexpected symbol parse result")
   }
 }
@@ -145,7 +143,7 @@ test "parser recognizes named and Unicode symbols through the registry" {
 ///|
 test "parser treats unregistered non-ASCII symbols as text-mode textord" {
   match parse("😀") {
-    Ok([TextOrd(mode=Text, text="😀", ..)]) => ()
+    [TextOrd(mode=Text, text="😀", ..)] => ()
     _ => fail("unexpected unknown Unicode parse result")
   }
 }

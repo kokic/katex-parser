@@ -32,17 +32,12 @@ fn[V] Namespace::restore_group(
 }
 
 ///|
-fn[V] Namespace::end_group(self : Namespace[V]) -> ParseResult[Unit] {
+fn[V] Namespace::end_group(self : Namespace[V]) -> Unit raise ParseFailure {
   match self.undo_stack.pop() {
-    Some(changes) => {
-      self.restore_group(changes)
-      Ok(())
-    }
+    Some(changes) => self.restore_group(changes)
     None =>
-      Err(
-        InternalInvariant(
-          message="Unbalanced namespace destruction: attempt to pop global namespace; please report this as a bug",
-        ),
+      raise InternalInvariant(
+        message="Unbalanced namespace destruction: attempt to pop global namespace; please report this as a bug",
       )
   }
 }

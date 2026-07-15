@@ -17,13 +17,13 @@ fn digit_value(text : String) -> Int? {
 }
 
 ///|
-fn char_code_from_token(token : Token) -> ParseResult[Int] {
+fn char_code_from_token(token : Token) -> Int raise ParseFailure {
   if token.text == "EOF" {
-    Err(InvalidArgument(message="\\char` missing argument", loc=token.loc))
+    raise InvalidArgument(message="\\char` missing argument", loc=token.loc)
   } else if token.text.length() > 1 && token.text[0] == '\\' {
-    Ok(token.text[1].to_int())
+    token.text[1].to_int()
   } else {
-    Ok(token.text[0].to_int())
+    token.text[0].to_int()
   }
 }
 
@@ -32,77 +32,48 @@ fn parse_char_number(
   context : MacroExpander,
   first : Token,
   base : Int,
-) -> ParseResult[Int] {
+) -> Int raise ParseFailure {
   let first_digit = match digit_value(first.text) {
     Some(value) if value < base => value
     _ =>
-      return Err(
-        InvalidArgument(
-          message="Invalid base-\{base} digit \{first.text}",
-          loc=first.loc,
-        ),
+      raise InvalidArgument(
+        message="Invalid base-\{base} digit \{first.text}",
+        loc=first.loc,
       )
   }
   for number = first_digit {
-    let token = match context.future() {
-      Err(err) => break Err(err)
-      Ok(value) => value
-    }
+    let token = context.future()
     match digit_value(token.text) {
-      Some(digit) if digit < base =>
-        match context.pop_token() {
-          Err(err) => break Err(err)
-          Ok(_) => {
-            let next = if number > (2147483647 - digit) / base {
-              2147483647
-            } else {
-              number * base + digit
-            }
-            continue next
-          }
+      Some(digit) if digit < base => {
+        let _ = context.pop_token()
+        let next = if number > (2147483647 - digit) / base {
+          2147483647
+        } else {
+          number * base + digit
         }
-      _ => break Ok(number)
+        continue next
+      }
+      _ => break number
     }
   }
 }
 
 ///|
-fn char_macro(context : MacroExpander) -> ParseResult[MacroReplacement] {
-  let first = match context.pop_token() {
-    Err(err) => return Err(err)
-    Ok(value) => value
-  }
+fn char_macro(context : MacroExpander) -> MacroReplacement raise ParseFailure {
+  let first = context.pop_token()
   let number = if first.text == "`" {
-    let token = match context.pop_token() {
-      Err(err) => return Err(err)
-      Ok(value) => value
-    }
-    match char_code_from_token(token) {
-      Err(err) => return Err(err)
-      Ok(value) => value
-    }
+    char_code_from_token(context.pop_token())
   } else {
     let (base, digit) = if first.text == "'" {
-      let token = match context.pop_token() {
-        Err(err) => return Err(err)
-        Ok(value) => value
-      }
-      (8, token)
+      (8, context.pop_token())
     } else if first.text == "\"" {
-      let token = match context.pop_token() {
-        Err(err) => return Err(err)
-        Ok(value) => value
-      }
-      (16, token)
+      (16, context.pop_token())
     } else {
       (10, first)
     }
-    match parse_char_number(context, digit, base) {
-      Err(err) => return Err(err)
-      Ok(value) => value
-    }
+    parse_char_number(context, digit, base)
   }
-  Ok(ReplacementText("\\@char{\{number}}"))
+  ReplacementText("\\@char{\{number}}")
 }
 
 ///|
@@ -140,49 +111,34 @@ fn define_command_macro(
   exists_ok : Bool,
   nonexists_ok : Bool,
   skip_if_exists : Bool,
-) -> ParseResult[MacroReplacement] {
-  let name_arg = match context.consume_arg(None) {
-    Err(err) => return Err(err)
-    Ok(value) => value.tokens
-  }
+) -> MacroReplacement raise ParseFailure {
+  let name_arg = context.consume_arg(None).tokens
   if name_arg.length() != 1 {
-    return Err(
-      InvalidArgument(
-        message="\\newcommand's first argument must be a macro name",
-        loc=None,
-      ),
+    raise InvalidArgument(
+      message="\\newcommand's first argument must be a macro name",
+      loc=None,
     )
   }
   let name = name_arg[0].text
   let exists = context.is_defined(name)
   if exists && !exists_ok {
-    return Err(
-      InvalidArgument(
-        message="\\newcommand{\{name}} attempting to redefine \{name}; use \\renewcommand",
-        loc=None,
-      ),
+    raise InvalidArgument(
+      message="\\newcommand{\{name}} attempting to redefine \{name}; use \\renewcommand",
+      loc=None,
     )
   }
   if !exists && !nonexists_ok {
-    return Err(
-      InvalidArgument(
-        message="\\renewcommand{\{name}} when command \{name} does not yet exist; use \\newcommand",
-        loc=None,
-      ),
+    raise InvalidArgument(
+      message="\\renewcommand{\{name}} when command \{name} does not yet exist; use \\newcommand",
+      loc=None,
     )
   }
-  let mut body = match context.consume_arg(None) {
-    Err(err) => return Err(err)
-    Ok(value) => value.tokens
-  }
+  let mut body = context.consume_arg(None).tokens
   let mut num_args = 0
   if body.length() == 1 && body[0].text == "[" {
     let builder = StringBuilder()
     for ;; {
-      let token = match context.expand_next_token() {
-        Err(err) => return Err(err)
-        Ok(value) => value
-      }
+      let token = context.expand_next_token()
       if token.text == "]" || token.text == "EOF" {
         break
       }
@@ -192,17 +148,12 @@ fn define_command_macro(
     num_args = match parse_argument_count(count_text) {
       Some(value) => value
       None =>
-        return Err(
-          InvalidArgument(
-            message="Invalid number of arguments: \{count_text}",
-            loc=None,
-          ),
+        raise InvalidArgument(
+          message="Invalid number of arguments: \{count_text}",
+          loc=None,
         )
     }
-    body = match context.consume_arg(None) {
-      Err(err) => return Err(err)
-      Ok(value) => value.tokens
-    }
+    body = context.consume_arg(None).tokens
   }
   if !(exists && skip_if_exists) {
     context.macros.set(
@@ -210,24 +161,26 @@ fn define_command_macro(
       Some(MacroDefinition::expansion(MacroExpansion::make(body, num_args~))),
     )
   }
-  Ok(ReplacementText(""))
+  ReplacementText("")
 }
 
 ///|
-fn new_command_macro(context : MacroExpander) -> ParseResult[MacroReplacement] {
+fn new_command_macro(
+  context : MacroExpander,
+) -> MacroReplacement raise ParseFailure {
   define_command_macro(context, false, true, false)
 }
 
 ///|
 fn renew_command_macro(
   context : MacroExpander,
-) -> ParseResult[MacroReplacement] {
+) -> MacroReplacement raise ParseFailure {
   define_command_macro(context, true, false, false)
 }
 
 ///|
 fn provide_command_macro(
   context : MacroExpander,
-) -> ParseResult[MacroReplacement] {
+) -> MacroReplacement raise ParseFailure {
   define_command_macro(context, true, true, true)
 }

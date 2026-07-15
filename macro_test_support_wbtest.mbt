@@ -4,9 +4,9 @@ fn make_macro_expansion(
   num_args? : Int = 0,
   delimiters? : Array[Array[String]],
   unexpandable? : Bool = false,
-) -> MacroExpansion {
+) -> MacroExpansion raise ParseFailure {
   let expander = MacroExpander::make("", Settings::default())
-  let lexed = expander.lex_macro_body(body).unwrap()
+  let lexed = expander.lex_macro_body(body)
   match delimiters {
     Some(values) =>
       MacroExpansion::make(
@@ -20,10 +20,10 @@ fn make_macro_expansion(
 }
 
 ///|
-fn expanded_text(expander : MacroExpander) -> String {
+fn expanded_text(expander : MacroExpander) -> String raise ParseFailure {
   let mut output = ""
   for ;; {
-    let token = expander.expand_next_token().unwrap()
+    let token = expander.expand_next_token()
     if token.text == "EOF" {
       break output
     }
@@ -32,39 +32,41 @@ fn expanded_text(expander : MacroExpander) -> String {
 }
 
 ///|
-fn noexpand_handler(context : MacroExpander) -> ParseResult[MacroReplacement] {
-  match context.pop_token() {
-    Err(err) => Err(err)
-    Ok(token) => {
-      if context.is_expandable(token.text) {
-        token.noexpand = true
-        token.treat_as_relax = true
-      }
-      Ok(ReplacementExpansion(MacroExpansion::make([token])))
-    }
+fn noexpand_handler(
+  context : MacroExpander,
+) -> MacroReplacement raise ParseFailure {
+  let token = context.pop_token()
+  if context.is_expandable(token.text) {
+    token.noexpand = true
+    token.treat_as_relax = true
   }
+  ReplacementExpansion(MacroExpansion::make([token]))
 }
 
 ///|
-fn mode_handler(context : MacroExpander) -> ParseResult[MacroReplacement] {
-  Ok(ReplacementText(if context.mode == Math { "M" } else { "T" }))
+fn mode_handler(context : MacroExpander) -> MacroReplacement {
+  ReplacementText(if context.mode == Math { "M" } else { "T" })
 }
 
 ///|
 fn structured_dynamic_handler(
   context : MacroExpander,
-) -> ParseResult[MacroReplacement] {
-  match context.lex_macro_body("xy") {
-    Err(err) => Err(err)
-    Ok(expansion) => Ok(ReplacementExpansion(expansion))
-  }
+) -> MacroReplacement raise ParseFailure {
+  ReplacementExpansion(context.lex_macro_body("xy"))
 }
 
 ///|
-fn parameter_dynamic_handler(
-  _context : MacroExpander,
-) -> ParseResult[MacroReplacement] {
-  Ok(ReplacementText("#1"))
+fn parameter_dynamic_handler(_context : MacroExpander) -> MacroReplacement {
+  ReplacementText("#1")
+}
+
+///|
+fn[T] capture_parse_result(
+  operation : () -> T raise ParseFailure,
+) -> Result[T, ParseFailure] {
+  Ok(operation()) catch {
+    err => Err(err)
+  }
 }
 
 ///|
