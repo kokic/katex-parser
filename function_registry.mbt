@@ -153,6 +153,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   general_genfrac_spec(),
   above_spec(),
   abovefrac_spec(),
+  text_spec(),
 ]
 
 ///|

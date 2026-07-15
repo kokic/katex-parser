@@ -162,7 +162,12 @@ fn Parser::finish_expression(
   self : Parser,
   body : Array[ParseNode],
 ) -> Array[ParseNode] raise ParseFailure {
-  self.handle_infix_nodes(body)
+  let normalized = if self.mode == Text {
+    form_text_ligatures(body)
+  } else {
+    body
+  }
+  self.handle_infix_nodes(normalized)
 }
 
 ///|
