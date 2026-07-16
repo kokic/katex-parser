@@ -181,6 +181,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   raisebox_spec(),
   hbox_spec(),
   lap_spec(),
+  mathchoice_spec(),
 ]
 
 ///|

@@ -118,6 +118,13 @@ pub(all) enum ParseNode {
   RaiseBox(mode~ : Mode, dy~ : Measurement, body~ : ParseNode)
   HBox(mode~ : Mode, body~ : Array[ParseNode])
   Lap(mode~ : Mode, alignment~ : LapAlignment, body~ : ParseNode)
+  MathChoice(
+    mode~ : Mode,
+    display~ : Array[ParseNode],
+    text~ : Array[ParseNode],
+    script~ : Array[ParseNode],
+    scriptscript~ : Array[ParseNode]
+  )
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -176,6 +183,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     RaiseBox(mode~, ..) => mode
     HBox(mode~, ..) => mode
     Lap(mode~, ..) => mode
+    MathChoice(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
