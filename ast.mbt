@@ -61,6 +61,13 @@ pub(all) enum ParseNode {
     right_delim~ : String?
   )
   Text(mode~ : Mode, body~ : Array[ParseNode], font~ : String)
+  Font(mode~ : Mode, font~ : String, body~ : ParseNode)
+  MClass(
+    mode~ : Mode,
+    mclass~ : AtomFamily,
+    body~ : Array[ParseNode],
+    is_character_box~ : Bool
+  )
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -104,6 +111,8 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Infix(mode~, ..) => mode
     GenFrac(mode~, ..) => mode
     Text(mode~, ..) => mode
+    Font(mode~, ..) => mode
+    MClass(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode

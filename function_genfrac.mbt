@@ -181,14 +181,6 @@ fn infix_genfrac_handler(
 }
 
 ///|
-fn normalize_argument(arg : ParseNode) -> ParseNode {
-  match arg {
-    OrdGroup(body=[only], ..) => only
-    _ => arg
-  }
-}
-
-///|
 fn delimiter_from_argument(arg : ParseNode, family : AtomFamily) -> String? {
   match (normalize_argument(arg), family) {
     (Atom(family=Mopen, text~, ..), Mopen) =>

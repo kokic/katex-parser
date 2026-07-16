@@ -158,6 +158,9 @@ let builtin_function_specs : Array[FunctionSpec] = [
   textcolor_spec(),
   color_spec(),
   styling_spec(),
+  font_spec(),
+  boldsymbol_spec(),
+  old_font_spec(),
 ]
 
 ///|

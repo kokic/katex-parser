@@ -20,3 +20,11 @@ fn ord_argument(arg : ParseNode) -> Array[ParseNode] {
     _ => [arg]
   }
 }
+
+///|
+fn normalize_argument(arg : ParseNode) -> ParseNode {
+  match arg {
+    OrdGroup(body=[only], ..) => only
+    _ => arg
+  }
+}
