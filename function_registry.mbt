@@ -164,6 +164,11 @@ let builtin_function_specs : Array[FunctionSpec] = [
   mclass_spec(),
   binrel_spec(),
   stackrel_spec(),
+  big_operator_spec(),
+  mathop_spec(),
+  named_operator_spec(),
+  limited_named_operator_spec(),
+  integral_operator_spec(),
 ]
 
 ///|

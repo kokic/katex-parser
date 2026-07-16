@@ -223,12 +223,31 @@ fn Parser::parse_scripts(
   self : Parser,
   base : ParseNode,
 ) -> ParseNode raise ParseFailure {
+  let mut base = base
   let mut sup : ParseNode? = None
   let mut sub : ParseNode? = None
   for ;; {
     self.consume_spaces()
     let token = self.fetch()
-    if token.text == "^" {
+    if token.text == "\\limits" || token.text == "\\nolimits" {
+      guard base
+        is Op(mode~, parent_is_sup_sub~, suppress_base_shift~, content~, ..) else {
+        raise InvalidArgument(
+          message="Limit controls must follow a math operator",
+          loc=token.loc,
+        )
+      }
+      base = Op(
+        mode~,
+        limits=token.text == "\\limits",
+        always_handle_sup_sub=true,
+        parent_is_sup_sub~,
+        suppress_base_shift~,
+        content~,
+      )
+      self.consume()
+      continue
+    } else if token.text == "^" {
       if sup is Some(_) {
         raise DoubleSuperscript(loc=token.loc)
       }
