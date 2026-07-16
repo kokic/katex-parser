@@ -533,6 +533,9 @@ fn Parser::call_function(
     token,
     break_on_token_text,
     set_macro: (name, definition) => self.gullet.macros.set(name, definition),
+    report_nonstrict: (error_code, error_message) => {
+      self.settings.report_nonstrict(error_code, error_message, token)
+    },
     current_color: () => self.current_color(),
     in_left_right: () => self.leftright_depth > 0,
     parse_expression: (break_on_infix, break_on_token_text) => {
