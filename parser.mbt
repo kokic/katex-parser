@@ -131,6 +131,29 @@ fn Parser::subparse(
 }
 
 ///|
+fn Parser::parse_math_mode(
+  self : Parser,
+  close : String,
+) -> Array[ParseNode] raise ParseFailure {
+  let outer_mode = self.mode
+  self.switch_mode(Math)
+  let result : Result[Array[ParseNode], ParseFailure] = Ok(
+    {
+      let body = self.parse_expression(false, Some(close))
+      self.expect(close)
+      body
+    },
+  ) catch {
+    err => Err(err)
+  }
+  self.switch_mode(outer_mode)
+  match result {
+    Ok(body) => body
+    Err(err) => raise err
+  }
+}
+
+///|
 fn Parser::parse_expression(
   self : Parser,
   break_on_infix : Bool,
@@ -469,6 +492,7 @@ fn Parser::call_function(
     parse_expression: (break_on_infix, break_on_token_text) => {
       self.parse_expression(break_on_infix, break_on_token_text)
     },
+    parse_math_mode: close => self.parse_math_mode(close),
   }
   match lookup_function(func_name) {
     None => raise MissingFunctionHandler(func_name~, loc=None)

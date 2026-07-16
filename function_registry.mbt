@@ -20,6 +20,7 @@ priv struct FunctionContext {
   break_on_token_text : String?
   set_macro : (String, MacroDefinition?) -> Unit
   parse_expression : (Bool, String?) -> Array[ParseNode] raise ParseFailure
+  parse_math_mode : (String) -> Array[ParseNode] raise ParseFailure
 }
 
 ///|
@@ -188,6 +189,8 @@ let builtin_function_specs : Array[FunctionSpec] = [
   x_arrow_spec(),
   accent_under_spec(),
   html_mathml_spec(),
+  math_mode_spec(),
+  math_closing_spec(),
 ]
 
 ///|
