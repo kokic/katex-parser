@@ -586,6 +586,7 @@ fn Parser::call_function(
     },
     is_expandable: name => self.gullet.is_expandable(name),
     parse_prefixed_function: name => self.parse_prefixed_function(name),
+    parse_environment: name => self.parse_environment(name),
   }
   match lookup_function(func_name) {
     None => raise MissingFunctionHandler(func_name~, loc=None)
@@ -594,6 +595,49 @@ fn Parser::call_function(
         None => raise MissingFunctionHandler(func_name~, loc=None)
         Some(handler) => handler(context, args, opt_args)
       }
+  }
+}
+
+///|
+fn Parser::parse_environment(
+  self : Parser,
+  name : String,
+) -> ParseNode raise ParseFailure {
+  match lookup_environment(name) {
+    None =>
+      raise InvalidArgument(message="No such environment: " + name, loc=None)
+    Some(spec) => {
+      let arguments = FunctionSpec::make(
+        [],
+        spec.num_args,
+        num_optional_args=spec.num_optional_args,
+        arg_types=spec.arg_types,
+      )
+      let (args, opt_args) = self.parse_arguments(
+        "\\begin{" + name + "}",
+        arguments,
+      )
+      let context : EnvironmentContext = {
+        env_name: name,
+        parse_array: options => self.parse_array_environment(options),
+      }
+      let result = (spec.handler)(context, args, opt_args)
+      self.expect("\\end", consume=false)
+      match self.parse_function(None, None) {
+        Some(EmitAtom(EnvironmentEnd(name=end_name, ..))) if end_name == name =>
+          result
+        Some(EmitAtom(EnvironmentEnd(name=end_name, ..))) =>
+          raise InvalidArgument(
+            message="Mismatch: \\begin{" +
+              name +
+              "} matched by \\end{" +
+              end_name +
+              "}",
+            loc=None,
+          )
+        _ => raise InternalInvariant(message="Expected environment end")
+      }
+    }
   }
 }
 

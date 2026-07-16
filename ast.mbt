@@ -190,6 +190,7 @@ pub(all) enum ParseNode {
     auto_tags~ : Array[Bool]?,
     leqno~ : Bool
   )
+  EnvironmentEnd(mode~ : Mode, name~ : String)
   Cr(mode~ : Mode, new_line~ : Bool, size~ : Measurement?)
   HtmlMathML(mode~ : Mode, html~ : Array[ParseNode], mathml~ : Array[ParseNode])
   OrdGroup(
@@ -266,6 +267,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     IncludeGraphics(mode~, ..) => mode
     Tag(mode~, ..) => mode
     Array(mode~, ..) => mode
+    EnvironmentEnd(mode~, ..) => mode
     Cr(mode~, ..) => mode
     HtmlMathML(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode

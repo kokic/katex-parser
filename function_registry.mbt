@@ -40,6 +40,7 @@ priv struct FunctionContext {
   set_macro_definition : (String, MacroDefinition, Bool) -> Unit
   is_expandable : (String) -> Bool
   parse_prefixed_function : (String) -> ParseNode raise ParseFailure
+  parse_environment : (String) -> ParseNode raise ParseFailure
 }
 
 ///|
@@ -225,6 +226,8 @@ let builtin_function_specs : Array[FunctionSpec] = [
   let_spec(),
   futurelet_spec(),
   includegraphics_spec(),
+  begin_end_spec(),
+  hline_spec(),
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),
