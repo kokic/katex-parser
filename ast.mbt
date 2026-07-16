@@ -109,6 +109,7 @@ pub(all) enum ParseNode {
     height~ : Measurement
   )
   RaiseBox(mode~ : Mode, dy~ : Measurement, body~ : ParseNode)
+  HBox(mode~ : Mode, body~ : Array[ParseNode])
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -165,6 +166,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     VCenter(mode~, ..) => mode
     Rule(mode~, ..) => mode
     RaiseBox(mode~, ..) => mode
+    HBox(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode

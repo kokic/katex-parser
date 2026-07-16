@@ -179,6 +179,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   vcenter_spec(),
   rule_spec(),
   raisebox_spec(),
+  hbox_spec(),
 ]
 
 ///|
