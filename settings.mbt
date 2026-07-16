@@ -22,6 +22,10 @@ pub type StrictWarningHandler = (String) -> Unit
 ///|
 pub(all) enum TrustContext {
   UrlTrust(command~ : String, url~ : String, protocol~ : String?)
+  HtmlClass(class~ : String)
+  HtmlId(id~ : String)
+  HtmlStyle(style~ : String)
+  HtmlData(attributes~ : Map[String, String])
 }
 
 ///|
@@ -118,6 +122,7 @@ fn Settings::is_trusted(self : Settings, context : TrustContext) -> Bool {
         None => return false
         Some(protocol) => UrlTrust(command~, url~, protocol=Some(protocol))
       }
+    HtmlClass(..) | HtmlId(..) | HtmlStyle(..) | HtmlData(..) => context
   }
   match self.trust {
     Untrusted => false

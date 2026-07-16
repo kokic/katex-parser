@@ -205,6 +205,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   angl_spec(),
   href_spec(),
   url_spec(),
+  html_spec(),
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),

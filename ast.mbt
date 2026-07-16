@@ -148,6 +148,11 @@ pub(all) enum ParseNode {
     border_color~ : String?
   )
   Href(mode~ : Mode, href~ : String, body~ : Array[ParseNode])
+  Html(
+    mode~ : Mode,
+    attributes~ : Map[String, String],
+    body~ : Array[ParseNode]
+  )
   HtmlMathML(mode~ : Mode, html~ : Array[ParseNode], mathml~ : Array[ParseNode])
   OrdGroup(
     mode~ : Mode,
@@ -219,6 +224,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Kern(mode~, ..) => mode
     Enclose(mode~, ..) => mode
     Href(mode~, ..) => mode
+    Html(mode~, ..) => mode
     HtmlMathML(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
