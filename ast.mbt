@@ -128,6 +128,7 @@ pub(all) enum ParseNode {
   Sizing(mode~ : Mode, size~ : Int, body~ : Array[ParseNode])
   HorizBrace(mode~ : Mode, label~ : String, is_over~ : Bool, base~ : ParseNode)
   XArrow(mode~ : Mode, label~ : String, body~ : ParseNode, below~ : ParseNode?)
+  AccentUnder(mode~ : Mode, label~ : String, base~ : ParseNode)
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -190,6 +191,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Sizing(mode~, ..) => mode
     HorizBrace(mode~, ..) => mode
     XArrow(mode~, ..) => mode
+    AccentUnder(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
