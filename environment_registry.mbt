@@ -144,6 +144,7 @@ let builtin_environments : Map[String, EnvironmentSpec] = Map([
   ("alignat", EnvironmentSpec::make(1, alignat_environment_handler)),
   ("alignat*", EnvironmentSpec::make(1, alignat_environment_handler)),
   ("alignedat", EnvironmentSpec::make(1, alignat_environment_handler)),
+  ("subarray", EnvironmentSpec::make(1, subarray_environment_handler)),
 ])
 
 ///|
