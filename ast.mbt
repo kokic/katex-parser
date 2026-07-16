@@ -92,6 +92,12 @@ pub(all) enum ParseNode {
   )
   Overline(mode~ : Mode, body~ : ParseNode)
   Underline(mode~ : Mode, body~ : ParseNode)
+  Smash(
+    mode~ : Mode,
+    body~ : ParseNode,
+    smash_height~ : Bool,
+    smash_depth~ : Bool
+  )
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -141,6 +147,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     OperatorName(mode~, ..) => mode
     Overline(mode~, ..) => mode
     Underline(mode~, ..) => mode
+    Smash(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
