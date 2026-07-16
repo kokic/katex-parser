@@ -91,6 +91,7 @@ pub(all) enum ParseNode {
     parent_is_sup_sub~ : Bool
   )
   Overline(mode~ : Mode, body~ : ParseNode)
+  Underline(mode~ : Mode, body~ : ParseNode)
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -139,6 +140,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Op(mode~, ..) => mode
     OperatorName(mode~, ..) => mode
     Overline(mode~, ..) => mode
+    Underline(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode

@@ -171,6 +171,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   integral_operator_spec(),
   operatorname_spec(),
   overline_spec(),
+  underline_spec(),
 ]
 
 ///|
