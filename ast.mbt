@@ -140,6 +140,13 @@ pub(all) enum ParseNode {
   )
   Middle(mode~ : Mode, delim~ : String)
   Kern(mode~ : Mode, dimension~ : Measurement)
+  Enclose(
+    mode~ : Mode,
+    body~ : ParseNode,
+    label~ : String,
+    background_color~ : String?,
+    border_color~ : String?
+  )
   HtmlMathML(mode~ : Mode, html~ : Array[ParseNode], mathml~ : Array[ParseNode])
   OrdGroup(
     mode~ : Mode,
@@ -209,6 +216,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     LeftRight(mode~, ..) => mode
     Middle(mode~, ..) => mode
     Kern(mode~, ..) => mode
+    Enclose(mode~, ..) => mode
     HtmlMathML(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode

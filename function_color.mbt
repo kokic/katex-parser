@@ -3,7 +3,16 @@ fn require_color_argument(
   args : Array[ParseNode],
   func_name : String,
 ) -> String raise ParseFailure {
-  guard require_function_arg(args, 0, func_name) is ColorToken(color~, ..) else {
+  require_color_argument_at(args, 0, func_name)
+}
+
+///|
+fn require_color_argument_at(
+  args : Array[ParseNode],
+  index : Int,
+  func_name : String,
+) -> String raise ParseFailure {
+  guard require_function_arg(args, index, func_name) is ColorToken(color~, ..) else {
     raise InternalInvariant(message="Expected color argument for " + func_name)
   }
   color
