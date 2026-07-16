@@ -105,6 +105,33 @@ fn ascii_lower(text : String) -> String {
 }
 
 ///|
+fn url_starts_with(url : String, offset : Int, prefix : String) -> Bool {
+  offset + prefix.length() <= url.length() &&
+  url.unsafe_substring(start=offset, end=offset + prefix.length()) == prefix
+}
+
+///|
+fn encoded_colon_at(url : String, offset : Int) -> Bool {
+  if url_starts_with(ascii_lower(url), offset, "&colon") {
+    return true
+  }
+  guard url_starts_with(url, offset, "&#") else { false }
+  let mut index = offset + 2
+  if index < url.length() && (url[index] == 'x' || url[index] == 'X') {
+    index = index + 1
+    while index < url.length() && url[index] == '0' {
+      index = index + 1
+    }
+    url_starts_with(ascii_lower(url), index, "3a")
+  } else {
+    while index < url.length() && url[index] == '0' {
+      index = index + 1
+    }
+    url_starts_with(url, index, "58")
+  }
+}
+
+///|
 fn url_protocol(url : String) -> String? {
   let mut index = 0
   while index < url.length() && url[index] <= 0x20 {
@@ -135,7 +162,7 @@ fn url_protocol(url : String) -> String? {
     if code == '/' || code == '#' || code == '?' {
       return Some("_relative")
     }
-    if code == '&' {
+    if code == '&' && encoded_colon_at(url, index) {
       return None
     }
     index = index + 1
