@@ -4,6 +4,7 @@ priv struct Parser {
   gullet : MacroExpander
   settings : Settings
   mut next_token : Token?
+  mut leftright_depth : Int
 }
 
 ///|
@@ -19,6 +20,7 @@ fn Parser::make(input : String, settings : Settings) -> Parser {
     gullet: MacroExpander::make(input, settings),
     settings,
     next_token: None,
+    leftright_depth: 0,
   }
 }
 
@@ -149,6 +151,48 @@ fn Parser::parse_math_mode(
   self.switch_mode(outer_mode)
   match result {
     Ok(body) => body
+    Err(err) => raise err
+  }
+}
+
+///|
+fn Parser::current_color(self : Parser) -> String? raise ParseFailure {
+  match self.gullet.macros.get("\\current@color") {
+    None => None
+    Some(Text(color)) => Some(color)
+    Some(Expansion(_)) =>
+      raise InvalidArgument(
+        message="\\current@color set to non-string in \\right",
+        loc=None,
+      )
+  }
+}
+
+///|
+fn Parser::parse_left_right(
+  self : Parser,
+  left : String,
+) -> ParseNode raise ParseFailure {
+  self.leftright_depth = self.leftright_depth + 1
+  let result : Result[ParseNode, ParseFailure] = Ok(
+    {
+      let body = self.parse_expression(false, None)
+      self.expect("\\right", consume=false)
+      match self.parse_function(None, None) {
+        Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) =>
+          LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
+        _ =>
+          raise InternalInvariant(
+            message="\\right did not produce a closing delimiter",
+          )
+      }
+    },
+  ) catch {
+    err => Err(err)
+  }
+  self.leftright_depth = self.leftright_depth - 1
+  match result {
+    Ok(node) => node
     Err(err) => raise err
   }
 }
@@ -489,10 +533,13 @@ fn Parser::call_function(
     token,
     break_on_token_text,
     set_macro: (name, definition) => self.gullet.macros.set(name, definition),
+    current_color: () => self.current_color(),
+    in_left_right: () => self.leftright_depth > 0,
     parse_expression: (break_on_infix, break_on_token_text) => {
       self.parse_expression(break_on_infix, break_on_token_text)
     },
     parse_math_mode: close => self.parse_math_mode(close),
+    parse_left_right: left => self.parse_left_right(left),
   }
   match lookup_function(func_name) {
     None => raise MissingFunctionHandler(func_name~, loc=None)

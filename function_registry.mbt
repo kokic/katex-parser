@@ -19,8 +19,11 @@ priv struct FunctionContext {
   token : Token?
   break_on_token_text : String?
   set_macro : (String, MacroDefinition?) -> Unit
+  current_color : () -> String? raise ParseFailure
+  in_left_right : () -> Bool
   parse_expression : (Bool, String?) -> Array[ParseNode] raise ParseFailure
   parse_math_mode : (String) -> Array[ParseNode] raise ParseFailure
+  parse_left_right : (String) -> ParseNode raise ParseFailure
 }
 
 ///|
@@ -191,6 +194,10 @@ let builtin_function_specs : Array[FunctionSpec] = [
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),
+  delim_sizing_spec(),
+  left_right_closing_spec(),
+  left_right_spec(),
+  middle_spec(),
 ]
 
 ///|

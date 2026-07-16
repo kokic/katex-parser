@@ -129,6 +129,16 @@ pub(all) enum ParseNode {
   HorizBrace(mode~ : Mode, label~ : String, is_over~ : Bool, base~ : ParseNode)
   XArrow(mode~ : Mode, label~ : String, body~ : ParseNode, below~ : ParseNode?)
   AccentUnder(mode~ : Mode, label~ : String, base~ : ParseNode)
+  DelimSizing(mode~ : Mode, size~ : Int, mclass~ : AtomFamily, delim~ : String)
+  LeftRightRight(mode~ : Mode, delim~ : String, color~ : String?)
+  LeftRight(
+    mode~ : Mode,
+    body~ : Array[ParseNode],
+    left~ : String,
+    right~ : String,
+    right_color~ : String?
+  )
+  Middle(mode~ : Mode, delim~ : String)
   HtmlMathML(mode~ : Mode, html~ : Array[ParseNode], mathml~ : Array[ParseNode])
   OrdGroup(
     mode~ : Mode,
@@ -193,6 +203,10 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     HorizBrace(mode~, ..) => mode
     XArrow(mode~, ..) => mode
     AccentUnder(mode~, ..) => mode
+    DelimSizing(mode~, ..) => mode
+    LeftRightRight(mode~, ..) => mode
+    LeftRight(mode~, ..) => mode
+    Middle(mode~, ..) => mode
     HtmlMathML(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
