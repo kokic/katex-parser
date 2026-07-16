@@ -194,6 +194,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   accent_under_spec(),
   accent_spec(),
   text_accent_spec(),
+  kern_spec(),
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),
