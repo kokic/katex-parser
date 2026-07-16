@@ -11,8 +11,8 @@ fn require_function(
 
 ///|
 test "builtin function registry preserves KaTeX parser defaults" {
-  assert_eq(builtin_function_specs.length(), 15)
-  assert_eq(builtin_function_registry.entries.length(), 59)
+  assert_eq(builtin_function_specs.length(), 18)
+  assert_eq(builtin_function_registry.entries.length(), 70)
   let verb = require_function(builtin_function_registry, "\\verb")
   assert_eq(verb.names, ["\\verb"])
   assert_eq(verb.num_args, 0)

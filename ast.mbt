@@ -31,6 +31,13 @@ pub(all) enum StyleLevel {
 } derive(Debug, ToJson, Eq)
 
 ///|
+pub(all) enum OperatorContent {
+  SymbolOperator(String)
+  BodyOperator(Array[ParseNode])
+  NamedOperator(String)
+} derive(Debug, ToJson, Eq)
+
+///|
 pub(all) enum ParseNode {
   Internal(mode~ : Mode)
   Raw(mode~ : Mode, string~ : String)
@@ -67,6 +74,14 @@ pub(all) enum ParseNode {
     mclass~ : AtomFamily,
     body~ : Array[ParseNode],
     is_character_box~ : Bool
+  )
+  Op(
+    mode~ : Mode,
+    limits~ : Bool,
+    always_handle_sup_sub~ : Bool,
+    parent_is_sup_sub~ : Bool,
+    suppress_base_shift~ : Bool,
+    content~ : OperatorContent
   )
   OrdGroup(
     mode~ : Mode,
@@ -113,6 +128,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Text(mode~, ..) => mode
     Font(mode~, ..) => mode
     MClass(mode~, ..) => mode
+    Op(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
