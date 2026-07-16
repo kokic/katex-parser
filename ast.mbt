@@ -125,6 +125,7 @@ pub(all) enum ParseNode {
     script~ : Array[ParseNode],
     scriptscript~ : Array[ParseNode]
   )
+  Sizing(mode~ : Mode, size~ : Int, body~ : Array[ParseNode])
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -184,6 +185,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     HBox(mode~, ..) => mode
     Lap(mode~, ..) => mode
     MathChoice(mode~, ..) => mode
+    Sizing(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
