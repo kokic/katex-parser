@@ -8,6 +8,8 @@ priv struct ArrayEnvironmentOptions {
   single_row : Bool
   auto_tag : Bool?
   leqno : Bool
+  add_jot : Bool
+  column_separation_type : ColumnSeparationType?
 }
 
 ///|
@@ -104,6 +106,8 @@ fn array_environment_handler(
     single_row: false,
     auto_tag: None,
     leqno: false,
+    add_jot: false,
+    column_separation_type: None,
   })
 }
 
@@ -130,6 +134,13 @@ let builtin_environments : Map[String, EnvironmentSpec] = Map([
   ("drcases", EnvironmentSpec::make(0, cases_environment_handler)),
   ("equation", EnvironmentSpec::make(0, equation_environment_handler)),
   ("equation*", EnvironmentSpec::make(0, equation_environment_handler)),
+  ("aligned", EnvironmentSpec::make(0, aligned_environment_handler)),
+  ("align", EnvironmentSpec::make(0, aligned_environment_handler)),
+  ("align*", EnvironmentSpec::make(0, aligned_environment_handler)),
+  ("split", EnvironmentSpec::make(0, aligned_environment_handler)),
+  ("gathered", EnvironmentSpec::make(0, gather_environment_handler)),
+  ("gather", EnvironmentSpec::make(0, gather_environment_handler)),
+  ("gather*", EnvironmentSpec::make(0, gather_environment_handler)),
 ])
 
 ///|

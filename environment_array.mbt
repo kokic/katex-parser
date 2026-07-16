@@ -125,12 +125,13 @@ fn Parser::parse_array_environment(
       Array(
         mode=self.mode,
         body~,
+        add_jot=options.add_jot,
         array_stretch=options.array_stretch,
         columns=options.columns,
         row_gaps~,
         hskip_before_and_after=options.hskip_before_and_after,
         hlines_before_row~,
-        column_separation_type=None,
+        column_separation_type=options.column_separation_type,
         tags=if options.auto_tag is Some(_) { Some(tags) } else { None },
         auto_tags=if options.auto_tag is Some(_) {
           Some(auto_tags)

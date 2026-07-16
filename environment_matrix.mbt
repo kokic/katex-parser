@@ -27,6 +27,7 @@ fn array_with_columns(
     Array(
       mode~,
       body~,
+      add_jot~,
       array_stretch~,
       row_gaps~,
       hskip_before_and_after~,
@@ -40,6 +41,7 @@ fn array_with_columns(
       Array(
         mode~,
         body~,
+        add_jot~,
         array_stretch~,
         columns=Some(columns),
         row_gaps~,
@@ -101,6 +103,8 @@ fn matrix_environment_handler(
     single_row: false,
     auto_tag: None,
     leqno: false,
+    add_jot: false,
+    column_separation_type: None,
   })
   let array = match array {
     Array(body~, ..) =>
@@ -138,6 +142,8 @@ fn smallmatrix_environment_handler(
     single_row: false,
     auto_tag: None,
     leqno: false,
+    add_jot: false,
+    column_separation_type: Some(SmallSeparation),
   })
   match array {
     Array(body~, ..) =>

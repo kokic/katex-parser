@@ -180,6 +180,7 @@ pub(all) enum ParseNode {
   Array(
     mode~ : Mode,
     body~ : Array[Array[ParseNode]],
+    add_jot~ : Bool,
     array_stretch~ : Double,
     columns~ : Array[ArrayColumn]?,
     row_gaps~ : Array[Measurement?],

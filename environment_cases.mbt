@@ -25,6 +25,8 @@ fn cases_environment_handler(
     single_row: false,
     auto_tag: None,
     leqno: false,
+    add_jot: false,
+    column_separation_type: None,
   })
   let right_brace = context.env_name == "rcases" ||
     context.env_name == "drcases"

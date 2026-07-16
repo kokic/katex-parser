@@ -19,5 +19,7 @@ fn equation_environment_handler(
     single_row: true,
     auto_tag: Some(context.env_name == "equation"),
     leqno: context.leqno,
+    add_jot: false,
+    column_separation_type: None,
   })
 }
