@@ -177,6 +177,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   vphantom_spec(),
   pmb_spec(),
   vcenter_spec(),
+  rule_spec(),
 ]
 
 ///|

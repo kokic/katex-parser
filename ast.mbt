@@ -102,6 +102,12 @@ pub(all) enum ParseNode {
   VPhantom(mode~ : Mode, body~ : ParseNode)
   Pmb(mode~ : Mode, mclass~ : AtomFamily, body~ : Array[ParseNode])
   VCenter(mode~ : Mode, body~ : ParseNode)
+  Rule(
+    mode~ : Mode,
+    shift~ : Measurement?,
+    width~ : Measurement,
+    height~ : Measurement
+  )
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -156,6 +162,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     VPhantom(mode~, ..) => mode
     Pmb(mode~, ..) => mode
     VCenter(mode~, ..) => mode
+    Rule(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
