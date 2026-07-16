@@ -1,6 +1,10 @@
 ///|
 let builtin_static_macro_definitions : Map[String, MacroDefinition] = Map::from_array([
     ("\\@ifstar", MacroDefinition::text("\\@ifnextchar *{\\@firstoftwo{#1}}")),
+    (
+      "\\operatorname",
+      MacroDefinition::text("\\@ifstar\\operatornamewithlimits\\operatorname@"),
+    ),
     ("\\bgroup", MacroDefinition::text("{")),
     ("\\egroup", MacroDefinition::text("}")),
     ("~", MacroDefinition::text("\\nobreakspace")),

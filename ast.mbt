@@ -83,6 +83,13 @@ pub(all) enum ParseNode {
     suppress_base_shift~ : Bool,
     content~ : OperatorContent
   )
+  OperatorName(
+    mode~ : Mode,
+    body~ : Array[ParseNode],
+    always_handle_sup_sub~ : Bool,
+    limits~ : Bool,
+    parent_is_sup_sub~ : Bool
+  )
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -129,6 +136,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Font(mode~, ..) => mode
     MClass(mode~, ..) => mode
     Op(mode~, ..) => mode
+    OperatorName(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode

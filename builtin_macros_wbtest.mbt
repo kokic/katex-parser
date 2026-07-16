@@ -11,7 +11,7 @@ fn all_control_sequences_are_unexpandable(
 
 ///|
 test "builtin registry contains every static and dynamic KaTeX macro" {
-  assert_eq(builtin_static_macros().length(), 313)
+  assert_eq(builtin_static_macros().length(), 314)
   assert_eq(builtin_dynamic_macros().length(), 20)
   assert_eq(
     builtin_static_macros().get("\\LaTeX"),

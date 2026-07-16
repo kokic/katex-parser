@@ -230,21 +230,37 @@ fn Parser::parse_scripts(
     self.consume_spaces()
     let token = self.fetch()
     if token.text == "\\limits" || token.text == "\\nolimits" {
-      guard base
-        is Op(mode~, parent_is_sup_sub~, suppress_base_shift~, content~, ..) else {
-        raise InvalidArgument(
-          message="Limit controls must follow a math operator",
-          loc=token.loc,
-        )
+      let limits = token.text == "\\limits"
+      match base {
+        Op(mode~, parent_is_sup_sub~, suppress_base_shift~, content~, ..) =>
+          base = Op(
+            mode~,
+            limits~,
+            always_handle_sup_sub=true,
+            parent_is_sup_sub~,
+            suppress_base_shift~,
+            content~,
+          )
+        OperatorName(
+          mode~,
+          body~,
+          always_handle_sup_sub=true,
+          parent_is_sup_sub~,
+          ..
+        ) =>
+          base = OperatorName(
+            mode~,
+            body~,
+            always_handle_sup_sub=true,
+            limits~,
+            parent_is_sup_sub~,
+          )
+        _ =>
+          raise InvalidArgument(
+            message="Limit controls must follow a math operator",
+            loc=token.loc,
+          )
       }
-      base = Op(
-        mode~,
-        limits=token.text == "\\limits",
-        always_handle_sup_sub=true,
-        parent_is_sup_sub~,
-        suppress_base_shift~,
-        content~,
-      )
       self.consume()
       continue
     } else if token.text == "^" {
