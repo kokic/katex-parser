@@ -540,6 +540,20 @@ fn Parser::call_function(
     unsupported_command: command => {
       format_unsupported_command(self.mode, self.settings, command)
     },
+    parse_optional_size: () => {
+      if self.gullet.future().text != "[" {
+        None
+      } else {
+        match self.parse_size_group(true) {
+          Some(Size(value~, ..)) => Some(value)
+          _ => raise InternalInvariant(message="Expected optional size")
+        }
+      }
+    },
+    display_mode: self.settings.display_mode,
+    use_strict_behavior: (error_code, error_message) => {
+      self.settings.use_strict_behavior(error_code, error_message, token)
+    },
     current_color: () => self.current_color(),
     in_left_right: () => self.leftright_depth > 0,
     parse_expression: (break_on_infix, break_on_token_text) => {

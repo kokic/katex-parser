@@ -22,6 +22,9 @@ priv struct FunctionContext {
   report_nonstrict : (String, String) -> Unit raise ParseFailure
   is_trusted : (TrustContext) -> Bool
   unsupported_command : (String) -> ParseNode
+  parse_optional_size : () -> Measurement? raise ParseFailure
+  display_mode : Bool
+  use_strict_behavior : (String, String) -> Bool
   current_color : () -> String? raise ParseFailure
   in_left_right : () -> Bool
   parse_expression : (Bool, String?) -> Array[ParseNode] raise ParseFailure
@@ -206,6 +209,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   href_spec(),
   url_spec(),
   html_spec(),
+  cr_spec(),
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),

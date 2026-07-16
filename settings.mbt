@@ -41,6 +41,7 @@ pub(all) enum TrustPolicy {
 ///|
 pub(all) struct Settings {
   throw_on_error : Bool
+  display_mode : Bool
   error_color : String
   color_is_text_color : Bool
   max_expand : Int
@@ -55,6 +56,7 @@ pub(all) struct Settings {
 pub fn Settings::default() -> Settings {
   {
     throw_on_error: true,
+    display_mode: false,
     error_color: "#cc0000",
     color_is_text_color: false,
     max_expand: 1000,
@@ -63,6 +65,20 @@ pub fn Settings::default() -> Settings {
     strict: Ignore,
     strict_warning_handler: None,
     trust: Untrusted,
+  }
+}
+
+///|
+fn Settings::use_strict_behavior(
+  self : Settings,
+  error_code : String,
+  error_message : String,
+  token : Token?,
+) -> Bool {
+  match strict_response(self.strict, error_code, error_message, token) {
+    Error => true
+    Warn => false
+    Ignore => false
   }
 }
 
