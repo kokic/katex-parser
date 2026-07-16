@@ -5,6 +5,7 @@ let builtin_static_macro_definitions : Map[String, MacroDefinition] = Map::from_
       "\\operatorname",
       MacroDefinition::text("\\@ifstar\\operatornamewithlimits\\operatorname@"),
     ),
+    ("\\hphantom", MacroDefinition::text("\\smash{\\phantom{#1}}")),
     ("\\bgroup", MacroDefinition::text("{")),
     ("\\egroup", MacroDefinition::text("}")),
     ("~", MacroDefinition::text("\\nobreakspace")),

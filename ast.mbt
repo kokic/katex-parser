@@ -98,6 +98,8 @@ pub(all) enum ParseNode {
     smash_height~ : Bool,
     smash_depth~ : Bool
   )
+  Phantom(mode~ : Mode, body~ : Array[ParseNode])
+  VPhantom(mode~ : Mode, body~ : ParseNode)
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -148,6 +150,8 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Overline(mode~, ..) => mode
     Underline(mode~, ..) => mode
     Smash(mode~, ..) => mode
+    Phantom(mode~, ..) => mode
+    VPhantom(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode

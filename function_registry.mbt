@@ -173,6 +173,8 @@ let builtin_function_specs : Array[FunctionSpec] = [
   overline_spec(),
   underline_spec(),
   smash_spec(),
+  phantom_spec(),
+  vphantom_spec(),
 ]
 
 ///|
