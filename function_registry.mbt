@@ -30,6 +30,16 @@ priv struct FunctionContext {
   parse_expression : (Bool, String?) -> Array[ParseNode] raise ParseFailure
   parse_math_mode : (String) -> Array[ParseNode] raise ParseFailure
   parse_left_right : (String) -> ParseNode raise ParseFailure
+  pop_token : () -> Token raise ParseFailure
+  future_token : () -> Token raise ParseFailure
+  push_token : (Token) -> Unit
+  consume_spaces : () -> Unit raise ParseFailure
+  consume_macro_arg : () -> Array[Token] raise ParseFailure
+  expand_tokens : (Array[Token]) -> Array[Token] raise ParseFailure
+  get_macro : (String) -> MacroDefinition?
+  set_macro_definition : (String, MacroDefinition, Bool) -> Unit
+  is_expandable : (String) -> Bool
+  parse_prefixed_function : (String) -> ParseNode raise ParseFailure
 }
 
 ///|
@@ -210,6 +220,10 @@ let builtin_function_specs : Array[FunctionSpec] = [
   url_spec(),
   html_spec(),
   cr_spec(),
+  macro_prefix_spec(),
+  definition_spec(),
+  let_spec(),
+  futurelet_spec(),
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),

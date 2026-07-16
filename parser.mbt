@@ -561,6 +561,18 @@ fn Parser::call_function(
     },
     parse_math_mode: close => self.parse_math_mode(close),
     parse_left_right: left => self.parse_left_right(left),
+    pop_token: () => self.gullet.pop_token(),
+    future_token: () => self.gullet.future(),
+    push_token: value => self.gullet.push_token(value),
+    consume_spaces: () => self.gullet.consume_spaces(),
+    consume_macro_arg: () => self.gullet.consume_arg(None).tokens,
+    expand_tokens: values => self.gullet.expand_tokens(values),
+    get_macro: name => self.gullet.macros.get(name),
+    set_macro_definition: (name, definition, global) => {
+      self.gullet.macros.set(name, Some(definition), global~)
+    },
+    is_expandable: name => self.gullet.is_expandable(name),
+    parse_prefixed_function: name => self.parse_prefixed_function(name),
   }
   match lookup_function(func_name) {
     None => raise MissingFunctionHandler(func_name~, loc=None)
@@ -569,6 +581,18 @@ fn Parser::call_function(
         None => raise MissingFunctionHandler(func_name~, loc=None)
         Some(handler) => handler(context, args, opt_args)
       }
+  }
+}
+
+///|
+fn Parser::parse_prefixed_function(
+  self : Parser,
+  name : String,
+) -> ParseNode raise ParseFailure {
+  self.gullet.push_token(Token::make(name))
+  match self.parse_function(None, None) {
+    Some(EmitAtom(node)) => node
+    _ => raise InternalInvariant(message="Expected function after macro prefix")
   }
 }
 
