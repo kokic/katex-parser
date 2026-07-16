@@ -4,11 +4,17 @@ priv struct ArrayEnvironmentOptions {
   array_stretch : Double
   hskip_before_and_after : Bool
   cell_style : StyleLevel
+  max_columns : Int?
+  single_row : Bool
+  auto_tag : Bool?
+  leqno : Bool
 }
 
 ///|
 priv struct EnvironmentContext {
   mode : Mode
+  display_mode : Bool
+  leqno : Bool
   env_name : String
   parse_array : (ArrayEnvironmentOptions) -> ParseNode raise ParseFailure
   parse_matrix_alignment : () -> String? raise ParseFailure
@@ -94,6 +100,10 @@ fn array_environment_handler(
     } else {
       TextStyle
     },
+    max_columns: Some(columns.length()),
+    single_row: false,
+    auto_tag: None,
+    leqno: false,
   })
 }
 
@@ -118,6 +128,8 @@ let builtin_environments : Map[String, EnvironmentSpec] = Map([
   ("dcases", EnvironmentSpec::make(0, cases_environment_handler)),
   ("rcases", EnvironmentSpec::make(0, cases_environment_handler)),
   ("drcases", EnvironmentSpec::make(0, cases_environment_handler)),
+  ("equation", EnvironmentSpec::make(0, equation_environment_handler)),
+  ("equation*", EnvironmentSpec::make(0, equation_environment_handler)),
 ])
 
 ///|

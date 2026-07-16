@@ -42,6 +42,7 @@ pub(all) enum TrustPolicy {
 pub(all) struct Settings {
   throw_on_error : Bool
   display_mode : Bool
+  leqno : Bool
   error_color : String
   color_is_text_color : Bool
   max_expand : Int
@@ -57,6 +58,7 @@ pub fn Settings::default() -> Settings {
   {
     throw_on_error: true,
     display_mode: false,
+    leqno: false,
     error_color: "#cc0000",
     color_is_text_color: false,
     max_expand: 1000,

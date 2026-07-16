@@ -619,6 +619,8 @@ fn Parser::parse_environment(
       )
       let context : EnvironmentContext = {
         mode: self.mode,
+        display_mode: self.settings.display_mode,
+        leqno: self.settings.leqno,
         env_name: name,
         parse_array: options => self.parse_array_environment(options),
         parse_matrix_alignment: () => self.parse_matrix_alignment(),

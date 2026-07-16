@@ -97,6 +97,10 @@ fn matrix_environment_handler(
     array_stretch: 1.0,
     hskip_before_and_after: false,
     cell_style: TextStyle,
+    max_columns: None,
+    single_row: false,
+    auto_tag: None,
+    leqno: false,
   })
   let array = match array {
     Array(body~, ..) =>
@@ -130,6 +134,10 @@ fn smallmatrix_environment_handler(
     array_stretch: 0.5,
     hskip_before_and_after: false,
     cell_style: ScriptStyle,
+    max_columns: None,
+    single_row: false,
+    auto_tag: None,
+    leqno: false,
   })
   match array {
     Array(body~, ..) =>

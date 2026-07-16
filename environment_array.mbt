@@ -14,6 +14,25 @@ fn Parser::consume_array_hlines(
 }
 
 ///|
+fn Parser::take_array_tag(
+  self : Parser,
+  auto_tag : Bool?,
+) -> (Array[ParseNode]?, Bool) raise ParseFailure {
+  match auto_tag {
+    None => (None, false)
+    Some(automatic) =>
+      match self.gullet.macros.get("\\df@tag") {
+        None => (None, automatic)
+        Some(_) => {
+          let tag = self.subparse([Token::make("\\df@tag")])
+          self.gullet.macros.set("\\df@tag", None, global=true)
+          (Some(tag), false)
+        }
+      }
+  }
+}
+
+///|
 fn Parser::parse_array_environment(
   self : Parser,
   options : ArrayEnvironmentOptions,
@@ -26,6 +45,8 @@ fn Parser::parse_array_environment(
       let body : Array[Array[ParseNode]] = [[]]
       let row_gaps : Array[Measurement?] = []
       let hlines_before_row : Array[Array[Bool]] = [self.consume_array_hlines()]
+      let tags : Array[Array[ParseNode]?] = []
+      let auto_tags : Array[Bool] = []
       for ;; {
         let cell_body = self.parse_expression(false, Some("\\\\"))
         let cell : ParseNode = Styling(
@@ -43,9 +64,31 @@ fn Parser::parse_array_environment(
           None => raise InternalInvariant(message="Missing array row")
         }
         match self.fetch().text {
-          "&" => self.consume()
-          "\\end" => break
+          "&" =>
+            match options.max_columns {
+              Some(maximum) if body.last() is Some(row) &&
+                row.length() >= maximum =>
+                raise InvalidArgument(
+                  message="Too many tab characters: &",
+                  loc=None,
+                )
+              _ => self.consume()
+            }
+          "\\end" => {
+            let (tag, automatic) = self.take_array_tag(options.auto_tag)
+            match options.auto_tag {
+              Some(_) => {
+                tags.push(tag)
+                auto_tags.push(automatic)
+              }
+              None => ()
+            }
+            break
+          }
           "\\\\" => {
+            guard !options.single_row else {
+              raise InvalidArgument(message="Expected \\end", loc=None)
+            }
             self.consume()
             let gap = if self.gullet.future().text == " " {
               None
@@ -58,6 +101,14 @@ fn Parser::parse_array_environment(
               }
             }
             row_gaps.push(gap)
+            let (tag, automatic) = self.take_array_tag(options.auto_tag)
+            match options.auto_tag {
+              Some(_) => {
+                tags.push(tag)
+                auto_tags.push(automatic)
+              }
+              None => ()
+            }
             hlines_before_row.push(self.consume_array_hlines())
             body.push([])
           }
@@ -80,9 +131,13 @@ fn Parser::parse_array_environment(
         hskip_before_and_after=options.hskip_before_and_after,
         hlines_before_row~,
         column_separation_type=None,
-        tags=None,
-        auto_tags=None,
-        leqno=false,
+        tags=if options.auto_tag is Some(_) { Some(tags) } else { None },
+        auto_tags=if options.auto_tag is Some(_) {
+          Some(auto_tags)
+        } else {
+          None
+        },
+        leqno=options.leqno,
       )
     },
   ) catch {
