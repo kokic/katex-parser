@@ -618,8 +618,10 @@ fn Parser::parse_environment(
         arguments,
       )
       let context : EnvironmentContext = {
+        mode: self.mode,
         env_name: name,
         parse_array: options => self.parse_array_environment(options),
+        parse_matrix_alignment: () => self.parse_matrix_alignment(),
       }
       let result = (spec.handler)(context, args, opt_args)
       self.expect("\\end", consume=false)
@@ -639,6 +641,22 @@ fn Parser::parse_environment(
       }
     }
   }
+}
+
+///|
+fn Parser::parse_matrix_alignment(self : Parser) -> String? raise ParseFailure {
+  self.consume_spaces()
+  guard self.fetch().text == "[" else { None }
+  self.consume()
+  self.consume_spaces()
+  let token = self.fetch()
+  guard token.text == "l" || token.text == "c" || token.text == "r" else {
+    raise InvalidArgument(message="Expected l or c or r", loc=token.loc)
+  }
+  self.consume()
+  self.consume_spaces()
+  self.expect("]")
+  Some(token.text)
 }
 
 ///|

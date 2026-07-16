@@ -3,13 +3,15 @@ priv struct ArrayEnvironmentOptions {
   columns : Array[ArrayColumn]?
   array_stretch : Double
   hskip_before_and_after : Bool
-  display_cells : Bool
+  cell_style : StyleLevel
 }
 
 ///|
 priv struct EnvironmentContext {
+  mode : Mode
   env_name : String
   parse_array : (ArrayEnvironmentOptions) -> ParseNode raise ParseFailure
+  parse_matrix_alignment : () -> String? raise ParseFailure
 }
 
 ///|
@@ -87,7 +89,11 @@ fn array_environment_handler(
     columns: Some(columns),
     array_stretch: 1.0,
     hskip_before_and_after: true,
-    display_cells: context.env_name == "darray",
+    cell_style: if context.env_name == "darray" {
+      DisplayStyle
+    } else {
+      TextStyle
+    },
   })
 }
 
@@ -95,6 +101,19 @@ fn array_environment_handler(
 let builtin_environments : Map[String, EnvironmentSpec] = Map([
   ("array", EnvironmentSpec::make(1, array_environment_handler)),
   ("darray", EnvironmentSpec::make(1, array_environment_handler)),
+  ("matrix", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("pmatrix", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("bmatrix", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("Bmatrix", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("vmatrix", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("Vmatrix", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("matrix*", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("pmatrix*", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("bmatrix*", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("Bmatrix*", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("vmatrix*", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("Vmatrix*", EnvironmentSpec::make(0, matrix_environment_handler)),
+  ("smallmatrix", EnvironmentSpec::make(0, smallmatrix_environment_handler)),
 ])
 
 ///|

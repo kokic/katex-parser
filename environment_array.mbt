@@ -28,23 +28,14 @@ fn Parser::parse_array_environment(
       let hlines_before_row : Array[Array[Bool]] = [self.consume_array_hlines()]
       for ;; {
         let cell_body = self.parse_expression(false, Some("\\\\"))
-        let cell : ParseNode = if options.display_cells {
-          Styling(
-            mode=self.mode,
-            body=[
-              OrdGroup(
-                mode=self.mode,
-                loc=None,
-                body=cell_body,
-                semisimple=false,
-              ),
-            ],
-            style=DisplayStyle,
-            reset_font=true,
-          )
-        } else {
-          OrdGroup(mode=self.mode, loc=None, body=cell_body, semisimple=false)
-        }
+        let cell : ParseNode = Styling(
+          mode=self.mode,
+          body=[
+            OrdGroup(mode=self.mode, loc=None, body=cell_body, semisimple=false),
+          ],
+          style=options.cell_style,
+          reset_font=true,
+        )
         self.gullet.end_group()
         self.gullet.begin_group()
         match body.last() {
