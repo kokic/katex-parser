@@ -224,6 +224,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   definition_spec(),
   let_spec(),
   futurelet_spec(),
+  includegraphics_spec(),
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),
