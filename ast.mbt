@@ -45,6 +45,21 @@ pub(all) enum LapAlignment {
 } derive(Debug, ToJson, Eq)
 
 ///|
+pub(all) enum ArrayColumn {
+  AlignColumn(alignment~ : String, pre_gap~ : Double, post_gap~ : Double)
+  SeparatorColumn(separator~ : String)
+} derive(Debug, ToJson, Eq)
+
+///|
+pub(all) enum ColumnSeparationType {
+  AlignSeparation
+  AlignAtSeparation
+  GatherSeparation
+  SmallSeparation
+  CdSeparation
+} derive(Debug, ToJson, Eq)
+
+///|
 pub(all) enum ParseNode {
   Internal(mode~ : Mode)
   Raw(mode~ : Mode, string~ : String)
@@ -162,6 +177,19 @@ pub(all) enum ParseNode {
     src~ : String
   )
   Tag(mode~ : Mode, body~ : Array[ParseNode], tag~ : Array[ParseNode])
+  Array(
+    mode~ : Mode,
+    body~ : Array[Array[ParseNode]],
+    array_stretch~ : Double,
+    columns~ : Array[ArrayColumn]?,
+    row_gaps~ : Array[Measurement?],
+    hskip_before_and_after~ : Bool,
+    hlines_before_row~ : Array[Array[Bool]],
+    column_separation_type~ : ColumnSeparationType?,
+    tags~ : Array[Array[ParseNode]?]?,
+    auto_tags~ : Array[Bool]?,
+    leqno~ : Bool
+  )
   Cr(mode~ : Mode, new_line~ : Bool, size~ : Measurement?)
   HtmlMathML(mode~ : Mode, html~ : Array[ParseNode], mathml~ : Array[ParseNode])
   OrdGroup(
@@ -237,6 +265,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Html(mode~, ..) => mode
     IncludeGraphics(mode~, ..) => mode
     Tag(mode~, ..) => mode
+    Array(mode~, ..) => mode
     Cr(mode~, ..) => mode
     HtmlMathML(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
