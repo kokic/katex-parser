@@ -624,6 +624,7 @@ fn Parser::parse_environment(
         env_name: name,
         parse_array: options => self.parse_array_environment(options),
         parse_matrix_alignment: () => self.parse_matrix_alignment(),
+        parse_cd: () => self.parse_cd_environment(),
       }
       let result = (spec.handler)(context, args, opt_args)
       self.expect("\\end", consume=false)

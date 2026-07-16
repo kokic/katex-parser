@@ -20,6 +20,7 @@ priv struct EnvironmentContext {
   env_name : String
   parse_array : (ArrayEnvironmentOptions) -> ParseNode raise ParseFailure
   parse_matrix_alignment : () -> String? raise ParseFailure
+  parse_cd : () -> ParseNode raise ParseFailure
 }
 
 ///|
@@ -145,6 +146,7 @@ let builtin_environments : Map[String, EnvironmentSpec] = Map([
   ("alignat*", EnvironmentSpec::make(1, alignat_environment_handler)),
   ("alignedat", EnvironmentSpec::make(1, alignat_environment_handler)),
   ("subarray", EnvironmentSpec::make(1, subarray_environment_handler)),
+  ("CD", EnvironmentSpec::make(0, cd_environment_handler)),
 ])
 
 ///|

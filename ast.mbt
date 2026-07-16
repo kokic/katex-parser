@@ -192,6 +192,8 @@ pub(all) enum ParseNode {
     leqno~ : Bool
   )
   EnvironmentEnd(mode~ : Mode, name~ : String)
+  CdLabel(mode~ : Mode, side~ : String, label~ : ParseNode)
+  CdParent(mode~ : Mode, fragment~ : ParseNode)
   Cr(mode~ : Mode, new_line~ : Bool, size~ : Measurement?)
   HtmlMathML(mode~ : Mode, html~ : Array[ParseNode], mathml~ : Array[ParseNode])
   OrdGroup(
@@ -269,6 +271,8 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Tag(mode~, ..) => mode
     Array(mode~, ..) => mode
     EnvironmentEnd(mode~, ..) => mode
+    CdLabel(mode~, ..) => mode
+    CdParent(mode~, ..) => mode
     Cr(mode~, ..) => mode
     HtmlMathML(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
