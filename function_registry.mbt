@@ -178,6 +178,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   pmb_spec(),
   vcenter_spec(),
   rule_spec(),
+  raisebox_spec(),
 ]
 
 ///|
