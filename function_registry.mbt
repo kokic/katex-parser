@@ -187,6 +187,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   horiz_brace_spec(),
   x_arrow_spec(),
   accent_under_spec(),
+  html_mathml_spec(),
 ]
 
 ///|
