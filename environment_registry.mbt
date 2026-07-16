@@ -114,6 +114,10 @@ let builtin_environments : Map[String, EnvironmentSpec] = Map([
   ("vmatrix*", EnvironmentSpec::make(0, matrix_environment_handler)),
   ("Vmatrix*", EnvironmentSpec::make(0, matrix_environment_handler)),
   ("smallmatrix", EnvironmentSpec::make(0, smallmatrix_environment_handler)),
+  ("cases", EnvironmentSpec::make(0, cases_environment_handler)),
+  ("dcases", EnvironmentSpec::make(0, cases_environment_handler)),
+  ("rcases", EnvironmentSpec::make(0, cases_environment_handler)),
+  ("drcases", EnvironmentSpec::make(0, cases_environment_handler)),
 ])
 
 ///|
