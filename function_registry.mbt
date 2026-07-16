@@ -183,6 +183,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   lap_spec(),
   mathchoice_spec(),
   sizing_spec(),
+  char_spec(),
 ]
 
 ///|
