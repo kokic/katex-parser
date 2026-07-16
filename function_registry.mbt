@@ -175,6 +175,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   smash_spec(),
   phantom_spec(),
   vphantom_spec(),
+  pmb_spec(),
 ]
 
 ///|
