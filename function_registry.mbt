@@ -228,6 +228,8 @@ let builtin_function_specs : Array[FunctionSpec] = [
   includegraphics_spec(),
   begin_end_spec(),
   hline_spec(),
+  cd_internal_spec(),
+  cd_parent_spec(),
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),
