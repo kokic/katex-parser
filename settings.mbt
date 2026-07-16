@@ -79,7 +79,18 @@ fn Settings::use_strict_behavior(
 ) -> Bool {
   match strict_response(self.strict, error_code, error_message, token) {
     Error => true
-    Warn => false
+    Warn => {
+      let warning = "LaTeX-incompatible input and strict mode is set to 'warn': " +
+        error_message +
+        " [" +
+        error_code +
+        "]"
+      match self.strict_warning_handler {
+        Some(handler) => handler(warning)
+        None => ()
+      }
+      false
+    }
     Ignore => false
   }
 }
