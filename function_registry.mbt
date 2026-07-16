@@ -185,6 +185,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   sizing_spec(),
   char_spec(),
   horiz_brace_spec(),
+  x_arrow_spec(),
 ]
 
 ///|
