@@ -536,6 +536,10 @@ fn Parser::call_function(
     report_nonstrict: (error_code, error_message) => {
       self.settings.report_nonstrict(error_code, error_message, token)
     },
+    is_trusted: context => self.settings.is_trusted(context),
+    unsupported_command: command => {
+      format_unsupported_command(self.mode, self.settings, command)
+    },
     current_color: () => self.current_color(),
     in_left_right: () => self.leftright_depth > 0,
     parse_expression: (break_on_infix, break_on_token_text) => {

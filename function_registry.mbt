@@ -20,6 +20,8 @@ priv struct FunctionContext {
   break_on_token_text : String?
   set_macro : (String, MacroDefinition?) -> Unit
   report_nonstrict : (String, String) -> Unit raise ParseFailure
+  is_trusted : (TrustContext) -> Bool
+  unsupported_command : (String) -> ParseNode
   current_color : () -> String? raise ParseFailure
   in_left_right : () -> Bool
   parse_expression : (Bool, String?) -> Array[ParseNode] raise ParseFailure
@@ -201,6 +203,8 @@ let builtin_function_specs : Array[FunctionSpec] = [
   cancel_spec(),
   sout_spec(),
   angl_spec(),
+  href_spec(),
+  url_spec(),
   html_mathml_spec(),
   math_mode_spec(),
   math_closing_spec(),
