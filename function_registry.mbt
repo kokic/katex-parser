@@ -180,6 +180,7 @@ let builtin_function_specs : Array[FunctionSpec] = [
   rule_spec(),
   raisebox_spec(),
   hbox_spec(),
+  lap_spec(),
 ]
 
 ///|

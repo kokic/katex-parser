@@ -38,6 +38,13 @@ pub(all) enum OperatorContent {
 } derive(Debug, ToJson, Eq)
 
 ///|
+pub(all) enum LapAlignment {
+  LLap
+  RLap
+  CLap
+} derive(Debug, ToJson, Eq)
+
+///|
 pub(all) enum ParseNode {
   Internal(mode~ : Mode)
   Raw(mode~ : Mode, string~ : String)
@@ -110,6 +117,7 @@ pub(all) enum ParseNode {
   )
   RaiseBox(mode~ : Mode, dy~ : Measurement, body~ : ParseNode)
   HBox(mode~ : Mode, body~ : Array[ParseNode])
+  Lap(mode~ : Mode, alignment~ : LapAlignment, body~ : ParseNode)
   OrdGroup(
     mode~ : Mode,
     loc~ : SourceLocation?,
@@ -167,6 +175,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Rule(mode~, ..) => mode
     RaiseBox(mode~, ..) => mode
     HBox(mode~, ..) => mode
+    Lap(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode
     SupSub(mode~, ..) => mode
     TextOrd(mode~, ..) => mode
