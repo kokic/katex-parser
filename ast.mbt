@@ -161,6 +161,7 @@ pub(all) enum ParseNode {
     totalheight~ : Measurement,
     src~ : String
   )
+  Tag(mode~ : Mode, body~ : Array[ParseNode], tag~ : Array[ParseNode])
   Cr(mode~ : Mode, new_line~ : Bool, size~ : Measurement?)
   HtmlMathML(mode~ : Mode, html~ : Array[ParseNode], mathml~ : Array[ParseNode])
   OrdGroup(
@@ -235,6 +236,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Href(mode~, ..) => mode
     Html(mode~, ..) => mode
     IncludeGraphics(mode~, ..) => mode
+    Tag(mode~, ..) => mode
     Cr(mode~, ..) => mode
     HtmlMathML(mode~, ..) => mode
     OrdGroup(mode~, ..) => mode

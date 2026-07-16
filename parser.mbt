@@ -30,7 +30,20 @@ pub fn parse(
   settings? : Settings = Settings::default(),
 ) -> Array[ParseNode] raise ParseFailure {
   let parser = Parser::make(input, settings)
+  parser.gullet.macros.set("\\df@tag", None)
   let body = parser.parse()
+  let body = match parser.gullet.macros.get("\\df@tag") {
+    None => body
+    Some(_) => {
+      guard settings.display_mode else {
+        raise InvalidArgument(
+          message="\\tag works only in display equations",
+          loc=None,
+        )
+      }
+      [Tag(mode=Text, body~, tag=parser.subparse([Token::make("\\df@tag")]))]
+    }
+  }
   parser.gullet.macros.set("\\current@color", None)
   parser.gullet.macros.set("\\color", None)
   body
