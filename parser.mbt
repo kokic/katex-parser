@@ -806,9 +806,8 @@ fn format_unsupported_command(
   settings : Settings,
   text : String,
 ) -> ParseNode {
-  let body : Array[ParseNode] = []
-  for _, ch in text {
-    body.push(TextOrd(mode=Text, loc=None, text=String::from_array([ch])))
-  }
+  let body = text
+    .to_array()
+    .map(ch => TextOrd(mode=Text, loc=None, text=String::from_array([ch])))
   Color(mode~, color=settings.error_color, body~)
 }

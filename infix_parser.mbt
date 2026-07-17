@@ -11,25 +11,23 @@ fn Parser::handle_infix_nodes(
   self : Parser,
   body : Array[ParseNode],
 ) -> Array[ParseNode] raise ParseFailure {
-  let mut infix_index : Int? = None
-  let mut replacement : String? = None
+  let mut infix : (Int, String)? = None
   for index, node in body {
     match node {
       Infix(replace_with~, loc~, ..) => {
-        guard infix_index is None else {
+        guard infix is None else {
           raise InvalidArgument(
             message="only one infix operator per group",
             loc~,
           )
         }
-        infix_index = Some(index)
-        replacement = Some(replace_with)
+        infix = Some((index, replace_with))
       }
       _ => ()
     }
   }
-  match (infix_index, replacement) {
-    (Some(index), Some(func_name)) => {
+  match infix {
+    Some((index, func_name)) => {
       let numer = infix_side_group(self.mode, body[:index].to_owned())
       let denom = infix_side_group(self.mode, body[index + 1:].to_owned())
       let node = if func_name == "\\\\abovefrac" {

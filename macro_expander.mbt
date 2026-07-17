@@ -223,14 +223,9 @@ fn expected_argument_delimiter(
   delimiters : Array[String]?,
   match_index : Int,
 ) -> String {
-  match delimiters {
-    Some(values) =>
-      match values.get(match_index) {
-        Some(value) => value
-        None => "}"
-      }
-    None => "}"
-  }
+  delimiters
+  .map(values => values.get(match_index).unwrap_or("}"))
+  .unwrap_or("}")
 }
 
 ///|
@@ -253,10 +248,9 @@ fn MacroExpander::consume_arg(
   self : MacroExpander,
   delimiters : Array[String]?,
 ) -> MacroArgument raise ParseFailure {
-  let is_delimited = match delimiters {
-    Some(values) => !values.is_empty()
-    None => false
-  }
+  let is_delimited = delimiters
+    .map(values => !values.is_empty())
+    .unwrap_or(false)
   if !is_delimited {
     self.consume_spaces()
   }
@@ -531,11 +525,11 @@ fn MacroExpander::expand_macro_as_text(
   match self.expand_macro(name) {
     None => None
     Some(tokens) => {
-      let mut output = ""
+      let builder = StringBuilder()
       for token in tokens {
-        output = output + token.text
+        builder.write_string(token.text)
       }
-      Some(output)
+      Some(builder.to_string())
     }
   }
 }
@@ -625,10 +619,9 @@ fn MacroExpander::get_static_or_builtin_dynamic_expansion(
         Expansion(expansion) => Some(expansion)
       }
     None =>
-      match self.dynamic_macros.get_builtin(name) {
-        None => None
-        Some(handler) => Some(self.resolve_replacement(handler(self)))
-      }
+      self.dynamic_macros
+      .get_builtin(name)
+      .map(handler => self.resolve_replacement(handler(self)))
   }
 }
 

@@ -113,9 +113,8 @@ fn Settings::use_strict_behavior(
     Error => true
     Warn => {
       let warning = "LaTeX-incompatible input and strict mode is set to 'warn': \{error_message} [\{error_code}]"
-      match self.strict_warning_handler {
-        Some(handler) => handler(warning)
-        None => ()
+      if self.strict_warning_handler is Some(handler) {
+        handler(warning)
       }
       false
     }
@@ -254,9 +253,8 @@ fn Settings::report_nonstrict(
         " [" +
         error_code +
         "]"
-      match self.strict_warning_handler {
-        Some(handler) => handler(warning)
-        None => ()
+      if self.strict_warning_handler is Some(handler) {
+        handler(warning)
       }
     }
     Error =>

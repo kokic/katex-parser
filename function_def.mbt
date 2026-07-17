@@ -29,7 +29,7 @@ fn macro_prefix_spec() -> FunctionSpec {
 fn prefixed_macro_name(prefix : String, next : String) -> String? {
   let global = prefix == "\\global" || prefix == "\\\\globallong"
   match next {
-    "\\global" => Some(if global { "\\global" } else { "\\global" })
+    "\\global" => Some("\\global")
     "\\long" => Some(if global { "\\\\globallong" } else { "\\long" })
     "\\\\globallong" => Some("\\\\globallong")
     "\\def" => Some(if global { "\\gdef" } else { "\\def" })

@@ -57,8 +57,7 @@ fn array_columns(
     OrdGroup(body~, ..) => body
     _ => [arg]
   }
-  let columns : Array[ArrayColumn] = []
-  for node in nodes {
+  nodes.map(node => {
     let text = match node {
       Atom(text~, ..)
       | MathOrd(text~, ..)
@@ -71,17 +70,15 @@ fn array_columns(
         )
     }
     match text {
-      "l" | "c" | "r" =>
-        columns.push(AlignColumn(alignment=text, pre_gap=0.0, post_gap=0.0))
-      "|" | ":" => columns.push(SeparatorColumn(separator=text))
+      "l" | "c" | "r" => AlignColumn(alignment=text, pre_gap=0.0, post_gap=0.0)
+      "|" | ":" => SeparatorColumn(separator=text)
       _ =>
         raise InvalidArgument(
           message="Unknown column alignment: " + text,
           loc=None,
         )
     }
-  }
-  columns
+  })
 }
 
 ///|

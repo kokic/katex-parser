@@ -183,13 +183,8 @@ fn infix_genfrac_handler(
 ///|
 fn delimiter_from_argument(arg : ParseNode, family : AtomFamily) -> String? {
   match (normalize_argument(arg), family) {
-    (Atom(family=Mopen, text~, ..), Mopen) =>
-      if text == "." {
-        None
-      } else {
-        Some(text)
-      }
-    (Atom(family=Mclose, text~, ..), Mclose) =>
+    (Atom(family=Mopen, text~, ..), Mopen)
+    | (Atom(family=Mclose, text~, ..), Mclose) =>
       if text == "." {
         None
       } else {

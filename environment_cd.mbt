@@ -189,19 +189,13 @@ fn Parser::parse_cd_environment(self : Parser) -> ParseNode raise ParseFailure {
     for index, row in parsed_rows {
       body.push(cd_row(row, index % 2 == 0))
     }
-    let count = match body.get(0) {
-      Some(row) => row.length()
-      None => 0
-    }
-    let columns : Array[ArrayColumn] = []
-    for _ in 0..<count {
-      columns.push(AlignColumn(alignment="c", pre_gap=0.25, post_gap=0.25))
-    }
-    let hlines_before_row : Array[Array[Bool]] = []
+    let count = body.get(0).map(row => row.length()).unwrap_or(0)
+    let columns = Array::make(
+      count,
+      AlignColumn(alignment="c", pre_gap=0.25, post_gap=0.25),
+    )
     let row_gap_count = body.length() + 1
-    for _ in 0..<row_gap_count {
-      hlines_before_row.push([])
-    }
+    let hlines_before_row = Array::makei(row_gap_count, _ => [])
     Array(
       mode=Math,
       body~,

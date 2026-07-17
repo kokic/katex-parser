@@ -61,9 +61,9 @@ fn url_handler(
   guard (context.is_trusted)(UrlTrust(command="\\url", url=href, protocol=None)) else {
     (context.unsupported_command)("\\url")
   }
-  let chars : Array[ParseNode] = []
-  for _, char in href {
-    chars.push(
+  let chars = href
+    .to_array()
+    .map(char => {
       TextOrd(
         mode=Text,
         loc=None,
@@ -72,9 +72,8 @@ fn url_handler(
         } else {
           String::from_array([char])
         },
-      ),
-    )
-  }
+      )
+    })
   Href(
     mode=context.mode,
     href~,

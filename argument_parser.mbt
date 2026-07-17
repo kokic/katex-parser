@@ -60,25 +60,22 @@ fn Parser::parse_group_of_type(
     SizeArg => self.parse_size_group(optional)
     UrlArg => self.parse_url_group(optional)
     RawArg =>
-      match self.parse_string_group(optional) {
-        None => None
-        Some(token) => Some(Raw(mode=Text, string=token.text))
-      }
+      self
+      .parse_string_group(optional)
+      .map(token => Raw(mode=Text, string=token.text))
     MathArg => self.parse_argument_group(optional, Some(Math))
     TextArg => self.parse_argument_group(optional, Some(Text))
     HboxArg =>
-      match self.parse_argument_group(optional, Some(Text)) {
-        None => None
-        Some(group) =>
-          Some(
-            Styling(
-              mode=group.mode(),
-              body=[group],
-              style=TextStyle,
-              reset_font=true,
-            ),
-          )
-      }
+      self
+      .parse_argument_group(optional, Some(Text))
+      .map(group => {
+        Styling(
+          mode=group.mode(),
+          body=[group],
+          style=TextStyle,
+          reset_font=true,
+        )
+      })
     PrimitiveArg => self.parse_primitive_group(name, optional)
     OriginalArg => self.parse_argument_group(optional, None)
   }

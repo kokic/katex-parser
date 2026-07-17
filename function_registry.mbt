@@ -135,10 +135,7 @@ fn verb_handler(
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
-  let loc = match context.token {
-    Some(token) => token.loc
-    None => None
-  }
+  let loc = token_location(context.token)
   raise InvalidArgument(
     message="\\verb ended by end of line instead of matching delimiter",
     loc~,
