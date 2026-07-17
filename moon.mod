@@ -8,8 +8,8 @@ repository = "https://github.com/kokic/katex-parser"
 
 license = "AGPL-3.0"
 
-keywords = [ ]
+keywords = ["katex", "latex", "math", "parser", "tex"]
 
-description = ""
+description = "A MoonBit parser for KaTeX, lexing and parsing LaTeX math expressions with macro expansion"
 
-preferred_target = "native"
+preferred_target = "wasm-gc"
