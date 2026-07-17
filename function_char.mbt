@@ -12,11 +12,9 @@ fn decimal_char_code(text : String) -> Int? {
       value * 10 + digit
     }
   }
-  if saw_digit {
-    Some(value)
-  } else {
-    None
-  }
+
+  guard saw_digit else { None }
+  Some(value)
 }
 
 ///|
