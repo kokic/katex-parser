@@ -145,14 +145,13 @@ fn define_command_macro(
       builder.write_string(token.text)
     }
     let count_text = builder.to_string()
-    num_args = match parse_argument_count(count_text) {
-      Some(value) => value
-      None =>
-        raise InvalidArgument(
-          message="Invalid number of arguments: \{count_text}",
-          loc=None,
-        )
+    guard parse_argument_count(count_text) is Some(value) else {
+      raise InvalidArgument(
+        message="Invalid number of arguments: \{count_text}",
+        loc=None,
+      )
     }
+    num_args = value
     body = context.consume_arg(None).tokens
   }
   if !(exists && skip_if_exists) {

@@ -22,11 +22,10 @@ fn environment_argument_text(arg : ParseNode) -> String raise ParseFailure {
 ///|
 fn alignat_pair_count(arg : ParseNode) -> Int raise ParseFailure {
   let text = environment_argument_text(arg)
-  match parse_argument_count(text) {
-    Some(count) if count >= 0 => count
-    _ =>
-      raise InvalidArgument(message="Invalid alignment column count", loc=None)
+  guard parse_argument_count(text) is Some(count) && count >= 0 else {
+    raise InvalidArgument(message="Invalid alignment column count", loc=None)
   }
+  count
 }
 
 ///|

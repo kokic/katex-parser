@@ -66,16 +66,15 @@ fn Parser::parse_color_group(
   self : Parser,
   optional : Bool,
 ) -> ParseNode? raise ParseFailure {
-  match self.parse_string_group(optional) {
-    None => None
-    Some(token) =>
-      match normalized_color(token.text) {
-        Some(color) => Some(ColorToken(mode=self.mode, color~))
-        None =>
-          raise InvalidArgument(
-            message="Invalid color: '" + token.text + "'",
-            loc=token.loc,
-          )
-      }
-  }
+  self
+  .parse_string_group(optional)
+  .map(token => {
+    guard normalized_color(token.text) is Some(color) else {
+      raise InvalidArgument(
+        message="Invalid color: '" + token.text + "'",
+        loc=token.loc,
+      )
+    }
+    ColorToken(mode=self.mode, color~)
+  })
 }

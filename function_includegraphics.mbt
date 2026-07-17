@@ -44,10 +44,8 @@ fn graphics_number(text : String) -> String? {
 ///|
 fn graphics_size(text : String) -> Measurement raise ParseFailure {
   let text = trim_ascii_spaces(text)
-  match graphics_number(text) {
-    Some(number_text) =>
-      return { number: parse_decimal(number_text), unit: "bp" }
-    None => ()
+  if graphics_number(text) is Some(number_text) {
+    return { number: parse_decimal(number_text), unit: "bp" }
   }
   match parse_size_measurement(text) {
     Some(size) if valid_size_unit(size.unit) => size

@@ -200,11 +200,10 @@ fn url_protocol(url : String) -> String? {
 ///|
 fn Settings::is_trusted(self : Settings, context : TrustContext) -> Bool {
   let context = match context {
-    UrlTrust(command~, url~, ..) =>
-      match url_protocol(url) {
-        None => return false
-        Some(protocol) => UrlTrust(command~, url~, protocol=Some(protocol))
-      }
+    UrlTrust(command~, url~, ..) => {
+      guard url_protocol(url) is Some(protocol) else { return false }
+      UrlTrust(command~, url~, protocol=Some(protocol))
+    }
     HtmlClass(..) | HtmlId(..) | HtmlStyle(..) | HtmlData(..) => context
   }
   match self.trust {

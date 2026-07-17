@@ -125,20 +125,20 @@ fn MacroExpander::future(self : MacroExpander) -> Token raise ParseFailure {
     self.stack.push(token)
     token
   } else {
-    match self.stack.last() {
-      Some(token) => token
-      None => raise InternalInvariant(message="Empty token stack")
+    guard self.stack.last() is Some(token) else {
+      raise InternalInvariant(message="Empty token stack")
     }
+    token
   }
 }
 
 ///|
 fn MacroExpander::pop_token(self : MacroExpander) -> Token raise ParseFailure {
   let _ = self.future()
-  match self.stack.pop() {
-    Some(token) => token
-    None => raise InternalInvariant(message="Empty token stack")
+  guard self.stack.pop() is Some(token) else {
+    raise InternalInvariant(message="Empty token stack")
   }
+  token
 }
 
 ///|
@@ -161,10 +161,10 @@ fn MacroExpander::consume_spaces(
   for ;; {
     let token = self.future()
     guard token.text == " " else { break }
-    match self.stack.pop() {
-      Some(_) => continue
-      None => raise InternalInvariant(message="Empty token stack")
+    guard self.stack.pop() is Some(_) else {
+      raise InternalInvariant(message="Empty token stack")
     }
+    continue
   }
 }
 
@@ -210,12 +210,12 @@ fn delimiter_is_active(
   depth : Int,
   token : Token,
 ) -> Bool {
-  match delimiters.get(match_index) {
-    Some(delimiter) =>
-      (depth == 0 || (depth == 1 && delimiter == "{")) &&
-      token.text == delimiter
-    None => false
-  }
+  delimiters
+  .get(match_index)
+  .map(delimiter => {
+    (depth == 0 || (depth == 1 && delimiter == "{")) && token.text == delimiter
+  })
+  .unwrap_or(false)
 }
 
 ///|
@@ -309,27 +309,20 @@ fn MacroExpander::consume_args(
       loc=None,
     )
   }
-  if delimiters is Some(values) {
-    match values.get(0) {
-      Some(prefix) =>
-        for expected in prefix {
-          let token = self.pop_token()
-          if token.text != expected {
-            raise InvalidArgument(
-              message="Use of the macro doesn't match its definition",
-              loc=token.loc,
-            )
-          }
-        }
-      None => ()
+  if delimiters is Some(values) && values.get(0) is Some(prefix) {
+    for expected in prefix {
+      let token = self.pop_token()
+      if token.text != expected {
+        raise InvalidArgument(
+          message="Use of the macro doesn't match its definition",
+          loc=token.loc,
+        )
+      }
     }
   }
   let args : Array[Array[Token]] = []
   for index in 0..<num_args {
-    let argument_delimiters = match delimiters {
-      Some(values) => values.get(index + 1)
-      None => None
-    }
+    let argument_delimiters = delimiters.bind(values => values.get(index + 1))
     args.push(self.consume_arg(argument_delimiters).tokens)
   }
   args
@@ -462,16 +455,15 @@ fn MacroExpander::expand_next_token(
   for ;; {
     match self.expand_once() {
       Expanded(_) => continue
-      NotExpanded =>
-        match self.stack.pop() {
-          Some(token) => {
-            if token.treat_as_relax {
-              token.text = "\\relax"
-            }
-            break token
-          }
-          None => raise InternalInvariant(message="Empty token stack")
+      NotExpanded => {
+        guard self.stack.pop() is Some(token) else {
+          raise InternalInvariant(message="Empty token stack")
         }
+        if token.treat_as_relax {
+          token.text = "\\relax"
+        }
+        break token
+      }
     }
   }
 }
@@ -487,17 +479,16 @@ fn MacroExpander::expand_tokens(
   while self.stack.length() > old_stack_length {
     match self.expand_once(expandable_only=true) {
       Expanded(_) => ()
-      NotExpanded =>
-        match self.stack.pop() {
-          Some(token) => {
-            if token.treat_as_relax {
-              token.noexpand = false
-              token.treat_as_relax = false
-            }
-            output.push(token)
-          }
-          None => raise InternalInvariant(message="Empty token stack")
+      NotExpanded => {
+        guard self.stack.pop() is Some(token) else {
+          raise InternalInvariant(message="Empty token stack")
         }
+        if token.treat_as_relax {
+          token.noexpand = false
+          token.treat_as_relax = false
+        }
+        output.push(token)
+      }
     }
   }
   self.count_expansion(output.length())

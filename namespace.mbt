@@ -33,21 +33,19 @@ fn[V] Namespace::restore_group(
 
 ///|
 fn[V] Namespace::end_group(self : Namespace[V]) -> Unit raise ParseFailure {
-  match self.undo_stack.pop() {
-    Some(changes) => self.restore_group(changes)
-    None =>
-      raise InternalInvariant(
-        message="Unbalanced namespace destruction: attempt to pop global namespace; please report this as a bug",
-      )
+  guard self.undo_stack.pop() is Some(changes) else {
+    raise InternalInvariant(
+      message="Unbalanced namespace destruction: attempt to pop global namespace; please report this as a bug",
+    )
   }
+  self.restore_group(changes)
 }
 
 ///|
 fn[V] Namespace::end_groups(self : Namespace[V]) -> Unit {
   while !self.undo_stack.is_empty() {
-    match self.undo_stack.pop() {
-      Some(changes) => self.restore_group(changes)
-      None => ()
+    if self.undo_stack.pop() is Some(changes) {
+      self.restore_group(changes)
     }
   }
 }
@@ -87,18 +85,11 @@ fn[V] Namespace::set(
     for changes in self.undo_stack {
       changes.remove(key)
     }
-    match self.undo_stack.last() {
-      Some(changes) => changes[key] = value
-      None => ()
+    if self.undo_stack.last() is Some(changes) {
+      changes[key] = value
     }
-  } else {
-    match self.undo_stack.last() {
-      Some(changes) =>
-        if !changes.contains(key) {
-          changes[key] = self.current.get(key)
-        }
-      None => ()
-    }
+  } else if self.undo_stack.last() is Some(changes) && !changes.contains(key) {
+    changes[key] = self.current.get(key)
   }
   match value {
     Some(v) => self.current[key] = v

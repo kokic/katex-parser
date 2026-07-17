@@ -18,18 +18,11 @@ fn Parser::take_array_tag(
   self : Parser,
   auto_tag : Bool?,
 ) -> (Array[ParseNode]?, Bool) raise ParseFailure {
-  match auto_tag {
-    None => (None, false)
-    Some(automatic) =>
-      match self.gullet.macros.get("\\df@tag") {
-        None => (None, automatic)
-        Some(_) => {
-          let tag = self.subparse([Token::make("\\df@tag")])
-          self.gullet.macros.set("\\df@tag", None, global=true)
-          (Some(tag), false)
-        }
-      }
-  }
+  guard auto_tag is Some(automatic) else { (None, false) }
+  guard self.gullet.macros.get("\\df@tag") is Some(_) else { (None, automatic) }
+  let tag = self.subparse([Token::make("\\df@tag")])
+  self.gullet.macros.set("\\df@tag", None, global=true)
+  (Some(tag), false)
 }
 
 ///|
@@ -58,10 +51,10 @@ fn Parser::parse_array_environment(
       )
       self.gullet.end_group()
       self.gullet.begin_group()
-      match body.last() {
-        Some(row) => row.push(cell)
-        None => raise InternalInvariant(message="Missing array row")
+      guard body.last() is Some(row) else {
+        raise InternalInvariant(message="Missing array row")
       }
+      row.push(cell)
       match self.fetch().text {
         "&" =>
           match options.max_columns {
@@ -74,12 +67,9 @@ fn Parser::parse_array_environment(
           }
         "\\end" => {
           let (tag, automatic) = self.take_array_tag(options.auto_tag)
-          match options.auto_tag {
-            Some(_) => {
-              tags.push(tag)
-              auto_tags.push(automatic)
-            }
-            None => ()
+          if options.auto_tag is Some(_) {
+            tags.push(tag)
+            auto_tags.push(automatic)
           }
           break
         }
@@ -100,12 +90,9 @@ fn Parser::parse_array_environment(
           }
           row_gaps.push(gap)
           let (tag, automatic) = self.take_array_tag(options.auto_tag)
-          match options.auto_tag {
-            Some(_) => {
-              tags.push(tag)
-              auto_tags.push(automatic)
-            }
-            None => ()
+          if options.auto_tag is Some(_) {
+            tags.push(tag)
+            auto_tags.push(automatic)
           }
           hlines_before_row.push(self.consume_array_hlines())
           body.push([])

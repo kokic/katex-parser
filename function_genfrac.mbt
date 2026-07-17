@@ -9,11 +9,11 @@ priv struct GenFracConfig {
 
 ///|
 fn wrap_genfrac_style(node : ParseNode, style : StyleLevel?) -> ParseNode {
-  match style {
-    None => node
-    Some(value) =>
-      Styling(mode=node.mode(), body=[node], style=value, reset_font=false)
-  }
+  style
+  .map(value => {
+    Styling(mode=node.mode(), body=[node], style=value, reset_font=false)
+  })
+  .unwrap_or(node)
 }
 
 ///|

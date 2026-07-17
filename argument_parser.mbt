@@ -112,9 +112,8 @@ fn Parser::parse_argument_group(
     None => None
     Some(arg_token) => {
       let outer_mode = self.mode
-      match mode {
-        Some(argument_mode) => self.switch_mode(argument_mode)
-        None => ()
+      if mode is Some(argument_mode) {
+        self.switch_mode(argument_mode)
       }
       self.gullet.begin_group()
       let result : Result[ParseNode, ParseFailure] = capture_parse_result(() => {

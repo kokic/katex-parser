@@ -51,14 +51,13 @@ fn macro_prefix_handler(
 ) -> ParseNode raise ParseFailure {
   (context.consume_spaces)()
   let token = (context.pop_token)()
-  match prefixed_macro_name(context.func_name, token.text) {
-    Some(name) => (context.parse_prefixed_function)(name)
-    None =>
-      raise InvalidArgument(
-        message="Invalid token after macro prefix",
-        loc=token.loc,
-      )
+  guard prefixed_macro_name(context.func_name, token.text) is Some(name) else {
+    raise InvalidArgument(
+      message="Invalid token after macro prefix",
+      loc=token.loc,
+    )
   }
+  (context.parse_prefixed_function)(name)
 }
 
 ///|

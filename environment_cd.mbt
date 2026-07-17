@@ -88,13 +88,11 @@ fn cd_row(
           loc=None,
         )
       }
-      let arrow = match cd_arrow_character(character_node) {
-        Some(value) => value
-        None =>
-          raise InvalidArgument(
-            message="Expected one of \"<>AV=|.\" after @",
-            loc=None,
-          )
+      guard cd_arrow_character(character_node) is Some(arrow) else {
+        raise InvalidArgument(
+          message="Expected one of \"<>AV=|.\" after @",
+          loc=None,
+        )
       }
       index = index + 1
       let labels : Array[ParseNode] = [cd_empty_label(), cd_empty_label()]
@@ -164,10 +162,10 @@ fn Parser::parse_cd_environment(self : Parser) -> ParseNode raise ParseFailure {
     let parsed_rows : Array[Array[ParseNode]] = [[]]
     for ;; {
       let part = self.parse_expression(false, Some("\\\\"))
-      match parsed_rows.last() {
-        Some(row) => row.append(part)
-        None => raise InternalInvariant(message="Missing CD row")
+      guard parsed_rows.last() is Some(row) else {
+        raise InternalInvariant(message="Missing CD row")
       }
+      row.append(part)
       match self.fetch().text {
         "&" => self.consume()
         "\\\\" => {

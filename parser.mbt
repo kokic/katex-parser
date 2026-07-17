@@ -761,10 +761,8 @@ fn apply_unicode_accents(
   let mut result = base
   for accent in accents {
     let accent_text = String::from_array([accent])
-    let label = match unicode_accent_command(mode, accent_text) {
-      Some(command) => command
-      None =>
-        raise InvalidArgument(message="Unknown accent ' \{accent_text}'", loc~)
+    guard unicode_accent_command(mode, accent_text) is Some(label) else {
+      raise InvalidArgument(message="Unknown accent ' \{accent_text}'", loc~)
     }
     result = Accent(
       mode~,
