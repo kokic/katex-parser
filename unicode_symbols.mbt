@@ -348,15 +348,12 @@ let unicode_symbol_decompositions : Map[String, String] = Map::from_array([
 
 ///|
 fn normalize_unicode_symbol(mode : Mode, text : String) -> String {
-  if text.length() == 0 {
-    text
-  } else {
-    let first = text.unsafe_substring(start=0, end=1)
-    match unicode_symbol_decompositions.get(first) {
-      Some(decomposition) if lookup_symbol(mode, first) is None =>
-        decomposition + text.unsafe_substring(start=1, end=text.length())
-      _ => text
-    }
+  guard text.length() != 0 else { text }
+  let first = text.unsafe_substring(start=0, end=1)
+  match unicode_symbol_decompositions.get(first) {
+    Some(decomposition) if lookup_symbol(mode, first) is None =>
+      decomposition + text.unsafe_substring(start=1, end=text.length())
+    _ => text
   }
 }
 
@@ -366,11 +363,8 @@ fn trailing_combining_mark_start(text : String) -> Int? {
   while start > 0 && is_combining_diacritical_mark(text[start - 1]) {
     start = start - 1
   }
-  if start == text.length() {
-    None
-  } else {
-    Some(start)
-  }
+  guard start != text.length() else { None }
+  Some(start)
 }
 
 ///|
