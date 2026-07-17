@@ -129,19 +129,20 @@ fn Parser::subparse(
   self.consume()
   self.gullet.push_token(Token::make("}"))
   self.gullet.push_tokens(tokens)
-  let result : Result[Array[ParseNode], ParseFailure] = Ok(
-    {
-      let body = self.parse_expression(false, Some("}"))
-      self.expect("}")
+  try {
+    let body = self.parse_expression(false, Some("}"))
+    self.expect("}")
+    body
+  } catch {
+    err => {
+      self.next_token = old_token
+      raise err
+    }
+  } noraise {
+    body => {
+      self.next_token = old_token
       body
-    },
-  ) catch {
-    err => Err(err)
-  }
-  self.next_token = old_token
-  match result {
-    Err(err) => raise err
-    Ok(body) => body
+    }
   }
 }
 
@@ -152,19 +153,20 @@ fn Parser::parse_math_mode(
 ) -> Array[ParseNode] raise ParseFailure {
   let outer_mode = self.mode
   self.switch_mode(Math)
-  let result : Result[Array[ParseNode], ParseFailure] = Ok(
-    {
-      let body = self.parse_expression(false, Some(close))
-      self.expect(close)
+  try {
+    let body = self.parse_expression(false, Some(close))
+    self.expect(close)
+    body
+  } catch {
+    err => {
+      self.switch_mode(outer_mode)
+      raise err
+    }
+  } noraise {
+    body => {
+      self.switch_mode(outer_mode)
       body
-    },
-  ) catch {
-    err => Err(err)
-  }
-  self.switch_mode(outer_mode)
-  match result {
-    Ok(body) => body
-    Err(err) => raise err
+    }
   }
 }
 
@@ -187,26 +189,27 @@ fn Parser::parse_left_right(
   left : String,
 ) -> ParseNode raise ParseFailure {
   self.leftright_depth = self.leftright_depth + 1
-  let result : Result[ParseNode, ParseFailure] = Ok(
-    {
-      let body = self.parse_expression(false, None)
-      self.expect("\\right", consume=false)
-      match self.parse_function(None, None) {
-        Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) =>
-          LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
-        _ =>
-          raise InternalInvariant(
-            message="\\right did not produce a closing delimiter",
-          )
-      }
-    },
-  ) catch {
-    err => Err(err)
-  }
-  self.leftright_depth = self.leftright_depth - 1
-  match result {
-    Ok(node) => node
-    Err(err) => raise err
+  try {
+    let body = self.parse_expression(false, None)
+    self.expect("\\right", consume=false)
+    match self.parse_function(None, None) {
+      Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) =>
+        LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
+      _ =>
+        raise InternalInvariant(
+          message="\\right did not produce a closing delimiter",
+        )
+    }
+  } catch {
+    err => {
+      self.leftright_depth = self.leftright_depth - 1
+      raise err
+    }
+  } noraise {
+    node => {
+      self.leftright_depth = self.leftright_depth - 1
+      node
+    }
   }
 }
 
