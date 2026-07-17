@@ -160,73 +160,69 @@ fn Parser::parse_cd_environment(self : Parser) -> ParseNode raise ParseFailure {
   self.gullet.begin_group()
   self.gullet.macros.set("\\cr", Some(MacroDefinition::text("\\\\\\relax")))
   self.gullet.begin_group()
-  let result : Result[ParseNode, ParseFailure] = Ok(
-    {
-      let parsed_rows : Array[Array[ParseNode]] = [[]]
-      for ;; {
-        let part = self.parse_expression(false, Some("\\\\"))
-        match parsed_rows.last() {
-          Some(row) => row.append(part)
-          None => raise InternalInvariant(message="Missing CD row")
+  let result : Result[ParseNode, ParseFailure] = capture_parse_result(() => {
+    let parsed_rows : Array[Array[ParseNode]] = [[]]
+    for ;; {
+      let part = self.parse_expression(false, Some("\\\\"))
+      match parsed_rows.last() {
+        Some(row) => row.append(part)
+        None => raise InternalInvariant(message="Missing CD row")
+      }
+      match self.fetch().text {
+        "&" => self.consume()
+        "\\\\" => {
+          self.consume()
+          parsed_rows.push([])
         }
-        match self.fetch().text {
-          "&" => self.consume()
-          "\\\\" => {
-            self.consume()
-            parsed_rows.push([])
-          }
-          "\\end" => break
-          token =>
-            raise InvalidArgument(
-              message="Expected \\ or \\end, got " + token,
-              loc=None,
-            )
-        }
+        "\\end" => break
+        token =>
+          raise InvalidArgument(
+            message="Expected \\ or \\end, got " + token,
+            loc=None,
+          )
       }
-      if parsed_rows.last() is Some([]) {
-        let _ = parsed_rows.pop()
-      }
-      let body : Array[Array[ParseNode]] = []
-      for index, row in parsed_rows {
-        body.push(cd_row(row, index % 2 == 0))
-      }
-      let count = match body.get(0) {
-        Some(row) => row.length()
-        None => 0
-      }
-      let columns : Array[ArrayColumn] = []
-      for _ in 0..<count {
-        columns.push(AlignColumn(alignment="c", pre_gap=0.25, post_gap=0.25))
-      }
-      let hlines_before_row : Array[Array[Bool]] = []
-      let row_gap_count = body.length() + 1
-      for _ in 0..<row_gap_count {
-        hlines_before_row.push([])
-      }
-      Array(
-        mode=Math,
-        body~,
-        add_jot=true,
-        array_stretch=1.0,
-        columns=Some(columns),
-        row_gaps=[None],
-        hskip_before_and_after=false,
-        hlines_before_row~,
-        column_separation_type=Some(CdSeparation),
-        tags=None,
-        auto_tags=None,
-        leqno=false,
-      )
-    },
-  ) catch {
-    err => Err(err)
-  }
-  let close_cell : Result[Unit, ParseFailure] = Ok(self.gullet.end_group()) catch {
-    err => Err(err)
-  }
-  let close_array : Result[Unit, ParseFailure] = Ok(self.gullet.end_group()) catch {
-    err => Err(err)
-  }
+    }
+    if parsed_rows.last() is Some([]) {
+      let _ = parsed_rows.pop()
+    }
+    let body : Array[Array[ParseNode]] = []
+    for index, row in parsed_rows {
+      body.push(cd_row(row, index % 2 == 0))
+    }
+    let count = match body.get(0) {
+      Some(row) => row.length()
+      None => 0
+    }
+    let columns : Array[ArrayColumn] = []
+    for _ in 0..<count {
+      columns.push(AlignColumn(alignment="c", pre_gap=0.25, post_gap=0.25))
+    }
+    let hlines_before_row : Array[Array[Bool]] = []
+    let row_gap_count = body.length() + 1
+    for _ in 0..<row_gap_count {
+      hlines_before_row.push([])
+    }
+    Array(
+      mode=Math,
+      body~,
+      add_jot=true,
+      array_stretch=1.0,
+      columns=Some(columns),
+      row_gaps=[None],
+      hskip_before_and_after=false,
+      hlines_before_row~,
+      column_separation_type=Some(CdSeparation),
+      tags=None,
+      auto_tags=None,
+      leqno=false,
+    )
+  })
+  let close_cell : Result[Unit, ParseFailure] = capture_parse_result(() => {
+    self.gullet.end_group()
+  })
+  let close_array : Result[Unit, ParseFailure] = capture_parse_result(() => {
+    self.gullet.end_group()
+  })
   match (result, close_cell, close_array) {
     (Err(err), _, _) => raise err
     (_, Err(err), _) => raise err

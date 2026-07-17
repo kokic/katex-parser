@@ -133,20 +133,17 @@ fn includegraphics_handler(
   match opt_args.get(0) {
     Some(Some(Raw(string=value, ..))) =>
       for item in graphics_option_items(value) {
-        match graphics_option_pair(item) {
-          None => ()
-          Some((key, value)) =>
-            match key {
-              "alt" => alt = value
-              "width" => width = graphics_size(value)
-              "height" => height = graphics_size(value)
-              "totalheight" => totalheight = graphics_size(value)
-              _ =>
-                raise InvalidArgument(
-                  message="Invalid key: '" + key + "' in \\includegraphics.",
-                  loc=None,
-                )
-            }
+        guard graphics_option_pair(item) is Some((key, value)) else { continue }
+        match key {
+          "alt" => alt = value
+          "width" => width = graphics_size(value)
+          "height" => height = graphics_size(value)
+          "totalheight" => totalheight = graphics_size(value)
+          _ =>
+            raise InvalidArgument(
+              message="Invalid key: '" + key + "' in \\includegraphics.",
+              loc=None,
+            )
         }
       }
     Some(Some(_)) =>
@@ -161,10 +158,10 @@ fn includegraphics_handler(
   if alt == "" {
     alt = graphics_default_alt(src)
   }
-  if !(context.is_trusted)(
-      UrlTrust(command="\\includegraphics", url=src, protocol=None),
-    ) {
-    return (context.unsupported_command)(context.func_name)
+  guard (context.is_trusted)(
+    UrlTrust(command="\\includegraphics", url=src, protocol=None),
+  ) else {
+    (context.unsupported_command)(context.func_name)
   }
   IncludeGraphics(mode=context.mode, alt~, width~, height~, totalheight~, src~)
 }

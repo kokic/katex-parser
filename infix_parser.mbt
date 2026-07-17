@@ -16,7 +16,7 @@ fn Parser::handle_infix_nodes(
   for index, node in body {
     match node {
       Infix(replace_with~, token~, ..) => {
-        if infix_index is Some(_) {
+        guard infix_index is None else {
           let loc = match token {
             Some(value) => value.loc
             None => None

@@ -120,28 +120,19 @@ fn Parser::parse_argument_group(
         None => ()
       }
       self.gullet.begin_group()
-      let result : Result[ParseNode, ParseFailure] = Ok(
-        {
-          let body = self.parse_expression(false, Some("EOF"))
-          self.expect("EOF")
-          OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
-        },
-      ) catch {
-        err => Err(err)
-      }
-      let close_result : Result[Unit, ParseFailure] = Ok(
-        self.gullet.end_group(),
-      ) catch {
-        err => Err(err)
-      }
+      let result : Result[ParseNode, ParseFailure] = capture_parse_result(() => {
+        let body = self.parse_expression(false, Some("EOF"))
+        self.expect("EOF")
+        OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
+      })
+      let close_result : Result[Unit, ParseFailure] = capture_parse_result(() => {
+        self.gullet.end_group()
+      })
       self.switch_mode(outer_mode)
-      match close_result {
-        Err(err) => raise err
-        Ok(_) =>
-          match result {
-            Err(err) => raise err
-            Ok(node) => Some(node)
-          }
+      match (close_result, result) {
+        (Err(err), _) => raise err
+        (_, Err(err)) => raise err
+        (Ok(_), Ok(node)) => Some(node)
       }
     }
   }

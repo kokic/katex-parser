@@ -39,8 +39,10 @@ fn href_handler(
   _ : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   let href = href_argument(args, 0, context.func_name)
-  if !(context.is_trusted)(UrlTrust(command="\\href", url=href, protocol=None)) {
-    return (context.unsupported_command)("\\href")
+  guard (context.is_trusted)(
+    UrlTrust(command="\\href", url=href, protocol=None),
+  ) else {
+    (context.unsupported_command)("\\href")
   }
   Href(
     mode=context.mode,
@@ -56,8 +58,8 @@ fn url_handler(
   _ : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   let href = href_argument(args, 0, context.func_name)
-  if !(context.is_trusted)(UrlTrust(command="\\url", url=href, protocol=None)) {
-    return (context.unsupported_command)("\\url")
+  guard (context.is_trusted)(UrlTrust(command="\\url", url=href, protocol=None)) else {
+    (context.unsupported_command)("\\url")
   }
   let chars : Array[ParseNode] = []
   for _, char in href {

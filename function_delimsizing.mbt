@@ -222,7 +222,7 @@ fn middle_handler(
     require_function_arg(args, 0, context.func_name),
     context.func_name,
   )
-  if !(context.in_left_right)() {
+  guard (context.in_left_right)() else {
     raise InvalidArgument(message="\\middle without preceding \\left", loc=None)
   }
   Middle(mode=context.mode, delim~)

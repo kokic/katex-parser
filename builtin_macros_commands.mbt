@@ -113,7 +113,7 @@ fn define_command_macro(
   skip_if_exists : Bool,
 ) -> MacroReplacement raise ParseFailure {
   let name_arg = context.consume_arg(None).tokens
-  if name_arg.length() != 1 {
+  guard name_arg.length() == 1 else {
     raise InvalidArgument(
       message="\\newcommand's first argument must be a macro name",
       loc=None,
@@ -121,13 +121,13 @@ fn define_command_macro(
   }
   let name = name_arg[0].text
   let exists = context.is_defined(name)
-  if exists && !exists_ok {
+  guard !exists || exists_ok else {
     raise InvalidArgument(
       message="\\newcommand{\{name}} attempting to redefine \{name}; use \\renewcommand",
       loc=None,
     )
   }
-  if !exists && !nonexists_ok {
+  guard exists || nonexists_ok else {
     raise InvalidArgument(
       message="\\renewcommand{\{name}} when command \{name} does not yet exist; use \\newcommand",
       loc=None,
