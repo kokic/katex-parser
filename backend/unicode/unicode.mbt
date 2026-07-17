@@ -41,7 +41,7 @@ fn render_node(node : @katex_parser.ParseNode) -> String {
     GenFrac(numer~, denom~, left_delim~, right_delim~, ..) =>
       render_delimited(
         left_delim,
-        render_node(numer) + "∕" + render_node(denom),
+        render_operand(numer) + "∕" + render_operand(denom),
         right_delim,
       )
     Font(font~, body~, ..) => font + "(" + render_node(body) + ")"
@@ -92,7 +92,7 @@ fn render_node(node : @katex_parser.ParseNode) -> String {
     Cr(..) => ""
     HtmlMathML(mathml~, ..) => render(mathml)
     SupSub(base~, sup~, sub~, ..) => render_sup_sub(base, sup, sub)
-    Accent(label~, base~, ..) => render_accent(label, render_node(base))
+    Accent(label~, base~, ..) => render_accent(label, base)
     Verb(body~, ..) => body
   }
 }
@@ -124,14 +124,8 @@ fn render_delimited(
   content : String,
   right : String?,
 ) -> String {
-  let left = match left {
-    Some(delim) => delim
-    None => ""
-  }
-  let right = match right {
-    Some(delim) => delim
-    None => ""
-  }
+  let left = left.unwrap_or_default()
+  let right = right.unwrap_or_default()
   left + content + right
 }
 
@@ -154,19 +148,45 @@ fn render_root(
 
 ///|
 fn render_radical(prefix : String, body : @katex_parser.ParseNode) -> String {
-  let body_text = render_node(body)
-  if is_atomic_radical_body(body) {
-    prefix + "√" + body_text
+  prefix + "√" + render_operand(body)
+}
+
+///|
+/// Renders an expression where precedence must remain visible in plain text.
+fn render_operand(node : @katex_parser.ParseNode) -> String {
+  let rendered = render_node(node)
+  if is_atomic_expression(node) {
+    rendered
   } else {
-    prefix + "√(" + body_text + ")"
+    "(" + rendered + ")"
   }
 }
 
 ///|
-fn is_atomic_radical_body(node : @katex_parser.ParseNode) -> Bool {
+/// True if the Unicode rendering has no internal operator that needs grouping.
+fn is_atomic_expression(node : @katex_parser.ParseNode) -> Bool {
   match node {
-    Raw(..) | TextOrd(..) | MathOrd(..) | Atom(..) | Accent(..) => true
-    OrdGroup(body~, ..) => body.length() == 1 && is_atomic_radical_body(body[0])
+    Raw(..)
+    | ColorToken(..)
+    | TextOrd(..)
+    | MathOrd(..)
+    | Spacing(..)
+    | AccentToken(..)
+    | OperatorToken(..)
+    | Atom(..)
+    | Op(..)
+    | OperatorName(..)
+    | LeftRight(..) => true
+    Styling(body~, ..)
+    | Text(body~, ..)
+    | MClass(body~, ..)
+    | HBox(body~, ..)
+    | Sizing(body~, ..)
+    | Color(body~, ..)
+    | Href(body~, ..)
+    | Html(body~, ..)
+    | OrdGroup(body~, ..) => body.length() == 1 && is_atomic_expression(body[0])
+    Accent(base~, ..) => is_atomic_expression(base)
     _ => false
   }
 }
@@ -177,7 +197,7 @@ fn render_sup_sub(
   sup : @katex_parser.ParseNode?,
   sub : @katex_parser.ParseNode?,
 ) -> String {
-  let base = base.map_or("", render_node)
+  let base = base.map(render_operand).unwrap_or_default()
   let sub = render_script(sub, UnicodeSubscript, "_")
   let sup = render_script(sup, UnicodeSuperscript, "^")
   base + sub + sup
@@ -189,16 +209,15 @@ fn render_script(
   kind : @katex_parser.UnicodeScriptKind,
   fallback_prefix : String,
 ) -> String {
-  match node {
-    None => ""
-    Some(node) => {
-      let text = render_node(node)
-      match unicode_script(text, kind) {
-        Some(rendered) => rendered
-        None => fallback_prefix + "(" + text + ")"
-      }
+  node
+  .map(node => {
+    let text = render_node(node)
+    match unicode_script(text, kind) {
+      Some(rendered) => rendered
+      None => fallback_prefix + render_operand(node)
     }
-  }
+  })
+  .unwrap_or_default()
 }
 
 ///|
@@ -218,7 +237,7 @@ fn unicode_script(
 }
 
 ///|
-fn render_accent(label : String, base : String) -> String {
+fn render_accent(label : String, base : @katex_parser.ParseNode) -> String {
   let mark = match label {
     "\\acute" => Some("́")
     "\\grave" => Some("̀")
@@ -234,7 +253,7 @@ fn render_accent(label : String, base : String) -> String {
     _ => None
   }
   match mark {
-    Some(mark) => base + mark
-    None => label + "(" + base + ")"
+    Some(mark) if is_atomic_expression(base) => render_node(base) + mark
+    _ => label + "(" + render_node(base) + ")"
   }
 }
