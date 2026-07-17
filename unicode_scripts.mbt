@@ -1,11 +1,11 @@
 ///|
-priv enum UnicodeScriptKind {
+pub(all) enum UnicodeScriptKind {
   UnicodeSubscript
   UnicodeSuperscript
-}
+} derive(Eq)
 
 ///|
-priv struct UnicodeScript {
+pub struct UnicodeScript {
   replacement : String
   kind : UnicodeScriptKind
 }
@@ -119,4 +119,20 @@ let unicode_scripts : Map[String, UnicodeScript] = Map::from_array([
 ///|
 fn lookup_unicode_script(text : String) -> UnicodeScript? {
   unicode_scripts.get(text)
+}
+
+///|
+/// Returns the Unicode superscript or subscript character for `replacement`.
+///
+/// The parser and renderers share `unicode_scripts` as the canonical table.
+pub fn unicode_script_character(
+  kind : UnicodeScriptKind,
+  replacement : String,
+) -> String? {
+  for character, script in unicode_scripts {
+    if script.kind == kind && script.replacement == replacement {
+      return Some(character)
+    }
+  }
+  None
 }

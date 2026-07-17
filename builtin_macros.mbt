@@ -20,8 +20,8 @@ type MacroReporter = (MacroLogEvent) -> Unit
 ///|
 fn default_math_symbol_group(name : String) -> MathSymbolGroup? {
   match lookup_symbol(Math, name) {
-    Some({ group: BinaryGroup }) => Some(BinarySymbol)
-    Some({ group: RelationGroup }) => Some(RelationSymbol)
+    Some({ group: BinaryGroup, .. }) => Some(BinarySymbol)
+    Some({ group: RelationGroup, .. }) => Some(RelationSymbol)
     _ => None
   }
 }

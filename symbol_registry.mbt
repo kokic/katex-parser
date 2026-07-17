@@ -16,6 +16,7 @@ priv enum SymbolGroup {
 ///|
 priv struct SymbolSpec {
   group : SymbolGroup
+  replacement : String
 }
 
 ///|
@@ -34,7 +35,7 @@ fn SymbolRegistry::define_symbol(
   accept_unicode? : Bool = false,
 ) -> Unit {
   let table = if mode == Math { self.math } else { self.text }
-  let spec = { group, }
+  let spec = { group, replacement }
   table[name] = spec
   if accept_unicode && replacement != "" {
     table[replacement] = spec
@@ -2522,6 +2523,19 @@ fn lookup_symbol(mode : Mode, name : String) -> SymbolSpec? {
     builtin_symbols.math.get(name)
   } else {
     builtin_symbols.text.get(name)
+  }
+}
+
+///|
+/// Returns a registered symbol's Unicode replacement, if it has one.
+pub fn unicode_symbol(name : String) -> String? {
+  match builtin_symbols.math.get(name) {
+    Some(symbol) if symbol.replacement != "" => Some(symbol.replacement)
+    _ =>
+      match builtin_symbols.text.get(name) {
+        Some(symbol) if symbol.replacement != "" => Some(symbol.replacement)
+        _ => None
+      }
   }
 }
 
