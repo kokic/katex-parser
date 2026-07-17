@@ -77,7 +77,7 @@ pub(all) enum ParseNode {
     mode~ : Mode,
     replace_with~ : String,
     size~ : Measurement?,
-    token~ : Token?
+    loc~ : SourceLocation?
   )
   GenFrac(
     mode~ : Mode,

@@ -6,7 +6,7 @@ pub(all) enum StrictResponse {
 }
 
 ///|
-pub type StrictHandler = (String, String, Token?) -> StrictResponse raise ParseFailure
+pub type StrictHandler = (String, String, SourceLocation?) -> StrictResponse raise ParseFailure
 
 ///|
 pub(all) enum Strictness {
@@ -39,7 +39,7 @@ pub(all) enum TrustPolicy {
 }
 
 ///|
-pub(all) struct Settings {
+pub struct Settings {
   throw_on_error : Bool
   display_mode : Bool
   leqno : Bool
@@ -47,27 +47,53 @@ pub(all) struct Settings {
   color_is_text_color : Bool
   max_expand : Int
   global_group : Bool
-  macros : Map[String, MacroDefinition]
+  macros : Map[String, String]
   strict : Strictness
   strict_warning_handler : StrictWarningHandler?
   trust : TrustPolicy
 }
 
 ///|
-pub fn Settings::default() -> Settings {
+pub fn Settings::make(
+  throw_on_error? : Bool = true,
+  display_mode? : Bool = false,
+  leqno? : Bool = false,
+  error_color? : String = "#cc0000",
+  color_is_text_color? : Bool = false,
+  max_expand? : Int = 1000,
+  global_group? : Bool = false,
+  macros? : Map[String, String] = Map([]),
+  strict? : Strictness = Ignore,
+  strict_warning_handler? : StrictWarningHandler,
+  trust? : TrustPolicy = Untrusted,
+) -> Settings {
   {
-    throw_on_error: true,
-    display_mode: false,
-    leqno: false,
-    error_color: "#cc0000",
-    color_is_text_color: false,
-    max_expand: 1000,
-    global_group: false,
-    macros: Map([]),
-    strict: Ignore,
-    strict_warning_handler: None,
-    trust: Untrusted,
+    throw_on_error,
+    display_mode,
+    leqno,
+    error_color,
+    color_is_text_color,
+    max_expand,
+    global_group,
+    macros,
+    strict,
+    strict_warning_handler,
+    trust,
   }
+}
+
+///|
+pub fn Settings::default() -> Settings {
+  Settings::make()
+}
+
+///|
+fn Settings::macro_definitions(self : Settings) -> Map[String, MacroDefinition] {
+  let definitions : Map[String, MacroDefinition] = Map([])
+  for name, expansion in self.macros {
+    definitions[name] = MacroDefinition::text(expansion)
+  }
+  definitions
 }
 
 ///|
@@ -77,14 +103,16 @@ fn Settings::use_strict_behavior(
   error_message : String,
   token : Token?,
 ) -> Bool {
-  match strict_response(self.strict, error_code, error_message, token) {
+  match
+    strict_response(
+      self.strict,
+      error_code,
+      error_message,
+      token_location(token),
+    ) {
     Error => true
     Warn => {
-      let warning = "LaTeX-incompatible input and strict mode is set to 'warn': " +
-        error_message +
-        " [" +
-        error_code +
-        "]"
+      let warning = "LaTeX-incompatible input and strict mode is set to 'warn': \{error_message} [\{error_code}]"
       match self.strict_warning_handler {
         Some(handler) => handler(warning)
         None => ()
@@ -192,14 +220,14 @@ fn strict_response(
   strictness : Strictness,
   error_code : String,
   error_message : String,
-  token : Token?,
+  loc : SourceLocation?,
 ) -> StrictResponse {
   match strictness {
     Ignore => Ignore
     Warn => Warn
     Error => Error
     Callback(handler) =>
-      handler(error_code, error_message, token) catch {
+      handler(error_code, error_message, loc) catch {
         _ => Error
       }
   }
@@ -212,7 +240,13 @@ fn Settings::report_nonstrict(
   error_message : String,
   token : Token?,
 ) -> Unit raise ParseFailure {
-  match strict_response(self.strict, error_code, error_message, token) {
+  match
+    strict_response(
+      self.strict,
+      error_code,
+      error_message,
+      token_location(token),
+    ) {
     Ignore => ()
     Warn => {
       let warning = "LaTeX-incompatible input and strict mode is set to 'warn': " +
@@ -232,10 +266,7 @@ fn Settings::report_nonstrict(
           " [" +
           error_code +
           "]",
-        loc=match token {
-          Some(token) => token.loc
-          None => None
-        },
+        loc=token_location(token),
       )
   }
 }

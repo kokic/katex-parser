@@ -176,7 +176,7 @@ fn infix_genfrac_handler(
     mode=context.mode,
     replace_with=infix_replacement(context.func_name),
     size=None,
-    token=context.token,
+    loc=token_location(context.token),
   )
 }
 
@@ -287,7 +287,7 @@ fn above_handler(
     mode=context.mode,
     replace_with="\\\\abovefrac",
     size=Some(value),
-    token=context.token,
+    loc=token_location(context.token),
   )
 }
 

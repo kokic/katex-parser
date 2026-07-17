@@ -75,7 +75,7 @@ fn MacroExpander::make(
     settings,
     expansion_count: 0,
     lexer: Lexer::make(input, report_nonstrict~),
-    macros: Namespace::make(builtins, settings.macros),
+    macros: Namespace::make(builtins, settings.macro_definitions()),
     dynamic_macros: Namespace::make(dynamic_macros, Map([])),
     stack: [],
     mode,

@@ -15,12 +15,8 @@ fn Parser::handle_infix_nodes(
   let mut replacement : String? = None
   for index, node in body {
     match node {
-      Infix(replace_with~, token~, ..) => {
+      Infix(replace_with~, loc~, ..) => {
         guard infix_index is None else {
-          let loc = match token {
-            Some(value) => value.loc
-            None => None
-          }
           raise InvalidArgument(
             message="only one infix operator per group",
             loc~,
