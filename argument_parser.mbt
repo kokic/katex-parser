@@ -1,9 +1,8 @@
 ///|
 fn Parser::switch_mode(self : Parser, mode : Mode) -> Unit {
-  if self.mode != mode {
-    self.mode = mode
-    self.gullet.switch_mode(mode)
-  }
+  guard self.mode != mode else { () }
+  self.mode = mode
+  self.gullet.switch_mode(mode)
 }
 
 ///|
@@ -91,7 +90,7 @@ fn Parser::parse_primitive_group(
   name : String,
   optional : Bool,
 ) -> ParseNode? raise ParseFailure {
-  if optional {
+  guard !optional else {
     raise InvalidArgument(
       message="A primitive argument cannot be optional",
       loc=None,

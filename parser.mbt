@@ -73,13 +73,11 @@ fn Parser::expect(
   consume? : Bool = true,
 ) -> Unit raise ParseFailure {
   let token = self.fetch()
-  if token.text == text {
-    if consume {
-      self.consume()
-    }
-  } else {
+  guard token.text == text else {
     raise ExpectedToken(expected=text, actual=Diagnostic::from_token(token))
   }
+  guard consume else { () }
+  self.consume()
 }
 
 ///|
@@ -274,12 +272,8 @@ fn is_end_of_expression(text : String) -> Bool {
 ///|
 fn Parser::consume_spaces(self : Parser) -> Unit raise ParseFailure {
   for ;; {
-    if self.fetch().text == " " {
-      self.consume()
-      continue
-    } else {
-      break
-    }
+    guard self.fetch().text == " " else { break }
+    self.consume()
   }
 }
 
@@ -636,11 +630,7 @@ fn Parser::parse_environment(
           result
         Some(EmitAtom(EnvironmentEnd(name=end_name, ..))) =>
           raise InvalidArgument(
-            message="Mismatch: \\begin{" +
-              name +
-              "} matched by \\end{" +
-              end_name +
-              "}",
+            message="Mismatch: \\begin{\{name}} matched by \\end{\{end_name}}",
             loc=None,
           )
         _ => raise InternalInvariant(message="Expected environment end")
@@ -832,5 +822,3 @@ fn format_unsupported_command(
   }
   Color(mode~, color=settings.error_color, body~)
 }
-
-///|
