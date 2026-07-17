@@ -9,11 +9,11 @@ priv struct GenFracConfig {
 
 ///|
 fn wrap_genfrac_style(node : ParseNode, style : StyleLevel?) -> ParseNode {
-  match style {
-    None => node
-    Some(value) =>
-      Styling(mode=node.mode(), body=[node], style=value, reset_font=false)
-  }
+  style
+  .map(value => {
+    Styling(mode=node.mode(), body=[node], style=value, reset_font=false)
+  })
+  .unwrap_or(node)
 }
 
 ///|
@@ -176,20 +176,15 @@ fn infix_genfrac_handler(
     mode=context.mode,
     replace_with=infix_replacement(context.func_name),
     size=None,
-    token=context.token,
+    loc=token_location(context.token),
   )
 }
 
 ///|
 fn delimiter_from_argument(arg : ParseNode, family : AtomFamily) -> String? {
   match (normalize_argument(arg), family) {
-    (Atom(family=Mopen, text~, ..), Mopen) =>
-      if text == "." {
-        None
-      } else {
-        Some(text)
-      }
-    (Atom(family=Mclose, text~, ..), Mclose) =>
+    (Atom(family=Mopen, text~, ..), Mopen)
+    | (Atom(family=Mclose, text~, ..), Mclose) =>
       if text == "." {
         None
       } else {
@@ -287,7 +282,7 @@ fn above_handler(
     mode=context.mode,
     replace_with="\\\\abovefrac",
     size=Some(value),
-    token=context.token,
+    loc=token_location(context.token),
   )
 }
 

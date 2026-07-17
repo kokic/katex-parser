@@ -27,10 +27,10 @@ fn rule_handler(
   args : Array[ParseNode],
   opt_args : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
-  let shift = match opt_args.get(0).unwrap_or(None) {
-    None => None
-    Some(arg) => Some(require_size_argument(arg, context.func_name))
-  }
+  let shift = opt_args
+    .get(0)
+    .unwrap_or(None)
+    .map(arg => require_size_argument(arg, context.func_name))
   Rule(
     mode=context.mode,
     shift~,

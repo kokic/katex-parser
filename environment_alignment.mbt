@@ -8,13 +8,11 @@ fn array_body(node : ParseNode) -> Array[Array[ParseNode]] raise ParseFailure {
 
 ///|
 fn alignment_columns(count : Int, aligned : Bool) -> Array[ArrayColumn] {
-  let columns : Array[ArrayColumn] = []
-  for index in 0..<count {
+  Array::makei(count, index => {
     let alignment = if index % 2 == 0 { "r" } else { "l" }
     let pre_gap = if index % 2 == 0 && index > 0 && aligned { 1.0 } else { 0.0 }
-    columns.push(AlignColumn(alignment~, pre_gap~, post_gap=0.0))
-  }
-  columns
+    AlignColumn(alignment~, pre_gap~, post_gap=0.0)
+  })
 }
 
 ///|

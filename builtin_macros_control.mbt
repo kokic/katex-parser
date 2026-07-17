@@ -23,20 +23,20 @@ fn expandafter_macro(
 fn first_of_two_macro(
   context : MacroExpander,
 ) -> MacroReplacement raise ParseFailure {
-  match context.consume_args(2, None).get(0) {
-    Some(tokens) => token_expansion(tokens)
-    None => raise InternalInvariant(message="Missing first macro argument")
+  guard context.consume_args(2, None).get(0) is Some(tokens) else {
+    raise InternalInvariant(message="Missing first macro argument")
   }
+  token_expansion(tokens)
 }
 
 ///|
 fn second_of_two_macro(
   context : MacroExpander,
 ) -> MacroReplacement raise ParseFailure {
-  match context.consume_args(2, None).get(1) {
-    Some(tokens) => token_expansion(tokens)
-    None => raise InternalInvariant(message="Missing second macro argument")
+  guard context.consume_args(2, None).get(1) is Some(tokens) else {
+    raise InternalInvariant(message="Missing second macro argument")
   }
+  token_expansion(tokens)
 }
 
 ///|

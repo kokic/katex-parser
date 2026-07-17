@@ -75,7 +75,7 @@ fn MacroExpander::make(
     settings,
     expansion_count: 0,
     lexer: Lexer::make(input, report_nonstrict~),
-    macros: Namespace::make(builtins, settings.macros),
+    macros: Namespace::make(builtins, settings.macro_definitions()),
     dynamic_macros: Namespace::make(dynamic_macros, Map([])),
     stack: [],
     mode,
@@ -125,20 +125,20 @@ fn MacroExpander::future(self : MacroExpander) -> Token raise ParseFailure {
     self.stack.push(token)
     token
   } else {
-    match self.stack.last() {
-      Some(token) => token
-      None => raise InternalInvariant(message="Empty token stack")
+    guard self.stack.last() is Some(token) else {
+      raise InternalInvariant(message="Empty token stack")
     }
+    token
   }
 }
 
 ///|
 fn MacroExpander::pop_token(self : MacroExpander) -> Token raise ParseFailure {
   let _ = self.future()
-  match self.stack.pop() {
-    Some(token) => token
-    None => raise InternalInvariant(message="Empty token stack")
+  guard self.stack.pop() is Some(token) else {
+    raise InternalInvariant(message="Empty token stack")
   }
+  token
 }
 
 ///|
@@ -161,10 +161,10 @@ fn MacroExpander::consume_spaces(
   for ;; {
     let token = self.future()
     guard token.text == " " else { break }
-    match self.stack.pop() {
-      Some(_) => continue
-      None => raise InternalInvariant(message="Empty token stack")
+    guard self.stack.pop() is Some(_) else {
+      raise InternalInvariant(message="Empty token stack")
     }
+    continue
   }
 }
 
@@ -210,12 +210,12 @@ fn delimiter_is_active(
   depth : Int,
   token : Token,
 ) -> Bool {
-  match delimiters.get(match_index) {
-    Some(delimiter) =>
-      (depth == 0 || (depth == 1 && delimiter == "{")) &&
-      token.text == delimiter
-    None => false
-  }
+  delimiters
+  .get(match_index)
+  .map(delimiter => {
+    (depth == 0 || (depth == 1 && delimiter == "{")) && token.text == delimiter
+  })
+  .unwrap_or(false)
 }
 
 ///|
@@ -223,14 +223,9 @@ fn expected_argument_delimiter(
   delimiters : Array[String]?,
   match_index : Int,
 ) -> String {
-  match delimiters {
-    Some(values) =>
-      match values.get(match_index) {
-        Some(value) => value
-        None => "}"
-      }
-    None => "}"
-  }
+  delimiters
+  .map(values => values.get(match_index).unwrap_or("}"))
+  .unwrap_or("}")
 }
 
 ///|
@@ -253,10 +248,9 @@ fn MacroExpander::consume_arg(
   self : MacroExpander,
   delimiters : Array[String]?,
 ) -> MacroArgument raise ParseFailure {
-  let is_delimited = match delimiters {
-    Some(values) => !values.is_empty()
-    None => false
-  }
+  let is_delimited = delimiters
+    .map(values => !values.is_empty())
+    .unwrap_or(false)
   if !is_delimited {
     self.consume_spaces()
   }
@@ -315,27 +309,20 @@ fn MacroExpander::consume_args(
       loc=None,
     )
   }
-  if delimiters is Some(values) {
-    match values.get(0) {
-      Some(prefix) =>
-        for expected in prefix {
-          let token = self.pop_token()
-          if token.text != expected {
-            raise InvalidArgument(
-              message="Use of the macro doesn't match its definition",
-              loc=token.loc,
-            )
-          }
-        }
-      None => ()
+  if delimiters is Some(values) && values.get(0) is Some(prefix) {
+    for expected in prefix {
+      let token = self.pop_token()
+      if token.text != expected {
+        raise InvalidArgument(
+          message="Use of the macro doesn't match its definition",
+          loc=token.loc,
+        )
+      }
     }
   }
   let args : Array[Array[Token]] = []
   for index in 0..<num_args {
-    let argument_delimiters = match delimiters {
-      Some(values) => values.get(index + 1)
-      None => None
-    }
+    let argument_delimiters = delimiters.bind(values => values.get(index + 1))
     args.push(self.consume_arg(argument_delimiters).tokens)
   }
   args
@@ -468,16 +455,15 @@ fn MacroExpander::expand_next_token(
   for ;; {
     match self.expand_once() {
       Expanded(_) => continue
-      NotExpanded =>
-        match self.stack.pop() {
-          Some(token) => {
-            if token.treat_as_relax {
-              token.text = "\\relax"
-            }
-            break token
-          }
-          None => raise InternalInvariant(message="Empty token stack")
+      NotExpanded => {
+        guard self.stack.pop() is Some(token) else {
+          raise InternalInvariant(message="Empty token stack")
         }
+        if token.treat_as_relax {
+          token.text = "\\relax"
+        }
+        break token
+      }
     }
   }
 }
@@ -493,17 +479,16 @@ fn MacroExpander::expand_tokens(
   while self.stack.length() > old_stack_length {
     match self.expand_once(expandable_only=true) {
       Expanded(_) => ()
-      NotExpanded =>
-        match self.stack.pop() {
-          Some(token) => {
-            if token.treat_as_relax {
-              token.noexpand = false
-              token.treat_as_relax = false
-            }
-            output.push(token)
-          }
-          None => raise InternalInvariant(message="Empty token stack")
+      NotExpanded => {
+        guard self.stack.pop() is Some(token) else {
+          raise InternalInvariant(message="Empty token stack")
         }
+        if token.treat_as_relax {
+          token.noexpand = false
+          token.treat_as_relax = false
+        }
+        output.push(token)
+      }
     }
   }
   self.count_expansion(output.length())
@@ -531,11 +516,11 @@ fn MacroExpander::expand_macro_as_text(
   match self.expand_macro(name) {
     None => None
     Some(tokens) => {
-      let mut output = ""
+      let builder = StringBuilder()
       for token in tokens {
-        output = output + token.text
+        builder.write_string(token.text)
       }
-      Some(output)
+      Some(builder.to_string())
     }
   }
 }
@@ -625,10 +610,9 @@ fn MacroExpander::get_static_or_builtin_dynamic_expansion(
         Expansion(expansion) => Some(expansion)
       }
     None =>
-      match self.dynamic_macros.get_builtin(name) {
-        None => None
-        Some(handler) => Some(self.resolve_replacement(handler(self)))
-      }
+      self.dynamic_macros
+      .get_builtin(name)
+      .map(handler => self.resolve_replacement(handler(self)))
   }
 }
 

@@ -44,11 +44,9 @@ fn Parser::parse_url_group(
 ) -> ParseNode? raise ParseFailure {
   self.gullet.lexer.set_catcode("%", 13)
   self.gullet.lexer.set_catcode("~", 12)
-  let parsed : Result[Token?, ParseFailure] = Ok(
-    self.parse_string_group(optional),
-  ) catch {
-    err => Err(err)
-  }
+  let parsed : Result[Token?, ParseFailure] = capture_parse_result(() => {
+    self.parse_string_group(optional)
+  })
   self.gullet.lexer.set_catcode("%", 14)
   self.gullet.lexer.set_catcode("~", 13)
   match parsed {

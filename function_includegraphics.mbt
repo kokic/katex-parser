@@ -44,10 +44,8 @@ fn graphics_number(text : String) -> String? {
 ///|
 fn graphics_size(text : String) -> Measurement raise ParseFailure {
   let text = trim_ascii_spaces(text)
-  match graphics_number(text) {
-    Some(number_text) =>
-      return { number: parse_decimal(number_text), unit: "bp" }
-    None => ()
+  if graphics_number(text) is Some(number_text) {
+    return { number: parse_decimal(number_text), unit: "bp" }
   }
   match parse_size_measurement(text) {
     Some(size) if valid_size_unit(size.unit) => size
@@ -133,20 +131,17 @@ fn includegraphics_handler(
   match opt_args.get(0) {
     Some(Some(Raw(string=value, ..))) =>
       for item in graphics_option_items(value) {
-        match graphics_option_pair(item) {
-          None => ()
-          Some((key, value)) =>
-            match key {
-              "alt" => alt = value
-              "width" => width = graphics_size(value)
-              "height" => height = graphics_size(value)
-              "totalheight" => totalheight = graphics_size(value)
-              _ =>
-                raise InvalidArgument(
-                  message="Invalid key: '" + key + "' in \\includegraphics.",
-                  loc=None,
-                )
-            }
+        guard graphics_option_pair(item) is Some((key, value)) else { continue }
+        match key {
+          "alt" => alt = value
+          "width" => width = graphics_size(value)
+          "height" => height = graphics_size(value)
+          "totalheight" => totalheight = graphics_size(value)
+          _ =>
+            raise InvalidArgument(
+              message="Invalid key: '" + key + "' in \\includegraphics.",
+              loc=None,
+            )
         }
       }
     Some(Some(_)) =>
@@ -161,10 +156,10 @@ fn includegraphics_handler(
   if alt == "" {
     alt = graphics_default_alt(src)
   }
-  if !(context.is_trusted)(
-      UrlTrust(command="\\includegraphics", url=src, protocol=None),
-    ) {
-    return (context.unsupported_command)(context.func_name)
+  guard (context.is_trusted)(
+    UrlTrust(command="\\includegraphics", url=src, protocol=None),
+  ) else {
+    (context.unsupported_command)(context.func_name)
   }
   IncludeGraphics(mode=context.mode, alt~, width~, height~, totalheight~, src~)
 }

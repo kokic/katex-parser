@@ -11,11 +11,7 @@ fn matrix_column_count(body : Array[Array[ParseNode]]) -> Int {
 
 ///|
 fn matrix_columns(count : Int, alignment : String) -> Array[ArrayColumn] {
-  let columns : Array[ArrayColumn] = []
-  for _ in 0..<count {
-    columns.push(AlignColumn(alignment~, pre_gap=0.0, post_gap=0.0))
-  }
-  columns
+  Array::make(count, AlignColumn(alignment~, pre_gap=0.0, post_gap=0.0))
 }
 
 ///|
@@ -90,10 +86,7 @@ fn matrix_environment_handler(
   } else {
     None
   }
-  let alignment = match requested_alignment {
-    Some(value) => value
-    None => "c"
-  }
+  let alignment = requested_alignment.unwrap_or("c")
   let array = (context.parse_array)({
     columns: None,
     array_stretch: 1.0,

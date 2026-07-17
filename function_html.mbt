@@ -105,8 +105,8 @@ fn html_handler(
     }
     _ => raise InternalInvariant(message="Unrecognized html command")
   }
-  if !(context.is_trusted)(trust_context) {
-    return (context.unsupported_command)(context.func_name)
+  guard (context.is_trusted)(trust_context) else {
+    (context.unsupported_command)(context.func_name)
   }
   Html(
     mode=context.mode,

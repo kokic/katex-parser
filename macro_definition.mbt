@@ -1,19 +1,19 @@
 ///|
-pub struct MacroExpansion {
+priv struct MacroExpansion {
   tokens : Array[Token]
   num_args : Int
   delimiters : Array[Array[String]]?
   unexpandable : Bool
-} derive(Debug, Eq, ToJson)
+}
 
 ///|
-pub enum MacroDefinition {
+priv enum MacroDefinition {
   Text(String)
   Expansion(MacroExpansion)
-} derive(Debug, Eq, ToJson)
+}
 
 ///|
-pub fn MacroDefinition::text(expansion : String) -> MacroDefinition {
+fn MacroDefinition::text(expansion : String) -> MacroDefinition {
   Text(expansion)
 }
 

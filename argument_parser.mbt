@@ -1,9 +1,8 @@
 ///|
 fn Parser::switch_mode(self : Parser, mode : Mode) -> Unit {
-  if self.mode != mode {
-    self.mode = mode
-    self.gullet.switch_mode(mode)
-  }
+  guard self.mode != mode else { () }
+  self.mode = mode
+  self.gullet.switch_mode(mode)
 }
 
 ///|
@@ -61,25 +60,22 @@ fn Parser::parse_group_of_type(
     SizeArg => self.parse_size_group(optional)
     UrlArg => self.parse_url_group(optional)
     RawArg =>
-      match self.parse_string_group(optional) {
-        None => None
-        Some(token) => Some(Raw(mode=Text, string=token.text))
-      }
+      self
+      .parse_string_group(optional)
+      .map(token => Raw(mode=Text, string=token.text))
     MathArg => self.parse_argument_group(optional, Some(Math))
     TextArg => self.parse_argument_group(optional, Some(Text))
     HboxArg =>
-      match self.parse_argument_group(optional, Some(Text)) {
-        None => None
-        Some(group) =>
-          Some(
-            Styling(
-              mode=group.mode(),
-              body=[group],
-              style=TextStyle,
-              reset_font=true,
-            ),
-          )
-      }
+      self
+      .parse_argument_group(optional, Some(Text))
+      .map(group => {
+        Styling(
+          mode=group.mode(),
+          body=[group],
+          style=TextStyle,
+          reset_font=true,
+        )
+      })
     PrimitiveArg => self.parse_primitive_group(name, optional)
     OriginalArg => self.parse_argument_group(optional, None)
   }
@@ -91,7 +87,7 @@ fn Parser::parse_primitive_group(
   name : String,
   optional : Bool,
 ) -> ParseNode? raise ParseFailure {
-  if optional {
+  guard !optional else {
     raise InvalidArgument(
       message="A primitive argument cannot be optional",
       loc=None,
@@ -116,33 +112,23 @@ fn Parser::parse_argument_group(
     None => None
     Some(arg_token) => {
       let outer_mode = self.mode
-      match mode {
-        Some(argument_mode) => self.switch_mode(argument_mode)
-        None => ()
+      if mode is Some(argument_mode) {
+        self.switch_mode(argument_mode)
       }
       self.gullet.begin_group()
-      let result : Result[ParseNode, ParseFailure] = Ok(
-        {
-          let body = self.parse_expression(false, Some("EOF"))
-          self.expect("EOF")
-          OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
-        },
-      ) catch {
-        err => Err(err)
-      }
-      let close_result : Result[Unit, ParseFailure] = Ok(
-        self.gullet.end_group(),
-      ) catch {
-        err => Err(err)
-      }
+      let result : Result[ParseNode, ParseFailure] = capture_parse_result(() => {
+        let body = self.parse_expression(false, Some("EOF"))
+        self.expect("EOF")
+        OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
+      })
+      let close_result : Result[Unit, ParseFailure] = capture_parse_result(() => {
+        self.gullet.end_group()
+      })
       self.switch_mode(outer_mode)
-      match close_result {
-        Err(err) => raise err
-        Ok(_) =>
-          match result {
-            Err(err) => raise err
-            Ok(node) => Some(node)
-          }
+      match (close_result, result) {
+        (Err(err), _) => raise err
+        (_, Err(err)) => raise err
+        (Ok(_), Ok(node)) => Some(node)
       }
     }
   }

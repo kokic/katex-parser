@@ -73,13 +73,11 @@ fn Parser::expect(
   consume? : Bool = true,
 ) -> Unit raise ParseFailure {
   let token = self.fetch()
-  if token.text == text {
-    if consume {
-      self.consume()
-    }
-  } else {
+  guard token.text == text else {
     raise ExpectedToken(expected=text, actual=Diagnostic::from_token(token))
   }
+  guard consume else { () }
+  self.consume()
 }
 
 ///|
@@ -93,30 +91,20 @@ fn Parser::parse(self : Parser) -> Array[ParseNode] raise ParseFailure {
       Some(MacroDefinition::text("\\textcolor")),
     )
   }
-  let result : Result[Array[ParseNode], ParseFailure] = Ok(
-    {
-      let body = self.parse_expression(false, None)
-      self.expect("EOF")
-      body
-    },
-  ) catch {
-    err => Err(err)
-  }
-  let close_result : Result[Unit, ParseFailure] = if !self.settings.global_group {
-    Ok(self.gullet.end_group()) catch {
-      err => Err(err)
-    }
-  } else {
-    Ok(())
-  }
+  let result : Result[Array[ParseNode], ParseFailure] = capture_parse_result(() => {
+    let body = self.parse_expression(false, None)
+    self.expect("EOF")
+    body
+  })
+  let close_result : Result[Unit, ParseFailure] = capture_parse_result(() => {
+    guard !self.settings.global_group else { () }
+    self.gullet.end_group()
+  })
   self.gullet.end_groups()
-  match close_result {
-    Err(err) => raise err
-    Ok(_) =>
-      match result {
-        Err(err) => raise err
-        Ok(body) => body
-      }
+  match (close_result, result) {
+    (Err(err), _) => raise err
+    (_, Err(err)) => raise err
+    (Ok(_), Ok(body)) => body
   }
 }
 
@@ -129,19 +117,20 @@ fn Parser::subparse(
   self.consume()
   self.gullet.push_token(Token::make("}"))
   self.gullet.push_tokens(tokens)
-  let result : Result[Array[ParseNode], ParseFailure] = Ok(
-    {
-      let body = self.parse_expression(false, Some("}"))
-      self.expect("}")
+  try {
+    let body = self.parse_expression(false, Some("}"))
+    self.expect("}")
+    body
+  } catch {
+    err => {
+      self.next_token = old_token
+      raise err
+    }
+  } noraise {
+    body => {
+      self.next_token = old_token
       body
-    },
-  ) catch {
-    err => Err(err)
-  }
-  self.next_token = old_token
-  match result {
-    Err(err) => raise err
-    Ok(body) => body
+    }
   }
 }
 
@@ -152,19 +141,20 @@ fn Parser::parse_math_mode(
 ) -> Array[ParseNode] raise ParseFailure {
   let outer_mode = self.mode
   self.switch_mode(Math)
-  let result : Result[Array[ParseNode], ParseFailure] = Ok(
-    {
-      let body = self.parse_expression(false, Some(close))
-      self.expect(close)
+  try {
+    let body = self.parse_expression(false, Some(close))
+    self.expect(close)
+    body
+  } catch {
+    err => {
+      self.switch_mode(outer_mode)
+      raise err
+    }
+  } noraise {
+    body => {
+      self.switch_mode(outer_mode)
       body
-    },
-  ) catch {
-    err => Err(err)
-  }
-  self.switch_mode(outer_mode)
-  match result {
-    Ok(body) => body
-    Err(err) => raise err
+    }
   }
 }
 
@@ -187,26 +177,27 @@ fn Parser::parse_left_right(
   left : String,
 ) -> ParseNode raise ParseFailure {
   self.leftright_depth = self.leftright_depth + 1
-  let result : Result[ParseNode, ParseFailure] = Ok(
-    {
-      let body = self.parse_expression(false, None)
-      self.expect("\\right", consume=false)
-      match self.parse_function(None, None) {
-        Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) =>
-          LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
-        _ =>
-          raise InternalInvariant(
-            message="\\right did not produce a closing delimiter",
-          )
-      }
-    },
-  ) catch {
-    err => Err(err)
-  }
-  self.leftright_depth = self.leftright_depth - 1
-  match result {
-    Ok(node) => node
-    Err(err) => raise err
+  try {
+    let body = self.parse_expression(false, None)
+    self.expect("\\right", consume=false)
+    match self.parse_function(None, None) {
+      Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) =>
+        LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
+      _ =>
+        raise InternalInvariant(
+          message="\\right did not produce a closing delimiter",
+        )
+    }
+  } catch {
+    err => {
+      self.leftright_depth = self.leftright_depth - 1
+      raise err
+    }
+  } noraise {
+    node => {
+      self.leftright_depth = self.leftright_depth - 1
+      node
+    }
   }
 }
 
@@ -271,12 +262,8 @@ fn is_end_of_expression(text : String) -> Bool {
 ///|
 fn Parser::consume_spaces(self : Parser) -> Unit raise ParseFailure {
   for ;; {
-    if self.fetch().text == " " {
-      self.consume()
-      continue
-    } else {
-      break
-    }
+    guard self.fetch().text == " " else { break }
+    self.consume()
   }
 }
 
@@ -633,11 +620,7 @@ fn Parser::parse_environment(
           result
         Some(EmitAtom(EnvironmentEnd(name=end_name, ..))) =>
           raise InvalidArgument(
-            message="Mismatch: \\begin{" +
-              name +
-              "} matched by \\end{" +
-              end_name +
-              "}",
+            message="Mismatch: \\begin{\{name}} matched by \\end{\{end_name}}",
             loc=None,
           )
         _ => raise InternalInvariant(message="Expected environment end")
@@ -778,10 +761,8 @@ fn apply_unicode_accents(
   let mut result = base
   for accent in accents {
     let accent_text = String::from_array([accent])
-    let label = match unicode_accent_command(mode, accent_text) {
-      Some(command) => command
-      None =>
-        raise InvalidArgument(message="Unknown accent ' \{accent_text}'", loc~)
+    guard unicode_accent_command(mode, accent_text) is Some(label) else {
+      raise InvalidArgument(message="Unknown accent ' \{accent_text}'", loc~)
     }
     result = Accent(
       mode~,
@@ -823,11 +804,8 @@ fn format_unsupported_command(
   settings : Settings,
   text : String,
 ) -> ParseNode {
-  let body : Array[ParseNode] = []
-  for _, ch in text {
-    body.push(TextOrd(mode=Text, loc=None, text=String::from_array([ch])))
-  }
+  let body = text
+    .to_array()
+    .map(ch => TextOrd(mode=Text, loc=None, text=String::from_array([ch])))
   Color(mode~, color=settings.error_color, body~)
 }
-
-///|

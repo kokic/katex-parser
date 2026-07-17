@@ -41,11 +41,10 @@ fn show_macro(context : MacroExpander) -> MacroReplacement raise ParseFailure {
 fn tag_literal_macro(
   context : MacroExpander,
 ) -> MacroReplacement raise ParseFailure {
-  if context.macros.has("\\df@tag") {
+  guard !context.macros.has("\\df@tag") else {
     raise InvalidArgument(message="Multiple \\tag", loc=None)
-  } else {
-    ReplacementText("\\gdef\\df@tag{\\text{#1}}")
   }
+  ReplacementText("\\gdef\\df@tag{\\text{#1}}")
 }
 
 ///|
@@ -120,20 +119,16 @@ fn braket_helper(
       ),
     )
   }
-  let expanded : Result[Array[Token], ParseFailure] = Ok(
-    {
-      let argument = context.consume_arg(None).tokens
-      let input = right.copy()
-      input.append(argument)
-      input.append(left)
-      context.expand_tokens(input)
-    },
-  ) catch {
-    err => Err(err)
-  }
-  let close_result : Result[Unit, ParseFailure] = Ok(context.end_group()) catch {
-    err => Err(err)
-  }
+  let expanded : Result[Array[Token], ParseFailure] = capture_parse_result(() => {
+    let argument = context.consume_arg(None).tokens
+    let input = right.copy()
+    input.append(argument)
+    input.append(left)
+    context.expand_tokens(input)
+  })
+  let close_result : Result[Unit, ParseFailure] = capture_parse_result(() => {
+    context.end_group()
+  })
   match (expanded, close_result) {
     (Err(err), _) => raise err
     (Ok(_), Err(err)) => raise err

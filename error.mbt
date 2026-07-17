@@ -18,6 +18,15 @@ pub(all) suberror ParseFailure {
 } derive(Debug, ToJson, Eq)
 
 ///|
+fn[T] capture_parse_result(
+  operation : () -> T raise ParseFailure,
+) -> Result[T, ParseFailure] {
+  Ok(operation()) catch {
+    err => Err(err)
+  }
+}
+
+///|
 pub(all) struct Diagnostic {
   text : String
   loc : SourceLocation?

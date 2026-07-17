@@ -3,14 +3,14 @@ fn environment_name(arg : ParseNode) -> String raise ParseFailure {
   guard arg is OrdGroup(body~, ..) else {
     raise InvalidArgument(message="Invalid environment name", loc=None)
   }
-  let mut name = ""
+  let builder = StringBuilder()
   for node in body {
     guard node is TextOrd(text~, ..) else {
       raise InvalidArgument(message="Invalid environment name", loc=None)
     }
-    name = name + text
+    builder.write_string(text)
   }
-  name
+  builder.to_string()
 }
 
 ///|

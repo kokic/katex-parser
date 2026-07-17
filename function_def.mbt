@@ -29,7 +29,7 @@ fn macro_prefix_spec() -> FunctionSpec {
 fn prefixed_macro_name(prefix : String, next : String) -> String? {
   let global = prefix == "\\global" || prefix == "\\\\globallong"
   match next {
-    "\\global" => Some(if global { "\\global" } else { "\\global" })
+    "\\global" => Some("\\global")
     "\\long" => Some(if global { "\\\\globallong" } else { "\\long" })
     "\\\\globallong" => Some("\\\\globallong")
     "\\def" => Some(if global { "\\gdef" } else { "\\def" })
@@ -51,14 +51,13 @@ fn macro_prefix_handler(
 ) -> ParseNode raise ParseFailure {
   (context.consume_spaces)()
   let token = (context.pop_token)()
-  match prefixed_macro_name(context.func_name, token.text) {
-    Some(name) => (context.parse_prefixed_function)(name)
-    None =>
-      raise InvalidArgument(
-        message="Invalid token after macro prefix",
-        loc=token.loc,
-      )
+  guard prefixed_macro_name(context.func_name, token.text) is Some(name) else {
+    raise InvalidArgument(
+      message="Invalid token after macro prefix",
+      loc=token.loc,
+    )
   }
+  (context.parse_prefixed_function)(name)
 }
 
 ///|
