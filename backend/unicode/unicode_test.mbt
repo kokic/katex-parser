@@ -160,3 +160,20 @@ test "render matrix environments" {
     "a; b",
   )
 }
+
+///|
+test "render matrix environments in block mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  @test.assert_eq(
+    render(@katex_parser.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}", settings=settings)),
+    "(a  b)\n(c  d)",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}", settings=settings)),
+    "[a  b]\n[c  d]",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}", settings=settings)),
+    "a\nb",
+  )
+}

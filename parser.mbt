@@ -46,7 +46,9 @@ pub fn parse(
   }
   parser.gullet.macros.set("\\current@color", None)
   parser.gullet.macros.set("\\color", None)
-  body
+
+  guard settings.display_mode else { body }
+  [Styling(mode=Math, body~, style=DisplayStyle, reset_font=true)]
 }
 
 ///|
