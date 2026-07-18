@@ -44,7 +44,7 @@ fn render_node(node : @katex_parser.ParseNode) -> String {
         render_operand(numer) + "∕" + render_operand(denom),
         right_delim,
       )
-    Font(font~, body~, ..) => font + "(" + render_node(body) + ")"
+    Font(font~, body~, ..) => render_font(font, body)
     Op(content~, ..) => render_operator_content(content)
     OperatorName(body~, ..) => render(body)
     Overline(body~, ..) => "overline(" + render_node(body) + ")"
@@ -119,6 +119,21 @@ fn render_symbol(text : String) -> String {
 }
 
 ///|
+fn render_font(font : String, body : @katex_parser.ParseNode) -> String {
+  if font == "mathrm" || font == "mathnormal" {
+    return render_node(body)
+  }
+  match body {
+    MathOrd(text~, ..) | TextOrd(text~, ..) | Atom(text~, ..) =>
+      match @katex_parser.unicode_font_character(font, text) {
+        Some(char) => char
+        None => font + "(" + render_node(body) + ")"
+      }
+    _ => font + "(" + render_node(body) + ")"
+  }
+}
+
+///|
 fn render_delimited(
   left : String?,
   content : String,
@@ -155,11 +170,8 @@ fn render_radical(prefix : String, body : @katex_parser.ParseNode) -> String {
 /// Renders an expression where precedence must remain visible in plain text.
 fn render_operand(node : @katex_parser.ParseNode) -> String {
   let rendered = render_node(node)
-  if is_atomic_expression(node) {
-    rendered
-  } else {
-    "(" + rendered + ")"
-  }
+  guard is_atomic_expression(node) else { "(" + rendered + ")" }
+  rendered
 }
 
 ///|
@@ -211,11 +223,8 @@ fn render_script(
 ) -> String {
   node
   .map(node => {
-    let text = render_node(node)
-    match unicode_script(text, kind) {
-      Some(rendered) => rendered
-      None => fallback_prefix + render_operand(node)
-    }
+    let default = () => fallback_prefix + render_operand(node)
+    unicode_script(render_node(node), kind).unwrap_or_else(default)
   })
   .unwrap_or_default()
 }

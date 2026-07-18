@@ -41,3 +41,66 @@ test "use combining accents only for atomic bodies" {
   @test.assert_eq(render(@katex_parser.parse("\\hat{x}")), "x̂")
   @test.assert_eq(render(@katex_parser.parse("\\hat{x+y}")), "\\hat(x+y)")
 }
+
+///|
+test "render superscript and subscript variants" {
+  @test.assert_eq(render(@katex_parser.parse("x^{12}")), "x¹²")
+  @test.assert_eq(render(@katex_parser.parse("x_{ij}")), "xᵢⱼ")
+}
+
+///|
+test "render all combining accent commands" {
+  @test.assert_eq(render(@katex_parser.parse("\\acute{x}")), "x́")
+  @test.assert_eq(render(@katex_parser.parse("\\grave{x}")), "x̀")
+  @test.assert_eq(render(@katex_parser.parse("\\ddot{x}")), "ẍ")
+  @test.assert_eq(render(@katex_parser.parse("\\tilde{x}")), "x̃")
+  @test.assert_eq(render(@katex_parser.parse("\\bar{x}")), "x̄")
+  @test.assert_eq(render(@katex_parser.parse("\\breve{x}")), "x̆")
+  @test.assert_eq(render(@katex_parser.parse("\\check{x}")), "x̌")
+  @test.assert_eq(render(@katex_parser.parse("\\dot{x}")), "ẋ")
+  @test.assert_eq(render(@katex_parser.parse("\\mathring{x}")), "x̊")
+  @test.assert_eq(render(@katex_parser.parse("\\vec{x}")), "x⃗")
+}
+
+///|
+test "render binomial without fraction bar" {
+  @test.assert_eq(render(@katex_parser.parse("\\binom{n}{k}")), "(n,k)")
+}
+
+///|
+test "render overline with compound body and underline" {
+  @test.assert_eq(render(@katex_parser.parse("\\overline{xy}")), "overline(xy)")
+  @test.assert_eq(render(@katex_parser.parse("\\underline{x}")), "underline(x)")
+}
+
+///|
+test "render left-right delimiters" {
+  @test.assert_eq(render(@katex_parser.parse("\\left( x \\right)")), "(x)")
+  @test.assert_eq(render(@katex_parser.parse("\\left[ x \\right]")), "[x]")
+}
+
+///|
+test "render font commands as Unicode math alphanumerics" {
+  @test.assert_eq(render(@katex_parser.parse("\\mathbb{R}")), "ℝ")
+  @test.assert_eq(render(@katex_parser.parse("\\mathbf{x}")), "𝐱")
+  @test.assert_eq(render(@katex_parser.parse("\\mathit{x}")), "𝑥")
+  @test.assert_eq(render(@katex_parser.parse("\\mathsf{A}")), "𝖠")
+  @test.assert_eq(render(@katex_parser.parse("\\mathtt{x}")), "𝚡")
+  @test.assert_eq(render(@katex_parser.parse("\\mathcal{L}")), "ℒ")
+}
+
+///|
+test "render text and phantom" {
+  @test.assert_eq(render(@katex_parser.parse("\\text{hello}")), "hello")
+  @test.assert_eq(render(@katex_parser.parse("\\phantom{xy}")), "phantom(xy)")
+}
+
+///|
+test "pass through color body" {
+  @test.assert_eq(render(@katex_parser.parse("\\color{#abc}x")), "x")
+}
+
+///|
+test "render verbatim text" {
+  @test.assert_eq(render(@katex_parser.parse("\\verb|x|")), "x")
+}
