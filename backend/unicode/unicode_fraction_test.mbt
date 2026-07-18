@@ -47,3 +47,16 @@ test "render fractions in block mode" {
     "(n,k)",
   )
 }
+
+///|
+test "render fractions with configurable slash" {
+  let config = RenderConfig::make(fraction_slash="/")
+  @test.assert_eq(
+    render(@katex_parser.parse("\\frac{a}{b}"), config=config),
+    "a/b",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\frac{a+b}{c+d}"), config=config),
+    "(a+b)/(c+d)",
+  )
+}

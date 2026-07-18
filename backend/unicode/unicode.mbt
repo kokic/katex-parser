@@ -2,23 +2,27 @@
 /// Renders parsed KaTeX nodes as Unicode text. Nodes without a direct Unicode
 /// rendering use UnicodeMath-style function syntax so that their structure is
 /// retained in plain text.
-pub fn render(nodes : Array[@katex_parser.ParseNode]) -> String {
-  render_internal(nodes, false)
+pub fn render(
+  nodes : Array[@katex_parser.ParseNode],
+  config? : RenderConfig = RenderConfig::default(),
+) -> String {
+  render_internal(nodes, { in_display: false, config })
 }
 
 ///|
 fn render_internal(
   nodes : Array[@katex_parser.ParseNode],
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
-  nodes.map(n => render_node_internal(n, in_display)).join("")
+  nodes.map(n => render_node_internal(n, state)).join("")
 }
 
 ///|
 fn render_node_internal(
   node : @katex_parser.ParseNode,
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
+  let slash = state.config.fraction_slash
   match node {
     Internal(..) | EnvironmentEnd(..) => ""
     Raw(string~, ..) => render_symbol(string)
@@ -32,7 +36,10 @@ fn render_node_internal(
     Size(value~, ..) => render_measurement(value)
     Url(url~, ..) => url
     Styling(body~, style~, ..) =>
-      render_internal(body, in_display || style == DisplayStyle)
+      render_internal(body, {
+        ..state,
+        in_display: state.in_display || style == DisplayStyle,
+      })
     Text(body~, ..)
     | MClass(body~, ..)
     | HBox(body~, ..)
@@ -40,85 +47,82 @@ fn render_node_internal(
     | Color(body~, ..)
     | Href(body~, ..)
     | Html(body~, ..)
-    | OrdGroup(body~, ..) => render_internal(body, in_display)
-    Sqrt(body~, index=None, ..) => render_radical("", body, in_display)
-    Sqrt(body~, index=Some(index), ..) => render_root(index, body, in_display)
+    | OrdGroup(body~, ..) => render_internal(body, state)
+    Sqrt(body~, index=None, ..) => render_radical("", body, state)
+    Sqrt(body~, index=Some(index), ..) => render_root(index, body, state)
     Infix(replace_with~, ..) => replace_with
     GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) =>
       render_delimited(
         left_delim,
-        "\{render_node_internal(numer, in_display)},\{render_node_internal(denom, in_display)}",
+        "\{render_node_internal(numer, state)},\{render_node_internal(denom, state)}",
         right_delim,
       )
     GenFrac(numer~, denom~, left_delim=None, right_delim=None, ..) => {
-      guard !in_display else { render_genfrac_block(numer, denom) }
-      "\{render_operand(numer, in_display)}∕\{render_operand(denom, in_display)}"
+      guard !state.in_display else { render_genfrac_block(numer, denom, state) }
+      "\{render_operand(numer, state)}\{slash}\{render_operand(denom, state)}"
     }
     GenFrac(numer~, denom~, left_delim~, right_delim~, ..) =>
       render_delimited(
         left_delim,
-        "\{render_operand(numer, in_display)}∕\{render_operand(denom, in_display)}",
+        "\{render_operand(numer, state)}\{slash}\{render_operand(denom, state)}",
         right_delim,
       )
-    Font(font~, body~, ..) => render_font(font, body, in_display)
-    Op(content~, ..) => render_operator_content(content, in_display)
-    OperatorName(body~, ..) => render_internal(body, in_display)
-    Overline(body~, ..) =>
-      "overline(\{render_node_internal(body, in_display)})"
-    Underline(body~, ..) =>
-      "underline(\{render_node_internal(body, in_display)})"
+    Font(font~, body~, ..) => render_font(font, body, state)
+    Op(content~, ..) => render_operator_content(content, state)
+    OperatorName(body~, ..) => render_internal(body, state)
+    Overline(body~, ..) => "overline(\{render_node_internal(body, state)})"
+    Underline(body~, ..) => "underline(\{render_node_internal(body, state)})"
     Smash(body~, ..)
     | VPhantom(body~, ..)
     | VCenter(body~, ..)
     | RaiseBox(body~, ..)
-    | Lap(body~, ..) => render_node_internal(body, in_display)
-    CdParent(fragment~, ..) => render_node_internal(fragment, in_display)
-    Phantom(body~, ..) => "phantom(\{render_internal(body, in_display)})"
-    Pmb(body~, ..) => "bold(\{render_internal(body, in_display)})"
+    | Lap(body~, ..) => render_node_internal(body, state)
+    CdParent(fragment~, ..) => render_node_internal(fragment, state)
+    Phantom(body~, ..) => "phantom(\{render_internal(body, state)})"
+    Pmb(body~, ..) => "bold(\{render_internal(body, state)})"
     Rule(width~, height~, ..) =>
       "rule(\{render_measurement(width)},\{render_measurement(height)})"
-    MathChoice(display~, ..) => render_internal(display, in_display)
+    MathChoice(display~, ..) => render_internal(display, state)
     HorizBrace(label~, is_over=true, base~, ..) =>
-      "overbrace(\{render_node_internal(base, in_display)})^\{label}"
+      "overbrace(\{render_node_internal(base, state)})^\{label}"
     HorizBrace(label~, base~, ..) =>
-      "underbrace(\{render_node_internal(base, in_display)})_\{label}"
+      "underbrace(\{render_node_internal(base, state)})_\{label}"
     XArrow(label~, body~, below=None, ..) =>
-      "xrightarrow(\{render_node_internal(body, in_display)})^\{label}"
+      "xrightarrow(\{render_node_internal(body, state)})^\{label}"
     XArrow(label~, body~, below=Some(below), ..) =>
-      "xrightarrow(\{render_node_internal(body, in_display)})_(\{render_node_internal(below, in_display)})^\{label}"
+      "xrightarrow(\{render_node_internal(body, state)})_(\{render_node_internal(below, state)})^\{label}"
     AccentUnder(label~, base~, ..) =>
-      "underaccent(\{label},\{render_node_internal(base, in_display)})"
+      "underaccent(\{label},\{render_node_internal(base, state)})"
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
       delim
     LeftRight(body~, left~, right~, ..) =>
-      if in_display && body.length() == 1 {
+      if state.in_display && body.length() == 1 {
         match body[0] {
-          Array(body~, ..) =>
-            render_leftright_block(left, right, body, in_display)
-          _ => "\{left}\{render_internal(body, in_display)}\{right}"
+          Array(body~, ..) => render_leftright_block(left, right, body, state)
+          _ => "\{left}\{render_internal(body, state)}\{right}"
         }
       } else {
-        "\{left}\{render_internal(body, in_display)}\{right}"
+        "\{left}\{render_internal(body, state)}\{right}"
       }
     Kern(dimension~, ..) => "kern(\{render_measurement(dimension)})"
     Enclose(label~, body~, ..) =>
-      "\{label}(\{render_node_internal(body, in_display)})"
+      "\{label}(\{render_node_internal(body, state)})"
     IncludeGraphics(alt~, ..) => "image(\{alt})"
     Tag(body~, tag~, ..) =>
-      "\{render_internal(body, in_display)}\t(\{render_internal(tag, in_display)})"
+      "\{render_internal(body, state)}\t(\{render_internal(tag, state)})"
     Array(body~, ..) =>
-      if in_display {
-        render_array_block(body, in_display)
+      if state.in_display {
+        render_array_block(body, state)
       } else {
-        render_array_inline(body, in_display)
+        render_array_inline(body, state)
       }
     CdLabel(side~, label~, ..) =>
-      "\{side}(\{render_node_internal(label, in_display)})"
+      "\{side}(\{render_node_internal(label, state)})"
     Cr(new_line=true, ..) => "\n"
     Cr(..) => ""
-    HtmlMathML(mathml~, ..) => render_internal(mathml, in_display)
-    SupSub(base~, sup~, sub~, ..) => render_sup_sub(base, sup, sub, in_display)
-    Accent(label~, base~, ..) => render_accent(label, base, in_display)
+    HtmlMathML(mathml~, ..) => render_internal(mathml, state)
+    SupSub(base~, sup~, sub~, ..) => render_sup_sub(base, sup, sub, state)
+    Accent(label~, base~, ..) => render_accent(label, base, state)
     Verb(body~, ..) => body
   }
 }
@@ -126,11 +130,11 @@ fn render_node_internal(
 ///|
 fn render_operator_content(
   content : @katex_parser.OperatorContent,
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
   match content {
     SymbolOperator(text) | NamedOperator(text) => text
-    BodyOperator(body) => render_internal(body, in_display)
+    BodyOperator(body) => render_internal(body, state)
   }
 }
 
@@ -146,18 +150,18 @@ fn render_symbol(text : String) -> String {
 fn render_font(
   font : String,
   body : @katex_parser.ParseNode,
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
   if font == "mathrm" || font == "mathnormal" {
-    return render_node_internal(body, in_display)
+    return render_node_internal(body, state)
   }
   match body {
     MathOrd(text~, ..) | TextOrd(text~, ..) | Atom(text~, ..) =>
       match @katex_parser.unicode_font_character(font, text) {
         Some(char) => char
-        None => "\{font}(\{render_node_internal(body, in_display)})"
+        None => "\{font}(\{render_node_internal(body, state)})"
       }
-    _ => "\{font}(\{render_node_internal(body, in_display)})"
+    _ => "\{font}(\{render_node_internal(body, state)})"
   }
 }
 
@@ -181,13 +185,12 @@ fn render_measurement(measurement : @katex_parser.Measurement) -> String {
 fn render_root(
   index : @katex_parser.ParseNode,
   body : @katex_parser.ParseNode,
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
-  let index_text = render_node_internal(index, in_display)
+  let index_text = render_node_internal(index, state)
   match unicode_script(index_text, UnicodeSuperscript) {
-    Some(index) => render_radical(index, body, in_display)
-    None =>
-      "root(\{index_text},\{render_node_internal(body, in_display)})"
+    Some(index) => render_radical(index, body, state)
+    None => "root(\{index_text},\{render_node_internal(body, state)})"
   }
 }
 
@@ -195,15 +198,18 @@ fn render_root(
 fn render_radical(
   prefix : String,
   body : @katex_parser.ParseNode,
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
-  "\{prefix}√\{render_operand(body, in_display)}"
+  "\{prefix}√\{render_operand(body, state)}"
 }
 
 ///|
 /// Renders an expression where precedence must remain visible in plain text.
-fn render_operand(node : @katex_parser.ParseNode, in_display : Bool) -> String {
-  let rendered = render_node_internal(node, in_display)
+fn render_operand(
+  node : @katex_parser.ParseNode,
+  state : RenderState,
+) -> String {
+  let rendered = render_node_internal(node, state)
   guard is_atomic_expression(node) else { "(\{rendered})" }
   rendered
 }
@@ -242,11 +248,11 @@ fn render_sup_sub(
   base : @katex_parser.ParseNode?,
   sup : @katex_parser.ParseNode?,
   sub : @katex_parser.ParseNode?,
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
-  let base = base.map(b => render_operand(b, in_display)).unwrap_or_default()
-  let sub = render_script(sub, UnicodeSubscript, "_", in_display)
-  let sup = render_script(sup, UnicodeSuperscript, "^", in_display)
+  let base = base.map(b => render_operand(b, state)).unwrap_or_default()
+  let sub = render_script(sub, UnicodeSubscript, "_", state)
+  let sup = render_script(sup, UnicodeSuperscript, "^", state)
   "\{base}\{sub}\{sup}"
 }
 
@@ -255,12 +261,12 @@ fn render_script(
   node : @katex_parser.ParseNode?,
   kind : @katex_parser.UnicodeScriptKind,
   fallback_prefix : String,
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
   node
   .map(node => {
-    let default = () => "\{fallback_prefix}\{render_operand(node, in_display)}"
-    unicode_script(render_node_internal(node, in_display), kind).unwrap_or_else(
+    let default = () => "\{fallback_prefix}\{render_operand(node, state)}"
+    unicode_script(render_node_internal(node, state), kind).unwrap_or_else(
       default,
     )
   })
@@ -291,7 +297,7 @@ fn unicode_script(
 fn render_accent(
   label : String,
   base : @katex_parser.ParseNode,
-  in_display : Bool,
+  state : RenderState,
 ) -> String {
   let mark = match label {
     "\\acute" => Some("́")
@@ -309,7 +315,7 @@ fn render_accent(
   }
   match mark {
     Some(mark) if is_atomic_expression(base) =>
-      "\{render_node_internal(base, in_display)}\{mark}"
-    _ => "\{label}(\{render_node_internal(base, in_display)})"
+      "\{render_node_internal(base, state)}\{mark}"
+    _ => "\{label}(\{render_node_internal(base, state)})"
   }
 }
