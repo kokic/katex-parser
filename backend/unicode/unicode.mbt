@@ -86,7 +86,7 @@ fn render_node(node : @katex_parser.ParseNode) -> String {
     Enclose(label~, body~, ..) => label + "(" + render_node(body) + ")"
     IncludeGraphics(alt~, ..) => "image(" + alt + ")"
     Tag(body~, tag~, ..) => render(body) + "\t(" + render(tag) + ")"
-    Array(body~, ..) => body.map(render_row).join("\n")
+    Array(body~, ..) => body.map(render_row).join("; ")
     CdLabel(side~, label~, ..) => side + "(" + render_node(label) + ")"
     Cr(new_line=true, ..) => "\n"
     Cr(..) => ""
@@ -99,7 +99,7 @@ fn render_node(node : @katex_parser.ParseNode) -> String {
 
 ///|
 fn render_row(row : Array[@katex_parser.ParseNode]) -> String {
-  render(row)
+  row.map(render_node).join(", ")
 }
 
 ///|

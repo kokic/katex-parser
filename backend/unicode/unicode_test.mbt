@@ -104,3 +104,59 @@ test "pass through color body" {
 test "render verbatim text" {
   @test.assert_eq(render(@katex_parser.parse("\\verb|x|")), "x")
 }
+
+///|
+test "render nested fractions" {
+  @test.assert_eq(
+    render(@katex_parser.parse("\\frac{\\frac{a}{b}}{c}")),
+    "(a∕b)∕c",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\frac{a}{\\frac{b}{c}}")),
+    "a∕(b∕c)",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\frac{a+b}{c+d}")),
+    "(a+b)∕(c+d)",
+  )
+}
+
+///|
+test "render radicals with fractions and deep nesting" {
+  @test.assert_eq(
+    render(@katex_parser.parse("\\sqrt{\\frac{a}{b}}")),
+    "√(a∕b)",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\sqrt[3]{\\frac{a}{b}}")),
+    "³√(a∕b)",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\sqrt{\\frac{\\frac{a}{b}}{c}}")),
+    "√((a∕b)∕c)",
+  )
+}
+
+///|
+test "render superscript and subscript with compound expressions" {
+  @test.assert_eq(render(@katex_parser.parse("x^{a+b}")), "xᵃ⁺ᵇ")
+  @test.assert_eq(render(@katex_parser.parse("x_{i+j}")), "xᵢ₊ⱼ")
+  @test.assert_eq(render(@katex_parser.parse("x^2_n")), "xₙ²")
+  @test.assert_eq(render(@katex_parser.parse("x_i^j")), "xᵢʲ")
+}
+
+///|
+test "render matrix environments" {
+  @test.assert_eq(
+    render(@katex_parser.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}")),
+    "(a, b; c, d)",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}")),
+    "[a, b; c, d]",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}")),
+    "a; b",
+  )
+}
