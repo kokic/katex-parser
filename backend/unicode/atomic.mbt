@@ -1,4 +1,3 @@
-
 ///|
 /// True if the Unicode rendering has no internal operator that needs grouping.
 ///

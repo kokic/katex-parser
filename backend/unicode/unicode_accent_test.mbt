@@ -1,7 +1,7 @@
 ///|
 test "use combining accents only for atomic bodies" {
   @test.assert_eq(render(@katex_parser.parse("\\hat{x}")), "x̂")
-  @test.assert_eq(render(@katex_parser.parse("\\hat{x+y}")), "\\hat(x+y)")
+  @test.assert_eq(render(@katex_parser.parse("\\hat{x+y}")), "\\hat(x + y)")
 }
 
 ///|

@@ -39,11 +39,15 @@ test "render verbatim text" {
 ///|
 test "render matrix environments" {
   @test.assert_eq(
-    render(@katex_parser.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}")),
+    render(
+      @katex_parser.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}"),
+    ),
     "(a, b; c, d)",
   )
   @test.assert_eq(
-    render(@katex_parser.parse("\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}")),
+    render(
+      @katex_parser.parse("\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}"),
+    ),
     "[a, b; c, d]",
   )
   @test.assert_eq(
@@ -56,15 +60,27 @@ test "render matrix environments" {
 test "render matrix environments in block mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   @test.assert_eq(
-    render(@katex_parser.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}", settings=settings)),
+    render(
+      @katex_parser.parse(
+        "\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}",
+        settings~,
+      ),
+    ),
     "(a  b)\n(c  d)",
   )
   @test.assert_eq(
-    render(@katex_parser.parse("\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}", settings=settings)),
+    render(
+      @katex_parser.parse(
+        "\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}",
+        settings~,
+      ),
+    ),
     "[a  b]\n[c  d]",
   )
   @test.assert_eq(
-    render(@katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}", settings=settings)),
+    render(
+      @katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}", settings~),
+    ),
     "a\nb",
   )
 }

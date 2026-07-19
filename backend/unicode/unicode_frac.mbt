@@ -4,9 +4,10 @@ fn render_genfrac_block(
   denom : @katex_parser.ParseNode,
   state : RenderState,
 ) -> String {
-  let sub_state = { ..state, in_display: false }
-  let num = render_node_internal(numer, sub_state)
-  let den = render_node_internal(denom, sub_state)
+  let num_state = { ..state, in_display: false }
+  let den_state = { ..state, in_display: false, in_tight: true }
+  let num = render_node_internal(numer, num_state)
+  let den = render_node_internal(denom, den_state)
   let w = if num.length() > den.length() { num.length() } else { den.length() }
   let bar_w = w + 2
   let bar = '-'.repeat(bar_w)

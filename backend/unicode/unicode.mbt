@@ -6,7 +6,7 @@ pub fn render(
   nodes : Array[@katex_parser.ParseNode],
   config? : RenderConfig = RenderConfig::default(),
 ) -> String {
-  render_internal(nodes, { in_display: false, config })
+  render_internal(nodes, { in_display: false, in_tight: false, config })
 }
 
 ///|
@@ -14,7 +14,9 @@ fn render_internal(
   nodes : Array[@katex_parser.ParseNode],
   state : RenderState,
 ) -> String {
-  nodes.map(n => render_node_internal(n, state)).join("")
+  let items = collect_spacable_items(nodes, state)
+  let cancelled = @backend.cancel_bin_atoms(items)
+  @backend.join_with_spacing(cancelled, state.in_tight, state.config.spacing)
 }
 
 ///|
@@ -40,8 +42,8 @@ fn render_node_internal(
         ..state,
         in_display: state.in_display || style == DisplayStyle,
       })
-    Text(body~, ..)
-    | MClass(body~, ..)
+    Text(body~, ..) => render_internal(body, { ..state, in_tight: true })
+    MClass(body~, ..)
     | HBox(body~, ..)
     | Sizing(body~, ..)
     | Color(body~, ..)
@@ -51,22 +53,33 @@ fn render_node_internal(
     Sqrt(body~, index=None, ..) => render_radical("", body, state)
     Sqrt(body~, index=Some(index), ..) => render_root(index, body, state)
     Infix(replace_with~, ..) => replace_with
-    GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) =>
+    GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) => {
+      let tight = state.in_tight || !state.in_display
+      let num_state = { ..state, in_tight: tight }
+      let den_state = { ..state, in_tight: true }
       render_delimited(
         left_delim,
-        "\{render_node_internal(numer, state)},\{render_node_internal(denom, state)}",
+        "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}",
         right_delim,
       )
+    }
     GenFrac(numer~, denom~, left_delim=None, right_delim=None, ..) => {
       guard !state.in_display else { render_genfrac_block(numer, denom, state) }
-      "\{render_operand(numer, state)}\{slash}\{render_operand(denom, state)}"
+      let tight = state.in_tight || !state.in_display
+      let num_state = { ..state, in_tight: tight }
+      let den_state = { ..state, in_tight: true }
+      "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
     }
-    GenFrac(numer~, denom~, left_delim~, right_delim~, ..) =>
+    GenFrac(numer~, denom~, left_delim~, right_delim~, ..) => {
+      let tight = state.in_tight || !state.in_display
+      let num_state = { ..state, in_tight: tight }
+      let den_state = { ..state, in_tight: true }
       render_delimited(
         left_delim,
-        "\{render_operand(numer, state)}\{slash}\{render_operand(denom, state)}",
+        "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}",
         right_delim,
       )
+    }
     Font(font~, body~, ..) => render_font(font, body, state)
     Op(content~, ..) => render_operator_content(content, state)
     OperatorName(body~, ..) => render_internal(body, state)
@@ -124,6 +137,126 @@ fn render_node_internal(
     SupSub(base~, sup~, sub~, ..) => render_sup_sub(base, sup, sub, state)
     Accent(label~, base~, ..) => render_accent(label, base, state)
     Verb(body~, ..) => body
+  }
+}
+
+///|
+/// Collect spacable items from a list of nodes. Partial groups (transparent
+/// wrappers that don't affect math spacing) have their children exposed to
+/// the current level. Real groups are rendered as a single spacable atom.
+fn collect_spacable_items(
+  nodes : Array[@katex_parser.ParseNode],
+  state : RenderState,
+) -> Array[@backend.SpacableItem] {
+  nodes.fold(init=[], fn(acc, n) {
+    match n {
+      // --- Partial groups: expose children to parent spacing ---
+      Styling(body~, style~, ..) => {
+        let child_state = {
+          ..state,
+          in_display: state.in_display ||
+          style == @katex_parser.StyleLevel::DisplayStyle,
+        }
+        acc + collect_spacable_items(body, child_state)
+      }
+      @katex_parser.ParseNode::Color(body~, ..)
+      | @katex_parser.ParseNode::Sizing(body~, ..)
+      | @katex_parser.ParseNode::HBox(body~, ..)
+      | @katex_parser.ParseNode::Href(body~, ..)
+      | @katex_parser.ParseNode::Html(body~, ..) =>
+        acc + collect_spacable_items(body, state)
+
+      // --- Space nodes: rendered text with no atom type ---
+      Spacing(text~, ..) =>
+        acc + [{ atom_type: None, text: render_symbol(text) }]
+
+      // --- Real groups: render as single atom ---
+      @katex_parser.ParseNode::OrdGroup(..)
+      | @katex_parser.ParseNode::Text(..)
+      | @katex_parser.ParseNode::MClass(..) =>
+        acc +
+        [
+          {
+            atom_type: get_outer_atom_type(n),
+            text: render_node_internal(n, state),
+          },
+        ]
+
+      // --- Everything else ---
+      _ =>
+        acc +
+        [
+          {
+            atom_type: get_outer_atom_type(n),
+            text: render_node_internal(n, state),
+          },
+        ]
+    }
+  })
+}
+
+///|
+/// Determine the outermost atom type of a node for spacing purposes.
+fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
+  match node {
+    // --- Leaf atoms ---
+    Atom(family~, ..) => Some(@backend.atom_family_name(family))
+    MathOrd(..) | TextOrd(..) | Raw(..) | ColorToken(..) | AccentToken(..) =>
+      Some("mord")
+    OperatorToken(..) | Op(..) | OperatorName(..) => Some("mop")
+
+    // --- Compound: delegate to base ---
+    SupSub(base=None, ..) => Some("mord")
+    SupSub(base=Some(base), ..) => get_outer_atom_type(base)
+    Accent(base~, ..) => get_outer_atom_type(base)
+    Font(body~, ..) => get_outer_atom_type(body)
+    VCenter(body~, ..)
+    | RaiseBox(body~, ..)
+    | Lap(body~, ..)
+    | Smash(body~, ..)
+    | VPhantom(body~, ..) => get_outer_atom_type(body)
+    CdParent(fragment~, ..) => get_outer_atom_type(fragment)
+
+    // --- Explicit math class ---
+    MClass(mclass~, ..) => Some(@backend.atom_family_name(mclass))
+    DelimSizing(mclass~, ..) => Some(@backend.atom_family_name(mclass))
+    Pmb(mclass~, ..) => Some(@backend.atom_family_name(mclass))
+
+    // --- \left...\right produces Inner atoms ---
+    LeftRight(..) | LeftRightRight(..) | Middle(..) => Some("minner")
+
+    // --- All other compound nodes treated as ordinary ---
+    Sqrt(..)
+    | GenFrac(..)
+    | Overline(..)
+    | Underline(..)
+    | Phantom(..)
+    | Rule(..)
+    | Kern(..)
+    | Enclose(..)
+    | HorizBrace(..)
+    | XArrow(..)
+    | AccentUnder(..)
+    | IncludeGraphics(..)
+    | CdLabel(..)
+    | Array(..)
+    | Tag(..)
+    | Cr(..)
+    | Verb(..)
+    | OrdGroup(..)
+    | Text(..)
+    | Styling(..)
+    | MathChoice(..)
+    | HtmlMathML(..)
+    | Size(..)
+    | Url(..) => Some("mord")
+
+    // --- Untyped or shouldn't appear in final output ---
+    Spacing(..) => None
+    Internal(..) | EnvironmentEnd(..) | Infix(..) => None
+
+    // --- Partial groups: shouldn't reach here ---
+    Color(..) | Sizing(..) | HBox(..) | Href(..) | Html(..) => Some("mord")
   }
 }
 
@@ -187,7 +320,8 @@ fn render_root(
   body : @katex_parser.ParseNode,
   state : RenderState,
 ) -> String {
-  let index_text = render_node_internal(index, state)
+  let tight_state = { ..state, in_tight: true }
+  let index_text = render_node_internal(index, tight_state)
   match unicode_script(index_text, UnicodeSuperscript) {
     Some(index) => render_radical(index, body, state)
     None => "root(\{index_text},\{render_node_internal(body, state)})"
@@ -234,10 +368,11 @@ fn render_script(
   fallback_prefix : String,
   state : RenderState,
 ) -> String {
+  let tight_state = { ..state, in_tight: true }
   node
   .map(node => {
-    let default = () => "\{fallback_prefix}\{render_operand(node, state)}"
-    unicode_script(render_node_internal(node, state), kind).unwrap_or_else(
+    let default = () => "\{fallback_prefix}\{render_operand(node, tight_state)}"
+    unicode_script(render_node_internal(node, tight_state), kind).unwrap_or_else(
       default,
     )
   })

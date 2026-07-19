@@ -2,7 +2,7 @@
 test "render Unicode symbols and scripts" {
   @test.assert_eq(
     render(@katex_parser.parse("\\alpha_2^n + \\beta")),
-    "α₂ⁿ+β",
+    "α₂ⁿ + β",
   )
 }
 
@@ -10,7 +10,7 @@ test "render Unicode symbols and scripts" {
 test "render structural nodes without losing information" {
   @test.assert_eq(
     render(@katex_parser.parse("\\frac{a}{b}+\\sqrt[3]{x}+\\overline y")),
-    "a∕b+³√x+overline(y)",
+    "a∕b + ³√x + overline(y)",
   )
 }
 
@@ -27,7 +27,7 @@ test "retain non-Unicode root indices as UnicodeMath" {
 ///|
 test "parenthesize compound radical bodies" {
   @test.assert_eq(render(@katex_parser.parse("\\sqrt{x}")), "√x")
-  @test.assert_eq(render(@katex_parser.parse("\\sqrt{x+y}")), "√(x+y)")
+  @test.assert_eq(render(@katex_parser.parse("\\sqrt{x+y}")), "√(x + y)")
 }
 
 ///|
@@ -53,14 +53,23 @@ test "Font node treated as atomic for operand grouping" {
 test "Sqrt treated as atomic operand" {
   @test.assert_eq(render(@katex_parser.parse("\\sqrt{x}_1")), "√x₁")
   @test.assert_eq(render(@katex_parser.parse("\\sqrt{x}^2")), "√x²")
-  @test.assert_eq(render(@katex_parser.parse("\\sqrt{x+y}_1")), "√(x+y)₁")
-  @test.assert_eq(render(@katex_parser.parse("\\frac{\\sqrt{x}}{y}")), "√x∕y")
+  @test.assert_eq(render(@katex_parser.parse("\\sqrt{x+y}_1")), "√(x + y)₁")
+  @test.assert_eq(
+    render(@katex_parser.parse("\\frac{\\sqrt{x}}{y}")),
+    "√x∕y",
+  )
 }
 
 ///|
 test "Overline and Underline treated as atomic operands" {
-  @test.assert_eq(render(@katex_parser.parse("\\overline{x}_1")), "overline(x)₁")
-  @test.assert_eq(render(@katex_parser.parse("\\underline{x}^2")), "underline(x)²")
+  @test.assert_eq(
+    render(@katex_parser.parse("\\overline{x}_1")),
+    "overline(x)₁",
+  )
+  @test.assert_eq(
+    render(@katex_parser.parse("\\underline{x}^2")),
+    "underline(x)²",
+  )
   @test.assert_eq(
     render(@katex_parser.parse("\\frac{\\overline{a}}{b}")),
     "overline(a)∕b",
@@ -70,9 +79,15 @@ test "Overline and Underline treated as atomic operands" {
 ///|
 test "self-delimiting function notation stays atomic" {
   // Phantom: renders as phantom(body)
-  @test.assert_eq(render(@katex_parser.parse("\\phantom{x}_1")), "phantom(x)₁")
+  @test.assert_eq(
+    render(@katex_parser.parse("\\phantom{x}_1")),
+    "phantom(x)₁",
+  )
   // Enclose (via \cancel): renders as cancel(body)
-  @test.assert_eq(render(@katex_parser.parse("\\cancel{x}_1")), "\\cancel(x)₁")
+  @test.assert_eq(
+    render(@katex_parser.parse("\\cancel{x}_1")),
+    "\\cancel(x)₁",
+  )
   // Pmb: renders as bold(body)
   @test.assert_eq(render(@katex_parser.parse("\\pmb{x}_1")), "bold(x)₁")
   // Rule: renders as rule(w,h)
@@ -81,10 +96,7 @@ test "self-delimiting function notation stays atomic" {
     "rule(1em,2pt)₁",
   )
   // Kern: renders as kern(dim)
-  @test.assert_eq(
-    render(@katex_parser.parse("\\kern{1em}_1")),
-    "kern(1em)₁",
-  )
+  @test.assert_eq(render(@katex_parser.parse("\\kern{1em}_1")), "kern(1em)₁")
   // AccentUnder: renders as underaccent(cmd,body) (self-delimiting)
   @test.assert_eq(
     render(@katex_parser.parse("\\underleftarrow{x}_1")),
@@ -101,8 +113,11 @@ test "complex nodes with operators stay non-atomic" {
 ///|
 test "compound expression with non-atomic base still parenthesized" {
   @test.assert_eq(render(@katex_parser.parse("\\frac{a}{b}_1")), "(a∕b)₁")
-  @test.assert_eq(render(@katex_parser.parse("{a+b}_1")), "(a+b)₁")
-  @test.assert_eq(render(@katex_parser.parse("\\frac{a+b}{c+d}")), "(a+b)∕(c+d)")
+  @test.assert_eq(render(@katex_parser.parse("{a+b}_1")), "(a + b)₁")
+  @test.assert_eq(
+    render(@katex_parser.parse("\\frac{a+b}{c+d}")),
+    "(a+b)∕(c+d)",
+  )
 }
 
 ///|
@@ -154,5 +169,34 @@ test "render radicals with fractions and deep nesting" {
   @test.assert_eq(
     render(@katex_parser.parse("\\sqrt{\\frac{\\frac{a}{b}}{c}}")),
     "√((a∕b)∕c)",
+  )
+}
+
+///|
+test "toplevel infix operator spacing" {
+  @test.assert_eq(
+    render(
+      @katex_parser.parse("\\R_{\\ge 0}^* = \\R_{\\ge 0} \\cup \\{\\infty\\}"),
+    ),
+    "ℝ_(≥0)^∗ = ℝ_(≥0) ∪ {∞}",
+  )
+}
+
+///|
+test "TeX spacing around infix operators" {
+  // Binary operators get spacing
+  @test.assert_eq(render(@katex_parser.parse("a + b")), "a + b")
+  // Relation operators get spacing
+  @test.assert_eq(render(@katex_parser.parse("a = b")), "a = b")
+  // No spacing inside subscripts (tight mode)
+  @test.assert_eq(render(@katex_parser.parse("x_{a+b}")), "x_(a+b)")
+  // No spacing inside superscripts (tight mode)
+  @test.assert_eq(render(@katex_parser.parse("x^{a+b}")), "xᵃ⁺ᵇ")
+  // Bin at start of group becomes ord (no left spacing)
+  @test.assert_eq(render(@katex_parser.parse("{+x}")), "+x")
+  // Multiple operators: spacing between each
+  @test.assert_eq(
+    render(@katex_parser.parse("a + b = c \\cup d")),
+    "a + b = c ∪ d",
   )
 }

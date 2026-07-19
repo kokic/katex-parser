@@ -20,9 +20,7 @@ fn render_array_rows(
   body : Array[Array[@katex_parser.ParseNode]],
   state : RenderState,
 ) -> Array[String] {
-  let cell_texts = body.map(
-    r => r.map(c => render_node_internal(c, state)),
-  )
+  let cell_texts = body.map(r => r.map(c => render_node_internal(c, state)))
   let widths = column_widths(cell_texts)
   cell_texts.map(row => {
     Array::makei(row.length(), j => pad_right(row[j], widths[j])).join("  ")
@@ -42,13 +40,14 @@ fn render_leftright_block(
 
 ///|
 fn column_widths(cells : Array[Array[String]]) -> Array[Int] {
-  let max_cols = cells.fold(
-    init=0,
-    fn(m, row) {
-      let len = row.length()
-      if len > m { len } else { m }
-    },
-  )
+  let max_cols = cells.fold(init=0, fn(m, row) {
+    let len = row.length()
+    if len > m {
+      len
+    } else {
+      m
+    }
+  })
   let widths = Array::make(max_cols, 0)
   for row in cells {
     for j, cell in row {
