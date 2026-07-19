@@ -215,35 +215,6 @@ fn render_operand(
 }
 
 ///|
-/// True if the Unicode rendering has no internal operator that needs grouping.
-fn is_atomic_expression(node : @katex_parser.ParseNode) -> Bool {
-  match node {
-    Raw(..)
-    | ColorToken(..)
-    | TextOrd(..)
-    | MathOrd(..)
-    | Spacing(..)
-    | AccentToken(..)
-    | OperatorToken(..)
-    | Atom(..)
-    | Op(..)
-    | OperatorName(..)
-    | LeftRight(..) => true
-    Styling(body~, ..)
-    | Text(body~, ..)
-    | MClass(body~, ..)
-    | HBox(body~, ..)
-    | Sizing(body~, ..)
-    | Color(body~, ..)
-    | Href(body~, ..)
-    | Html(body~, ..)
-    | OrdGroup(body~, ..) => body.length() == 1 && is_atomic_expression(body[0])
-    Accent(base~, ..) => is_atomic_expression(base)
-    _ => false
-  }
-}
-
-///|
 fn render_sup_sub(
   base : @katex_parser.ParseNode?,
   sup : @katex_parser.ParseNode?,
@@ -313,9 +284,17 @@ fn render_accent(
     "\\vec" => Some("⃗")
     _ => None
   }
+  let rendered_base = render_node_internal(base, state)
   match mark {
-    Some(mark) if is_atomic_expression(base) =>
-      "\{render_node_internal(base, state)}\{mark}"
-    _ => "\{label}(\{render_node_internal(base, state)})"
+    Some(mark) if is_single_character_output(rendered_base) =>
+      "\{rendered_base}\{mark}"
+    _ => "\{label}(\{rendered_base})"
   }
+}
+
+///|
+/// True when the string consists of exactly one Unicode scalar value,
+/// i.e. it is a single character that can directly receive a combining mark.
+fn is_single_character_output(s : String) -> Bool {
+  s.fold(init=0, fn(acc, _c) { acc + 1 }) == 1
 }
