@@ -66,7 +66,7 @@ test "render macro redefinition" {
 test "render macro expanding to compound expression" {
   @test.assert_eq(
     render(@katex_parser.parse("\\def\\expr{a+b} \\expr")),
-    "a+b",
+    "a + b",
   )
 }
 
