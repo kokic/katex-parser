@@ -23,27 +23,17 @@ pub fn render(
       ]
     None => [body]
   }
-  let math_attributes = [("xmlns", "http://www.w3.org/1998/Math/MathML")]
-  let is_display = config.display_mode || contains_display_style(nodes)
-  let math_attributes = if is_display {
-    math_attributes + [("display", "block")]
-  } else {
-    math_attributes
-  }
+  let math_attributes = [
+    ("xmlns", "http://www.w3.org/1998/Math/MathML"),
+    ..if config.display_mode {
+      [("display", "block")]
+    },
+  ]
   element(
     "math",
     children=[element("semantics", children=semantic_children)],
     attributes=math_attributes,
   ).to_markup()
-}
-
-///|
-fn contains_display_style(nodes : Array[@katex_parser.ParseNode]) -> Bool {
-  for node in nodes {
-    guard node is Styling(style=DisplayStyle, ..) else { continue }
-    return true
-  }
-  false
 }
 
 ///|
@@ -133,8 +123,14 @@ fn render_node(
     Underline(body~, ..) =>
       accent_over("munder", body, "‾", "accentunder", state)
     Smash(body~, smash_height~, smash_depth~, ..) => {
-      let attrs = (if smash_height { [("height", "0px")] } else { [] }) +
-        (if smash_depth { [("depth", "0px")] } else { [] })
+      let attrs = [
+        ..if smash_height {
+          [("height", "0px")]
+        },
+        ..if smash_depth {
+          [("depth", "0px")]
+        },
+      ]
       element("mpadded", children=[render_group(body, state)], attributes=attrs)
     }
     VPhantom(body~, ..) =>
@@ -220,14 +216,10 @@ fn render_node(
 
 ///|
 fn token(kind : String, value : String, state : RenderState) -> MathMlNode {
-  let attrs = match state.math_variant {
-    Some(variant) => [("mathvariant", variant)]
-    None => []
-  }
-  let attrs = match state.color {
-    Some(color) => attrs + [("mathcolor", color)]
-    None => attrs
-  }
+  let attrs = [
+    ..state.math_variant.map_or([], variant => [("mathvariant", variant)]),
+    ..state.color.map_or([], color => [("mathcolor", color)]),
+  ]
   element(kind, children=[text_node(symbol(value))], attributes=attrs)
 }
 
@@ -279,14 +271,10 @@ fn text_attributes(
   } else {
     state.math_variant
   }
-  let attrs = match variant {
-    Some(value) => [("mathvariant", value)]
-    None => []
-  }
-  match state.color {
-    Some(color) => attrs + [("mathcolor", color)]
-    None => attrs
-  }
+  [
+    ..variant.map_or([], value => [("mathvariant", value)]),
+    ..state.color.map_or([], color => [("mathcolor", color)]),
+  ]
 }
 
 ///|
@@ -295,16 +283,17 @@ fn render_atom(
   family : @katex_parser.AtomFamily,
   state : RenderState,
 ) -> MathMlNode {
-  let attrs = match family {
-    Mpunct => [("separator", "true")]
-    Mopen | Mclose => [("stretchy", "false")]
-    _ => []
-  }
-  let attrs = match state.math_variant {
-    Some("bold-italic") if family is Mbin =>
-      attrs + [("mathvariant", "bold-italic")]
-    _ => attrs
-  }
+  let attrs = [
+    ..match family {
+      Mpunct => [("separator", "true")]
+      Mopen | Mclose => [("stretchy", "false")]
+      _ => []
+    },
+    ..match state.math_variant {
+      Some("bold-italic") if family is Mbin => [("mathvariant", "bold-italic")]
+      _ => []
+    },
+  ]
   element("mo", children=[text_node(symbol(text))], attributes=attrs)
 }
 
@@ -382,9 +371,7 @@ fn render_fraction(
   let attrs = if !has_bar_line {
     [("linethickness", "0px")]
   } else {
-    bar_size
-    .map(size => [("linethickness", measurement(size))])
-    .unwrap_or_default()
+    bar_size.map_or([], size => [("linethickness", measurement(size))])
   }
   let fraction = element(
     "mfrac",
@@ -394,14 +381,8 @@ fn render_fraction(
   match (left, right) {
     (None, None) => fraction
     _ => {
-      let left_children = match left {
-        Some(delim) => [render_fence(delim, None)]
-        None => []
-      }
-      let right_children = match right {
-        Some(delim) => [render_fence(delim, None)]
-        None => []
-      }
+      let left_children = left.map_or([], delim => [render_fence(delim, None)])
+      let right_children = right.map_or([], delim => [render_fence(delim, None)])
       let children = left_children + [fraction] + right_children
       make_row(children)
     }
@@ -492,13 +473,8 @@ fn render_rule(
     ("width", measurement(width)),
     ("height", measurement(height)),
   ])
-  match shift {
-    Some(value) =>
-      element("mpadded", children=[rule], attributes=[
-        ("voffset", measurement(value)),
-      ])
-    None => element("mpadded", children=[rule])
-  }
+  let attrs = shift.map_or([], value => [("voffset", measurement(value))])
+  element("mpadded", children=[rule], attributes=attrs)
 }
 
 ///|
@@ -584,11 +560,10 @@ fn render_sized_delim(
 
 ///|
 fn render_fence(delim : String, color : String?) -> MathMlNode {
-  let attrs = [("fence", "true")]
-  let attrs = match color {
-    Some(value) => attrs + [("mathcolor", value)]
-    None => attrs
-  }
+  let attrs = [
+    ("fence", "true"),
+    ..color.map_or([], value => [("mathcolor", value)]),
+  ]
   element("mo", children=[text_node(symbol(delim))], attributes=attrs)
 }
 
@@ -638,13 +613,11 @@ fn render_enclose(
     "\\angl" => Some("actuarial")
     _ => None
   }
-  let attrs = notation.map(value => [("notation", value)]).unwrap_or_default()
-  let attrs = background
-    .map(value => attrs + [("mathbackground", value)])
-    .unwrap_or(attrs)
-  let attrs = border
-    .map(value => attrs + [("style", "border: 0.04em solid \{value}")])
-    .unwrap_or(attrs)
+  let attrs = [
+    ..notation.map_or([], value => [("notation", value)]),
+    ..background.map_or([], value => [("mathbackground", value)]),
+    ..border.map_or([], value => [("style", "border: 0.04em solid \{value}")]),
+  ]
   element("menclose", children=[render_group(body, state)], attributes=attrs)
 }
 
@@ -663,12 +636,10 @@ fn render_image(
       measurement(if totalheight.number > 0 { totalheight } else { height }),
     ),
     ("src", src),
+    ..if width.number > 0 {
+      [("width", measurement(width))]
+    },
   ]
-  let attrs = if width.number > 0 {
-    attrs + [("width", measurement(width))]
-  } else {
-    attrs
-  }
   element("mglyph", attributes=attrs)
 }
 
@@ -735,15 +706,9 @@ fn render_array(
   let attrs = [
     ("rowspacing", row_spacing),
     ("columnspacing", column_spacing(separation)),
+    ..columns.map_or([], spec => array_column_attributes(spec)),
+    ..row_lines(hlines).map_or([], lines => [("rowlines", lines)]),
   ]
-  let attrs = match columns {
-    Some(spec) => attrs + array_column_attributes(spec)
-    None => attrs
-  }
-  let attrs = match row_lines(hlines) {
-    Some(lines) => attrs + [("rowlines", lines)]
-    None => attrs
-  }
   element("mtable", children=rows, attributes=attrs)
 }
 
@@ -790,16 +755,14 @@ fn array_column_attributes(
       _ => acc
     }
   })
-  let attrs = if alignments.length() > 0 {
-    [("columnalign", alignments.join(" "))]
-  } else {
-    []
-  }
-  if lines.length() > 0 {
-    attrs + [("columnlines", lines.join(" "))]
-  } else {
-    attrs
-  }
+  [
+    ..if alignments.length() > 0 {
+      [("columnalign", alignments.join(" "))]
+    },
+    ..if lines.length() > 0 {
+      [("columnlines", lines.join(" "))]
+    },
+  ]
 }
 
 ///|
@@ -819,12 +782,13 @@ fn render_cd_label(
   label : @katex_parser.ParseNode,
   state : RenderState,
 ) -> MathMlNode {
-  let attrs = [("width", "0"), ("voffset", "0.7em")]
-  let attrs = if side == "left" {
-    attrs + [("lspace", "-1width")]
-  } else {
-    attrs
-  }
+  let attrs = [
+    ("width", "0"),
+    ("voffset", "0.7em"),
+    ..if side == "left" {
+      [("lspace", "-1width")]
+    },
+  ]
   element(
     "mstyle",
     children=[
@@ -840,10 +804,12 @@ fn render_cd_label(
 
 ///|
 fn render_cr(new_line : Bool, size : @katex_parser.Measurement?) -> MathMlNode {
-  let attrs = if new_line { [("linebreak", "newline")] } else { [] }
-  let attrs = size
-    .map(value => attrs + [("height", measurement(value))])
-    .unwrap_or(attrs)
+  let attrs = [
+    ..if new_line {
+      [("linebreak", "newline")]
+    },
+    ..size.map_or([], value => [("height", measurement(value))]),
+  ]
   element("mspace", attributes=attrs)
 }
 
@@ -855,10 +821,7 @@ fn render_sup_sub(
   state : RenderState,
 ) -> MathMlNode {
   let limits = operator_uses_limits(base, state)
-  let base = match base {
-    Some(value) => render_group(value, state)
-    None => element("mrow")
-  }
+  let base = base.map_or(element("mrow"), value => render_group(value, state))
   let script_style = match state.style {
     DisplayStyle | TextStyle => @katex_parser.StyleLevel::ScriptStyle
     ScriptStyle | ScriptScriptStyle =>
