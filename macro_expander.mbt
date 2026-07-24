@@ -223,9 +223,7 @@ fn expected_argument_delimiter(
   delimiters : Array[String]?,
   match_index : Int,
 ) -> String {
-  delimiters
-  .map(values => values.get(match_index).unwrap_or("}"))
-  .unwrap_or("}")
+  delimiters.map_or("}", values => values.get(match_index).unwrap_or("}"))
 }
 
 ///|

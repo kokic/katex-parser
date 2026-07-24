@@ -1,17 +1,11 @@
 ///|
 test "render \\def inline definition and usage" {
-  @test.assert_eq(
-    render(@katex_parser.parse("\\def\\foo{x} \\foo")),
-    "x",
-  )
+  @test.assert_eq(render(@katex_parser.parse("\\def\\foo{x} \\foo")), "x")
 }
 
 ///|
 test "render \\gdef inline definition and usage" {
-  @test.assert_eq(
-    render(@katex_parser.parse("\\gdef\\foo{x} \\foo")),
-    "x",
-  )
+  @test.assert_eq(render(@katex_parser.parse("\\gdef\\foo{x} \\foo")), "x")
 }
 
 ///|
@@ -74,28 +68,19 @@ test "render macro expanding to compound expression" {
 test "render pre-defined text macro via settings" {
   let macros = Map([("\\foo", "x")])
   let settings = @katex_parser.Settings::make(macros~)
-  @test.assert_eq(
-    render(@katex_parser.parse("\\foo", settings=settings)),
-    "x",
-  )
+  @test.assert_eq(render(@katex_parser.parse("\\foo", settings~)), "x")
 }
 
 ///|
 test "render pre-defined parameterized macro via settings" {
   let macros = Map([("\\vect", "\\mathbf{#1}")])
   let settings = @katex_parser.Settings::make(macros~)
-  @test.assert_eq(
-    render(@katex_parser.parse("\\vect{x}", settings=settings)),
-    "𝐱",
-  )
+  @test.assert_eq(render(@katex_parser.parse("\\vect{x}", settings~)), "𝐱")
 }
 
 ///|
 test "render pre-defined macro with scripts" {
   let macros = Map([("\\R", "\\mathbb{R}")])
   let settings = @katex_parser.Settings::make(macros~)
-  @test.assert_eq(
-    render(@katex_parser.parse("\\R_1^2", settings=settings)),
-    "ℝ₁²",
-  )
+  @test.assert_eq(render(@katex_parser.parse("\\R_1^2", settings~)), "ℝ₁²")
 }

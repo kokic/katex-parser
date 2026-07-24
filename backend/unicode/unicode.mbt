@@ -355,7 +355,7 @@ fn render_sup_sub(
   sub : @katex_parser.ParseNode?,
   state : RenderState,
 ) -> String {
-  let base = base.map(b => render_operand(b, state)).unwrap_or_default()
+  let base = base.map_or("", b => render_operand(b, state))
   let sub = render_script(sub, UnicodeSubscript, "_", state)
   let sup = render_script(sup, UnicodeSuperscript, "^", state)
   "\{base}\{sub}\{sup}"
@@ -369,14 +369,12 @@ fn render_script(
   state : RenderState,
 ) -> String {
   let tight_state = { ..state, in_tight: true }
-  node
-  .map(node => {
+  node.map_or("", node => {
     let default = () => "\{fallback_prefix}\{render_operand(node, tight_state)}"
     unicode_script(render_node_internal(node, tight_state), kind).unwrap_or_else(
       default,
     )
   })
-  .unwrap_or_default()
 }
 
 ///|

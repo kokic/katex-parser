@@ -187,7 +187,7 @@ fn Parser::parse_cd_environment(self : Parser) -> ParseNode raise ParseFailure {
     for index, row in parsed_rows {
       body.push(cd_row(row, index % 2 == 0))
     }
-    let count = body.get(0).map(row => row.length()).unwrap_or(0)
+    let count = body.get(0).map_or(0, row => row.length())
     let columns = Array::make(
       count,
       AlignColumn(alignment="c", pre_gap=0.25, post_gap=0.25),
