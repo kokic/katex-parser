@@ -12,6 +12,25 @@ test "render MathML document and escape TeX annotation" {
 }
 
 ///|
+test "render display mode independently from math style" {
+  inspect(
+    render(@katex_parser.parse("\\displaystyle x")),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mstyle scriptlevel="0" displaystyle="true"><mi>x</mi></mstyle></semantics></math>
+    ),
+  )
+  inspect(
+    render(
+      @katex_parser.parse("x"),
+      config=RenderConfig::make(display_mode=true),
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mi>x</mi></semantics></math>
+    ),
+  )
+}
+
+///|
 test "render tokens scripts fractions and roots" {
   inspect(
     render(@katex_parser.parse("\\alpha_2^n + \\frac{a}{b} + \\sqrt[3]{x}")),
@@ -28,7 +47,7 @@ test "render styles fonts accents and named operators" {
       @katex_parser.parse("\\displaystyle \\mathbf{x} + \\hat{y} + \\sin z"),
     ),
     content=(
-      #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mstyle scriptlevel="0" displaystyle="true"><mi mathvariant="bold">x</mi><mo>+</mo><mover accent="true"><mi>y</mi><mo>^</mo></mover><mo>+</mo><mrow><mi mathvariant="normal">sin</mi><mo>⁡</mo></mrow><mi>z</mi></mstyle></semantics></math>
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mstyle scriptlevel="0" displaystyle="true"><mi mathvariant="bold">x</mi><mo>+</mo><mover accent="true"><mi>y</mi><mo>^</mo></mover><mo>+</mo><mrow><mi mathvariant="normal">sin</mi><mo>⁡</mo></mrow><mi>z</mi></mstyle></semantics></math>
     ),
   )
 }
@@ -42,7 +61,7 @@ test "render operator names and display limits" {
       ),
     ),
     content=(
-      #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mstyle scriptlevel="0" displaystyle="true"><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>0</mn></mrow><mi>n</mi></munderover><mrow><mi mathvariant="normal">rank</mi><mo>⁡</mo></mrow><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo></mstyle></semantics></math>
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mstyle scriptlevel="0" displaystyle="true"><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>0</mn></mrow><mi>n</mi></munderover><mrow><mi mathvariant="normal">rank</mi><mo>⁡</mo></mrow><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo></mstyle></semantics></math>
     ),
   )
 }
