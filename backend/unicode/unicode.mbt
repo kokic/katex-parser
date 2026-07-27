@@ -107,15 +107,22 @@ fn render_node_internal(
     AccentUnder(label~, base~, ..) =>
       "underaccent(\{label},\{render_node_internal(base, state)})"
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
-      delim
+      render_symbol(delim)
     LeftRight(body~, left~, right~, ..) =>
       if state.in_display && body.length() == 1 {
         match body[0] {
-          Array(body~, ..) => render_leftright_block(left, right, body, state)
-          _ => "\{left}\{render_internal(body, state)}\{right}"
+          Array(body~, ..) =>
+            render_leftright_block(
+              render_symbol(left),
+              render_symbol(right),
+              body,
+              state,
+            )
+          _ =>
+            "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
         }
       } else {
-        "\{left}\{render_internal(body, state)}\{right}"
+        "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
       }
     Kern(dimension~, ..) => "kern(\{render_measurement(dimension)})"
     Enclose(label~, body~, ..) =>
@@ -273,11 +280,8 @@ fn render_operator_content(
 }
 
 ///|
-fn render_symbol(text : String) -> String {
-  match @katex_parser.unicode_symbol(text) {
-    Some(symbol) => symbol
-    None => text
-  }
+let render_symbol : (String) -> String = text => {
+  @katex_parser.unicode_symbol(text).unwrap_or(text)
 }
 
 ///|
@@ -305,8 +309,8 @@ fn render_delimited(
   content : String,
   right : String?,
 ) -> String {
-  let left = left.unwrap_or_default()
-  let right = right.unwrap_or_default()
+  let left = left.map_or("", render_symbol)
+  let right = right.map_or("", render_symbol)
   "\{left}\{content}\{right}"
 }
 
