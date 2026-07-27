@@ -1,9 +1,9 @@
 ///|
 test "render MathML document and escape TeX annotation" {
   inspect(
-    render(
+    @mathml.render(
       @katex_parser.parse("x < y"),
-      config=RenderConfig::make(annotation="x < y & z"),
+      config=@mathml.RenderConfig::make(annotation="x < y & z"),
     ),
     content=(
       #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>&lt;</mo><mi>y</mi></mrow><annotation encoding="application/x-tex">x &lt; y &amp; z</annotation></semantics></math>
@@ -14,15 +14,15 @@ test "render MathML document and escape TeX annotation" {
 ///|
 test "render display mode independently from math style" {
   inspect(
-    render(@katex_parser.parse("\\displaystyle x")),
+    @mathml.render(@katex_parser.parse("\\displaystyle x")),
     content=(
       #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mstyle scriptlevel="0" displaystyle="true"><mi>x</mi></mstyle></semantics></math>
     ),
   )
   inspect(
-    render(
+    @mathml.render(
       @katex_parser.parse("x"),
-      config=RenderConfig::make(display_mode=true),
+      config=@mathml.RenderConfig::make(display_mode=true),
     ),
     content=(
       #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mi>x</mi></semantics></math>
@@ -33,7 +33,9 @@ test "render display mode independently from math style" {
 ///|
 test "render tokens scripts fractions and roots" {
   inspect(
-    render(@katex_parser.parse("\\alpha_2^n + \\frac{a}{b} + \\sqrt[3]{x}")),
+    @mathml.render(
+      @katex_parser.parse("\\alpha_2^n + \\frac{a}{b} + \\sqrt[3]{x}"),
+    ),
     content=(
       #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>α</mi><mn>2</mn><mi>n</mi></msubsup><mo>+</mo><mfrac><mi>a</mi><mi>b</mi></mfrac><mo>+</mo><mroot><mi>x</mi><mn>3</mn></mroot></mrow></semantics></math>
     ),
@@ -43,7 +45,7 @@ test "render tokens scripts fractions and roots" {
 ///|
 test "render styles fonts accents and named operators" {
   inspect(
-    render(
+    @mathml.render(
       @katex_parser.parse("\\displaystyle \\mathbf{x} + \\hat{y} + \\sin z"),
     ),
     content=(
@@ -55,7 +57,7 @@ test "render styles fonts accents and named operators" {
 ///|
 test "render operator names and display limits" {
   inspect(
-    render(
+    @mathml.render(
       @katex_parser.parse(
         "\\displaystyle \\sum_{i=0}^n \\operatorname{rank}(A)",
       ),
@@ -69,7 +71,7 @@ test "render operator names and display limits" {
 ///|
 test "render delimiters and arrays" {
   inspect(
-    render(
+    @mathml.render(
       @katex_parser.parse(
         "\\left(\\begin{matrix}a & b \\\\ c & d\\end{matrix}\\right)",
       ),

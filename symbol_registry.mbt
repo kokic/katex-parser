@@ -1,4 +1,7 @@
 ///|
+pub const U00A0 : String = " "
+
+///|
 priv enum SymbolGroup {
   AccentTokenGroup
   BinaryGroup
@@ -2113,13 +2116,13 @@ fn build_builtin_symbols() -> SymbolRegistry {
     "\\nleq",
     accept_unicode=true,
   )
-  registry.define_symbol(Math, SpacingGroup, " ", "\\ ")
-  registry.define_symbol(Math, SpacingGroup, " ", "\\space")
-  registry.define_symbol(Math, SpacingGroup, " ", "\\nobreakspace")
-  registry.define_symbol(Text, SpacingGroup, " ", "\\ ")
-  registry.define_symbol(Text, SpacingGroup, " ", " ")
-  registry.define_symbol(Text, SpacingGroup, " ", "\\space")
-  registry.define_symbol(Text, SpacingGroup, " ", "\\nobreakspace")
+  registry.define_symbol(Math, SpacingGroup, U00A0, "\\ ")
+  registry.define_symbol(Math, SpacingGroup, U00A0, "\\space")
+  registry.define_symbol(Math, SpacingGroup, U00A0, "\\nobreakspace")
+  registry.define_symbol(Text, SpacingGroup, U00A0, "\\ ")
+  registry.define_symbol(Text, SpacingGroup, U00A0, " ")
+  registry.define_symbol(Text, SpacingGroup, U00A0, "\\space")
+  registry.define_symbol(Text, SpacingGroup, U00A0, "\\nobreakspace")
   registry.define_symbol(Math, SpacingGroup, "", "\\nobreak")
   registry.define_symbol(Math, SpacingGroup, "", "\\allowbreak")
   registry.define_symbol(Math, PunctuationGroup, ",", ",")
