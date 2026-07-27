@@ -266,7 +266,8 @@ fn render_operator_content(
   state : RenderState,
 ) -> String {
   match content {
-    SymbolOperator(text) | NamedOperator(text) => text
+    SymbolOperator(text) => render_symbol(text)
+    NamedOperator(text) => text
     BodyOperator(body) => render_internal(body, state)
   }
 }

@@ -7,6 +7,16 @@ test "render Unicode symbols and scripts" {
 }
 
 ///|
+test "render operators, symbols, and spacing to Unicode" {
+  let source =
+    #|\chi(X, E) ~=~ \int_X \operatorname{ch}(E) \cdot \operatorname{td}(T_X)
+  @test.assert_eq(
+    render(@katex_parser.parse(source)),
+    "χ(X,E) = ∫_Xch(E) ⋅ td(T_X)",
+  )
+}
+
+///|
 test "render structural nodes without losing information" {
   @test.assert_eq(
     render(@katex_parser.parse("\\frac{a}{b}+\\sqrt[3]{x}+\\overline y")),
