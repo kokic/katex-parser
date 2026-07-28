@@ -39,11 +39,15 @@ pub(all) enum TrustPolicy {
 }
 
 ///|
-pub struct Macros(Map[String, String])
+pub struct Macros(Map[String, MacroDefinition])
 
 ///|
 pub fn Macros::make(macros? : Map[String, String] = Map([])) -> Macros {
-  macros
+  let definitions : Map[String, MacroDefinition] = Map([])
+  for name, expansion in macros {
+    definitions[name] = MacroDefinition::text(expansion)
+  }
+  Macros(definitions)
 }
 
 ///|

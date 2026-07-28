@@ -106,9 +106,9 @@ fn Parser::parse(self : Parser) -> Array[ParseNode] raise ParseFailure {
   if self.settings.global_group {
     match self.settings.macro_store {
       Some(macros) => {
-        let user_macros = self.gullet.get_user_macros()
-        for name, expansion in user_macros {
-          macros.0[name] = expansion
+        let user_entries = self.gullet.macros.get_user_entries()
+        for name, definition in user_entries {
+          macros.0[name] = definition
         }
       }
       None => ()

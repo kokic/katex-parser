@@ -1,5 +1,5 @@
 ///|
-test "Hirzebruch" {
+test "render macro with global group definition" {
   let macro_store = @katex_parser.Macros::make()
   let _ = @katex_parser.parse(
     (
@@ -10,27 +10,18 @@ test "Hirzebruch" {
     ),
     settings=@katex_parser.Settings::make(global_group=true, macro_store~),
   )
-  let input = #|\thm[Hirzebruch--Riemann--Roch]
-  println <| @unicode.render(
-    @katex_parser.parse(input, settings=@katex_parser.Settings::make(macro_store~)),
-  )
-}
-
-///|
-test "Hirzebruch with gdef in group" {
-  let macro_store = @katex_parser.Macros::make()
-  let _ = @katex_parser.parse(
-    (
-      #|{\gdef\thm{\@ifnextchar[{\thm@with}{\thm@without}}
-      #|\gdef\thm@with[#1]{\textbf{Theorem~(#1).}}
-      #|\gdef\thm@without{\textbf{Theorem.}}
-      #|}
+  let input =
+    #|\thm[Hirzebruch--Riemann--Roch]
+  debug_inspect(
+    @unicode.render(
+      @katex_parser.parse(
+        input,
+        settings=@katex_parser.Settings::make(macro_store~),
+      ),
     ),
-    settings=@katex_parser.Settings::make(global_group=true, macro_store~),
-  )
-  let input = #|\thm[Hirzebruch--Riemann--Roch]
-  println <| @unicode.render(
-    @katex_parser.parse(input, settings=@katex_parser.Settings::make(macro_store~)),
+    content=(
+      #|"Theorem (Hirzebruch–Riemann–Roch)."
+    ),
   )
 }
 

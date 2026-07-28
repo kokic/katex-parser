@@ -1,5 +1,5 @@
 ///|
-priv struct MacroExpansion {
+pub(all) struct MacroExpansion {
   tokens : Array[Token]
   num_args : Int
   delimiters : Array[Array[String]]?
@@ -7,7 +7,7 @@ priv struct MacroExpansion {
 }
 
 ///|
-priv enum MacroDefinition {
+pub(all) enum MacroDefinition {
   Text(String)
   Expansion(MacroExpansion)
 }
@@ -15,24 +15,6 @@ priv enum MacroDefinition {
 ///|
 fn MacroDefinition::text(expansion : String) -> MacroDefinition {
   Text(expansion)
-}
-
-///|
-fn MacroDefinition::to_source(self : MacroDefinition) -> String {
-  match self {
-    Text(expansion) => expansion
-    Expansion(expansion) => expansion.to_source()
-  }
-}
-
-///|
-fn MacroExpansion::to_source(self : MacroExpansion) -> String {
-  let tokens = self.tokens.rev()
-  let builder = StringBuilder()
-  for token in tokens {
-    builder.write_string(token.text)
-  }
-  builder.to_string()
 }
 
 ///|

@@ -74,8 +74,8 @@ fn MacroExpander::make(
   let initial_macros = settings.macro_definitions()
   match settings.macro_store {
     Some(macros) =>
-      for name, expansion in macros.0 {
-        initial_macros[name] = MacroDefinition::text(expansion)
+      for name, definition in macros.0 {
+        initial_macros[name] = definition
       }
     None => ()
   }
@@ -106,15 +106,6 @@ fn MacroExpander::switch_mode(self : MacroExpander, mode : Mode) -> Unit {
   if self.mode != mode {
     self.mode = mode
   }
-}
-
-///|
-fn MacroExpander::get_user_macros(self : MacroExpander) -> Map[String, String] {
-  let result : Map[String, String] = Map([])
-  for name, definition in self.macros.get_user_entries() {
-    result[name] = definition.to_source()
-  }
-  result
 }
 
 ///|

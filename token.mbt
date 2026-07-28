@@ -1,5 +1,5 @@
 ///|
-priv struct Token {
+pub(all) struct Token {
   mut text : String
   loc : SourceLocation?
   mut noexpand : Bool
