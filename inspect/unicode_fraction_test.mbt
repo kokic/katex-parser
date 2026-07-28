@@ -39,7 +39,7 @@ test "render fractions with display mode" {
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a^2}{b+c}", settings~)),
-    "(a²)∕(b+c)",
+    "a²∕(b+c)",
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\dfrac{x}{y}", settings~)),

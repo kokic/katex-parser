@@ -32,7 +32,8 @@ fn is_atomic_expression(node : @katex_parser.ParseNode) -> Bool {
     | Rule(..)
     | IncludeGraphics(..)
     | AccentUnder(..)
-    | CdLabel(..) => true
+    | CdLabel(..)
+    | SupSub(..) => true
     // --- Body-array wrappers (atomic iff single child is atomic) ---
     Styling(body~, ..)
     | Text(body~, ..)
