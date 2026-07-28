@@ -54,8 +54,7 @@ fn render_node_internal(
     Sqrt(body~, index=Some(index), ..) => render_root(index, body, state)
     Infix(replace_with~, ..) => replace_with
     GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) => {
-      let tight = state.in_tight || !state.in_display
-      let num_state = { ..state, in_tight: tight }
+      let num_state = { ..state, in_tight: true }
       let den_state = { ..state, in_tight: true }
       render_delimited(
         left_delim,
@@ -64,15 +63,12 @@ fn render_node_internal(
       )
     }
     GenFrac(numer~, denom~, left_delim=None, right_delim=None, ..) => {
-      guard !state.in_display else { render_genfrac_block(numer, denom, state) }
-      let tight = state.in_tight || !state.in_display
-      let num_state = { ..state, in_tight: tight }
+      let num_state = { ..state, in_tight: true }
       let den_state = { ..state, in_tight: true }
       "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
     }
     GenFrac(numer~, denom~, left_delim~, right_delim~, ..) => {
-      let tight = state.in_tight || !state.in_display
-      let num_state = { ..state, in_tight: tight }
+      let num_state = { ..state, in_tight: true }
       let den_state = { ..state, in_tight: true }
       render_delimited(
         left_delim,
@@ -109,33 +105,14 @@ fn render_node_internal(
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
       render_symbol(delim)
     LeftRight(body~, left~, right~, ..) =>
-      if state.in_display && body.length() == 1 {
-        match body[0] {
-          Array(body~, ..) =>
-            render_leftright_block(
-              render_symbol(left),
-              render_symbol(right),
-              body,
-              state,
-            )
-          _ =>
-            "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
-        }
-      } else {
-        "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
-      }
+      "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
     Kern(dimension~, ..) => "kern(\{render_measurement(dimension)})"
     Enclose(label~, body~, ..) =>
       "\{label}(\{render_node_internal(body, state)})"
     IncludeGraphics(alt~, ..) => "image(\{alt})"
     Tag(body~, tag~, ..) =>
       "\{render_internal(body, state)}\t(\{render_internal(tag, state)})"
-    Array(body~, ..) =>
-      if state.in_display {
-        render_array_block(body, state)
-      } else {
-        render_array_inline(body, state)
-      }
+    Array(body~, ..) => render_array_inline(body, state)
     CdLabel(side~, label~, ..) =>
       "\{side}(\{render_node_internal(label, state)})"
     Cr(new_line=true, ..) => "\n"

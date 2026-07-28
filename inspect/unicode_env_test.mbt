@@ -75,7 +75,7 @@ test "render matrix environments" {
 }
 
 ///|
-test "render matrix environments in block mode" {
+test "render matrix environments in display mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   @test.assert_eq(
     @unicode.render(
@@ -84,7 +84,7 @@ test "render matrix environments in block mode" {
         settings~,
       ),
     ),
-    "(a  b)\n(c  d)",
+    "(a, b; c, d)",
   )
   @test.assert_eq(
     @unicode.render(
@@ -93,12 +93,12 @@ test "render matrix environments in block mode" {
         settings~,
       ),
     ),
-    "[a  b]\n[c  d]",
+    "[a, b; c, d]",
   )
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}", settings~),
     ),
-    "a\nb",
+    "a; b",
   )
 }

@@ -23,27 +23,27 @@ test "render nested fractions" {
 }
 
 ///|
-test "render fractions in block mode" {
+test "render fractions with display mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a}{b}", settings~)),
-    " a \n---\n b ",
+    "a∕b",
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a}{bc}", settings~)),
-    " a  \n----\n bc ",
+    "a∕(bc)",
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{xy}{z}", settings~)),
-    " xy \n----\n z  ",
+    "(xy)∕z",
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a^2}{b+c}", settings~)),
-    " a²  \n-----\n b+c ",
+    "(a²)∕(b+c)",
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\dfrac{x}{y}", settings~)),
-    " x \n---\n y ",
+    "x∕y",
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\binom{n}{k}", settings~)),
