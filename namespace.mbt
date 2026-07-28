@@ -74,6 +74,17 @@ fn[V] Namespace::get_builtin(self : Namespace[V], key : String) -> V? {
 }
 
 ///|
+fn[V] Namespace::get_user_entries(self : Namespace[V]) -> Map[String, V] {
+  let result : Map[String, V] = Map([])
+  for key, value in self.current {
+    if !self.builtins.contains(key) {
+      result[key] = value
+    }
+  }
+  result
+}
+
+///|
 #warnings("-unused_value")
 fn[V] Namespace::set(
   self : Namespace[V],

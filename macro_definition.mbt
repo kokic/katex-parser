@@ -18,6 +18,24 @@ fn MacroDefinition::text(expansion : String) -> MacroDefinition {
 }
 
 ///|
+fn MacroDefinition::to_source(self : MacroDefinition) -> String {
+  match self {
+    Text(expansion) => expansion
+    Expansion(expansion) => expansion.to_source()
+  }
+}
+
+///|
+fn MacroExpansion::to_source(self : MacroExpansion) -> String {
+  let tokens = self.tokens.rev()
+  let builder = StringBuilder()
+  for token in tokens {
+    builder.write_string(token.text)
+  }
+  builder.to_string()
+}
+
+///|
 #warnings("-unused_value")
 fn MacroDefinition::expansion(expansion : MacroExpansion) -> MacroDefinition {
   Expansion(expansion)

@@ -1,4 +1,40 @@
 ///|
+test "Hirzebruch" {
+  let macro_store = @katex_parser.Macros::make()
+  let _ = @katex_parser.parse(
+    (
+      #|
+      #|\def\thm{\@ifnextchar[{\thm@with}{\thm@without}}
+      #|\def\thm@with[#1]{\textbf{Theorem~(#1).}}
+      #|\def\thm@without{\textbf{Theorem.}}
+    ),
+    settings=@katex_parser.Settings::make(global_group=true, macro_store~),
+  )
+  let input = #|\thm[Hirzebruch--Riemann--Roch]
+  println <| @unicode.render(
+    @katex_parser.parse(input, settings=@katex_parser.Settings::make(macro_store~)),
+  )
+}
+
+///|
+test "Hirzebruch with gdef in group" {
+  let macro_store = @katex_parser.Macros::make()
+  let _ = @katex_parser.parse(
+    (
+      #|{\gdef\thm{\@ifnextchar[{\thm@with}{\thm@without}}
+      #|\gdef\thm@with[#1]{\textbf{Theorem~(#1).}}
+      #|\gdef\thm@without{\textbf{Theorem.}}
+      #|}
+    ),
+    settings=@katex_parser.Settings::make(global_group=true, macro_store~),
+  )
+  let input = #|\thm[Hirzebruch--Riemann--Roch]
+  println <| @unicode.render(
+    @katex_parser.parse(input, settings=@katex_parser.Settings::make(macro_store~)),
+  )
+}
+
+///|
 test "render \\def inline definition and usage" {
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\def\\foo{x} \\foo")),

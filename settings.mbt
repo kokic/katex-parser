@@ -39,6 +39,14 @@ pub(all) enum TrustPolicy {
 }
 
 ///|
+pub struct Macros(Map[String, String])
+
+///|
+pub fn Macros::make(macros? : Map[String, String] = Map([])) -> Macros {
+  macros
+}
+
+///|
 pub struct Settings {
   throw_on_error : Bool
   display_mode : Bool
@@ -48,6 +56,7 @@ pub struct Settings {
   max_expand : Int
   global_group : Bool
   macros : Map[String, String]
+  macro_store : Macros?
   strict : Strictness
   strict_warning_handler : StrictWarningHandler?
   trust : TrustPolicy
@@ -63,6 +72,7 @@ pub fn Settings::make(
   max_expand? : Int = 1000,
   global_group? : Bool = false,
   macros? : Map[String, String] = Map([]),
+  macro_store? : Macros,
   strict? : Strictness = Ignore,
   strict_warning_handler? : StrictWarningHandler,
   trust? : TrustPolicy = Untrusted,
@@ -76,6 +86,7 @@ pub fn Settings::make(
     max_expand,
     global_group,
     macros,
+    macro_store,
     strict,
     strict_warning_handler,
     trust,

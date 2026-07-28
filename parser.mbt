@@ -103,6 +103,17 @@ fn Parser::parse(self : Parser) -> Array[ParseNode] raise ParseFailure {
     self.gullet.end_group()
   })
   self.gullet.end_groups()
+  if self.settings.global_group {
+    match self.settings.macro_store {
+      Some(macros) => {
+        let user_macros = self.gullet.get_user_macros()
+        for name, expansion in user_macros {
+          macros.0[name] = expansion
+        }
+      }
+      None => ()
+    }
+  }
   match (close_result, result) {
     (Err(err), _) => raise err
     (_, Err(err)) => raise err
