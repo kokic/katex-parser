@@ -33,35 +33,42 @@ pub fn atom_family_name(family : @katex_parser.AtomFamily) -> String {
 /// Normal (display/text) spacing table between atom types.
 fn normal_spacing(left : String, right : String, spec : SpacingSpec) -> String? {
   match (left, right) {
-    ("mord", "mop") => Some(spec.thin)
+    ("mord", "mop") | ("mord", "mbig") => Some(spec.thin)
     ("mord", "mbin") => Some(spec.medium)
     ("mord", "mrel") => Some(spec.thick)
     ("mord", "minner") => Some(spec.thin)
     ("mop", "mord") => Some(spec.thin)
-    ("mop", "mop") => Some(spec.thin)
+    ("mop", "mop") | ("mop", "mbig") => Some(spec.thin)
     ("mop", "mrel") => Some(spec.thick)
     ("mop", "minner") => Some(spec.thin)
+    ("mbig", "mord")
+    | ("mbig", "mop")
+    | ("mbig", "mopen")
+    | ("mbig", "minner") => Some(spec.medium)
+    ("mbig", "mbin") => Some(spec.medium)
+    ("mbig", "mrel") => Some(spec.thick)
+    ("mbig", "mclose") | ("mbig", "mpunct") => Some(spec.thin)
     ("mbin", "mord") => Some(spec.medium)
-    ("mbin", "mop") => Some(spec.medium)
+    ("mbin", "mop") | ("mbin", "mbig") => Some(spec.medium)
     ("mbin", "mopen") => Some(spec.medium)
     ("mbin", "minner") => Some(spec.medium)
     ("mrel", "mord") => Some(spec.thick)
-    ("mrel", "mop") => Some(spec.thick)
+    ("mrel", "mop") | ("mrel", "mbig") => Some(spec.thick)
     ("mrel", "mopen") => Some(spec.thick)
     ("mrel", "minner") => Some(spec.thick)
-    ("mclose", "mop") => Some(spec.thin)
+    ("mclose", "mop") | ("mclose", "mbig") => Some(spec.thin)
     ("mclose", "mbin") => Some(spec.medium)
     ("mclose", "mrel") => Some(spec.thick)
     ("mclose", "minner") => Some(spec.thin)
     ("mpunct", "mord") => Some(spec.thin)
-    ("mpunct", "mop") => Some(spec.thin)
+    ("mpunct", "mop") | ("mpunct", "mbig") => Some(spec.thin)
     ("mpunct", "mrel") => Some(spec.thick)
     ("mpunct", "mopen") => Some(spec.thin)
     ("mpunct", "mclose") => Some(spec.thin)
     ("mpunct", "mpunct") => Some(spec.thin)
     ("mpunct", "minner") => Some(spec.thin)
     ("minner", "mord") => Some(spec.thin)
-    ("minner", "mop") => Some(spec.thin)
+    ("minner", "mop") | ("minner", "mbig") => Some(spec.thin)
     ("minner", "mbin") => Some(spec.medium)
     ("minner", "mrel") => Some(spec.thick)
     ("minner", "mopen") => Some(spec.thin)
@@ -78,6 +85,7 @@ fn tight_spacing(left : String, right : String, spec : SpacingSpec) -> String? {
     ("mord", "mop") => Some(spec.thin)
     ("mop", "mord") => Some(spec.thin)
     ("mop", "mop") => Some(spec.thin)
+    ("mbig", "mord") | ("mbig", "mop") | ("mbig", "minner") => Some(spec.thin)
     ("mclose", "mop") => Some(spec.thin)
     ("minner", "mop") => Some(spec.thin)
     _ => None
@@ -111,7 +119,7 @@ pub(all) struct SpacableItem {
 /// TeXbook Rules 5-6.
 fn cancels_left_of_bin(ty : String) -> Bool {
   match ty {
-    "leftmost" | "mbin" | "mopen" | "mrel" | "mop" | "mpunct" => true
+    "leftmost" | "mbin" | "mopen" | "mrel" | "mop" | "mpunct" | "mbig" => true
     _ => false
   }
 }

@@ -88,7 +88,11 @@ pub fn Block::enclose(self : Block, left : String, right : String) -> Block {
 ///|
 /// Build a single-row block from cell text strings, each padded to the
 /// corresponding column width, then joined by `gap`.
-pub fn Block::row(cells : Array[String], widths : Array[Int], gap : String) -> Block {
+pub fn Block::row(
+  cells : Array[String],
+  widths : Array[Int],
+  gap : String,
+) -> Block {
   Block::from(
     Array::makei(cells.length(), j => pad_right(cells[j], widths[j])).join(gap),
   )

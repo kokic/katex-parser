@@ -56,23 +56,17 @@ test "render fraction alignment extremes" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   // Very wide numerator, very narrow denominator
   @test.assert_eq(
-    @unicode.render(
-      @katex_parser.parse("\\frac{aaaaaaa}{b}", settings~),
-    ),
+    @unicode.render(@katex_parser.parse("\\frac{aaaaaaa}{b}", settings~)),
     " aaaaaaa \n---------\n    b    ",
   )
   // Very narrow numerator, very wide denominator
   @test.assert_eq(
-    @unicode.render(
-      @katex_parser.parse("\\frac{a}{bbbbbbb}", settings~),
-    ),
+    @unicode.render(@katex_parser.parse("\\frac{a}{bbbbbbb}", settings~)),
     "    a    \n---------\n bbbbbbb ",
   )
   // Equal width
   @test.assert_eq(
-    @unicode.render(
-      @katex_parser.parse("\\frac{aaa}{bbb}", settings~),
-    ),
+    @unicode.render(@katex_parser.parse("\\frac{aaa}{bbb}", settings~)),
     " aaa \n-----\n bbb ",
   )
 }

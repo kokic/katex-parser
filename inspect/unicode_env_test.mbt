@@ -140,10 +140,7 @@ test "render matrix with single column in block mode" {
   )
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{pmatrix}aa \\\\ b\\end{pmatrix}",
-        settings~,
-      ),
+      @katex_parser.parse("\\begin{pmatrix}aa \\\\ b\\end{pmatrix}", settings~),
     ),
     "(aa)\n(b )",
   )

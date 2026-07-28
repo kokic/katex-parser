@@ -210,6 +210,15 @@ fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
     OperatorToken(..) | Op(..) | OperatorName(..) => Some("mop")
 
     // --- Compound: delegate to base ---
+    SupSub(
+      base=Some(
+        @katex_parser.ParseNode::Op(
+          content=@katex_parser.OperatorContent::SymbolOperator(_),
+          ..
+        )
+      ),
+      ..
+    ) => Some("mbig")
     SupSub(base=None, ..) => Some("mord")
     SupSub(base=Some(base), ..) => get_outer_atom_type(base)
     Accent(base~, ..) => get_outer_atom_type(base)
@@ -431,5 +440,5 @@ fn render_accent(
 /// True when the string consists of exactly one Unicode scalar value,
 /// i.e. it is a single character that can directly receive a combining mark.
 fn is_single_character_output(s : String) -> Bool {
-  s.fold(init=0, (acc, _c) => { acc + 1 }) == 1
+  s.fold(init=0, (acc, _c) => acc + 1) == 1
 }

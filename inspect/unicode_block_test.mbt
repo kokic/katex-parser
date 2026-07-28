@@ -109,9 +109,9 @@ test "label beside 2-row matrix (top-aligned)" {
 /// M = [b]
 ///     [c]
 test "label beside 3-row matrix (centered)" {
-  let rows = @unicode.Block::from("a").above(
-    @unicode.Block::from("b"),
-  ).above(@unicode.Block::from("c"))
+  let rows = @unicode.Block::from("a")
+    .above(@unicode.Block::from("b"))
+    .above(@unicode.Block::from("c"))
   let matrix = rows.enclose("[", "]")
   let label = @unicode.Block::from("M = ")
   let result = matrix.append_left(label)
@@ -183,9 +183,9 @@ test "two multi-line blocks side by side" {
 ///    [z]
 test "two blocks of different heights side by side" {
   let left = @unicode.Block::from("[a]").above(@unicode.Block::from("[b]"))
-  let right = @unicode.Block::from("[x]").above(
-    @unicode.Block::from("[y]"),
-  ).above(@unicode.Block::from("[z]"))
+  let right = @unicode.Block::from("[x]")
+    .above(@unicode.Block::from("[y]"))
+    .above(@unicode.Block::from("[z]"))
   let result = left.beside(right)
   // 2-row left beside 3-row right: left centered → top_pad=0, bottom_pad=1
   @test.assert_eq(result.render(), "[a][x]\n[b][y]\n   [z]")

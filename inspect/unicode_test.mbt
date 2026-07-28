@@ -9,10 +9,10 @@ test "render Unicode symbols and scripts" {
 ///|
 test "render operators, symbols, and spacing to Unicode" {
   let source =
-    #|\chi(X, E) ~=~ \int_X \operatorname{ch}(E) \cdot \operatorname{td}(T_X)
+    #|\chi(X, E) = \int_X \operatorname{ch}(E) \cdot \operatorname{td}(T_X)
   @test.assert_eq(
     @unicode.render(@katex_parser.parse(source)),
-    "χ(X,E) = ∫_Xch(E) ⋅ td(T_X)",
+    "χ(X,E) = ∫_X ch(E) ⋅ td(T_X)",
   )
 }
 
