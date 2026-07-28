@@ -75,7 +75,7 @@ test "render matrix environments" {
 }
 
 ///|
-test "render matrix environments in display mode" {
+test "render matrix environments in block mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   @test.assert_eq(
     @unicode.render(
@@ -84,7 +84,7 @@ test "render matrix environments in display mode" {
         settings~,
       ),
     ),
-    "(a, b; c, d)",
+    "(a  b)\n(c  d)",
   )
   @test.assert_eq(
     @unicode.render(
@@ -93,12 +93,58 @@ test "render matrix environments in display mode" {
         settings~,
       ),
     ),
-    "[a, b; c, d]",
+    "[a  b]\n[c  d]",
   )
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}", settings~),
     ),
-    "a; b",
+    "a\nb",
+  )
+}
+
+///|
+test "render matrix with uneven column widths in block mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{pmatrix}aa & b \\\\ c & ddd\\end{pmatrix}",
+        settings~,
+      ),
+    ),
+    "(aa  b  )\n(c   ddd)",
+  )
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}",
+        settings~,
+      ),
+    ),
+    "(a  b)\n(c  d)",
+  )
+}
+
+///|
+test "render matrix with single column in block mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{pmatrix}a \\\\ b \\\\ c\\end{pmatrix}",
+        settings~,
+      ),
+    ),
+    "(a)\n(b)\n(c)",
+  )
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{pmatrix}aa \\\\ b\\end{pmatrix}",
+        settings~,
+      ),
+    ),
+    "(aa)\n(b )",
   )
 }

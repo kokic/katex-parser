@@ -63,6 +63,7 @@ fn render_node_internal(
       )
     }
     GenFrac(numer~, denom~, left_delim=None, right_delim=None, ..) => {
+      guard !state.in_display else { render_genfrac_block(numer, denom, state) }
       let num_state = { ..state, in_tight: true }
       let den_state = { ..state, in_tight: true }
       "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
@@ -105,14 +106,33 @@ fn render_node_internal(
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
       render_symbol(delim)
     LeftRight(body~, left~, right~, ..) =>
-      "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
+      if state.in_display && body.length() == 1 {
+        match body[0] {
+          Array(body~, ..) =>
+            render_leftright_block(
+              render_symbol(left),
+              render_symbol(right),
+              body,
+              state,
+            )
+          _ =>
+            "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
+        }
+      } else {
+        "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
+      }
     Kern(dimension~, ..) => "kern(\{render_measurement(dimension)})"
     Enclose(label~, body~, ..) =>
       "\{label}(\{render_node_internal(body, state)})"
     IncludeGraphics(alt~, ..) => "image(\{alt})"
     Tag(body~, tag~, ..) =>
       "\{render_internal(body, state)}\t(\{render_internal(tag, state)})"
-    Array(body~, ..) => render_array_inline(body, state)
+    Array(body~, ..) =>
+      if state.in_display {
+        render_array_block(body, state)
+      } else {
+        render_array_inline(body, state)
+      }
     CdLabel(side~, label~, ..) =>
       "\{side}(\{render_node_internal(label, state)})"
     Cr(new_line=true, ..) => "\n"
@@ -132,7 +152,7 @@ fn collect_spacable_items(
   nodes : Array[@katex_parser.ParseNode],
   state : RenderState,
 ) -> Array[@backend.SpacableItem] {
-  nodes.fold(init=[], fn(acc, n) {
+  nodes.fold(init=[], (acc, n) => {
     match n {
       // --- Partial groups: expose children to parent spacing ---
       Styling(body~, style~, ..) => {
@@ -411,5 +431,5 @@ fn render_accent(
 /// True when the string consists of exactly one Unicode scalar value,
 /// i.e. it is a single character that can directly receive a combining mark.
 fn is_single_character_output(s : String) -> Bool {
-  s.fold(init=0, fn(acc, _c) { acc + 1 }) == 1
+  s.fold(init=0, (acc, _c) => { acc + 1 }) == 1
 }

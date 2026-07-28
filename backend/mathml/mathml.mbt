@@ -735,7 +735,7 @@ fn row_lines(hlines : Array[Array[Bool]]) -> String? {
 fn array_column_attributes(
   columns : Array[@katex_parser.ArrayColumn],
 ) -> Array[(String, String)] {
-  let alignments : Array[String] = columns.fold(init=[], fn(acc, column) {
+  let alignments : Array[String] = columns.fold(init=[], (acc, column) => {
     match column {
       AlignColumn(alignment~, ..) => {
         let value = match alignment {
@@ -748,7 +748,7 @@ fn array_column_attributes(
       SeparatorColumn(..) => acc
     }
   })
-  let lines : Array[String] = columns.fold(init=[], fn(acc, column) {
+  let lines : Array[String] = columns.fold(init=[], (acc, column) => {
     match column {
       SeparatorColumn(separator~) =>
         acc + [if separator == ":" { "dashed" } else { "solid" }]
