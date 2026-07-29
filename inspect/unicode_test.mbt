@@ -17,6 +17,23 @@ test "render operators, symbols, and spacing to Unicode" {
 }
 
 ///|
+test "render block math with horizontal alignment" {
+  let source =
+    #|\sum_{n\ge1}\frac{1}{n^2}=\frac{\pi^2}{6}
+
+  let output =
+    #|         1      π² 
+    #|∑_(n≥1) ---- = ----
+    #|         n²     6  
+
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse(source, settings~)),
+    output,
+  )
+}
+
+///|
 test "render structural nodes without losing information" {
   @test.assert_eq(
     @unicode.render(
@@ -239,9 +256,9 @@ test "toplevel infix operator spacing" {
 ///|
 test "TeX spacing around infix operators" {
   // Binary operators get spacing
-  @test.assert_eq(@unicode.render(@katex_parser.parse("a + b")), "a + b")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a+b")), "a + b")
   // Relation operators get spacing
-  @test.assert_eq(@unicode.render(@katex_parser.parse("a = b")), "a = b")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a=b")), "a = b")
   // No spacing inside subscripts (tight mode)
   @test.assert_eq(@unicode.render(@katex_parser.parse("x_{a+b}")), "x_(a+b)")
   // No spacing inside superscripts (tight mode)

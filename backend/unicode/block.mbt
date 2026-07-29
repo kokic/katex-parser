@@ -10,7 +10,10 @@ pub(all) struct Block {
 
 ///|
 pub fn Block::from(s : String) -> Block {
-  { lines: [s], width: s.length() }
+  let raw = s.split("\n").to_array()
+  let width = raw.fold(init=0, fn(m, l) { m.max(l.length()) })
+  let lines = raw.map(fn(l) { pad_right(l.to_owned(), width) })
+  { lines, width }
 }
 
 ///|

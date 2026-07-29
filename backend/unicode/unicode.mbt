@@ -16,7 +16,35 @@ fn render_internal(
 ) -> String {
   let items = collect_spacable_items(nodes, state)
   let cancelled = @backend.cancel_bin_atoms(items)
-  @backend.join_with_spacing(cancelled, state.in_tight, state.config.spacing)
+  if cancelled.length() > 0 &&
+    cancelled.fold(init=false, (has, it) => has || it.text.contains("\n")) {
+    join_with_block_spacing(cancelled, state.in_tight, state.config.spacing)
+  } else {
+    @backend.join_with_spacing(cancelled, state.in_tight, state.config.spacing)
+  }
+}
+
+///|
+fn join_with_block_spacing(
+  items : Array[@backend.SpacableItem],
+  tight : Bool,
+  spec : @backend.SpacingSpec,
+) -> String {
+  let mut result = Block::from(items[0].text)
+  for i = 1; i < items.length(); i = i + 1 {
+    let prev = items[i - 1]
+    let curr = items[i]
+    match (prev.atom_type, curr.atom_type) {
+      (Some(left), Some(right)) =>
+        match @backend.math_spacing(left, right, tight, spec) {
+          Some(space) => result = result.beside(Block::from(space))
+          None => ()
+        }
+      _ => ()
+    }
+    result = result.beside(Block::from(curr.text))
+  }
+  result.render()
 }
 
 ///|
