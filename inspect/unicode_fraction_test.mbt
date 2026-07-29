@@ -1,4 +1,25 @@
 ///|
+test "render deep cfrac with baseline alignment" {
+  let source =
+    #|\frac{p}{q}=a_0+\cfrac{1}{a_1+\cfrac{1}{a_2+\cfrac{1}{a_3}}}
+
+  let output =
+    #| p               1       
+    #|--- = a₀ + --------------
+    #| q                 1     
+    #|            a₁+--------- 
+    #|                    1    
+    #|                a₂+----  
+    #|                    a₃   
+
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse(source, settings~)),
+    output,
+  )
+}
+
+///|
 test "render binomial without fraction bar" {
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\binom{n}{k}")),

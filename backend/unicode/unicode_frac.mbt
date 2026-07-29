@@ -10,5 +10,6 @@ fn render_genfrac_block(
   let den = Block::from(render_node_internal(denom, den_state))
   let bar_w = num.width().max(den.width()) + 2
   let bar = Block::from("-".repeat(bar_w))
-  num.center(bar_w).above(bar).above(den.center(bar_w)).render()
+  let frac = num.center(bar_w).above(bar).above(den.center(bar_w))
+  { ..frac, baseline: num.height() }.render()
 }

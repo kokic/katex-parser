@@ -108,10 +108,11 @@ pub fn math_spacing(
 }
 
 ///|
-/// A renderable atom with its math class.
+/// A renderable atom with its math class and baseline info.
 pub(all) struct SpacableItem {
   atom_type : String?
   text : String
+  baseline : Int
 }
 
 ///|

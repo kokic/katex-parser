@@ -30,7 +30,7 @@ fn join_with_block_spacing(
   tight : Bool,
   spec : @backend.SpacingSpec,
 ) -> String {
-  let mut result = Block::from(items[0].text)
+  let mut result = item_to_block(items[0])
   for i = 1; i < items.length(); i = i + 1 {
     let prev = items[i - 1]
     let curr = items[i]
@@ -42,9 +42,16 @@ fn join_with_block_spacing(
         }
       _ => ()
     }
-    result = result.beside(Block::from(curr.text))
+    result = result.beside(item_to_block(curr))
   }
   result.render()
+}
+
+fn item_to_block(item : @backend.SpacableItem) -> Block {
+  let raw = item.text.split("\n").to_array()
+  let width = raw.fold(init=0, fn(m, l) { m.max(l.length()) })
+  let lines = raw.map(fn(l) { pad_right(l.to_owned(), width) })
+  { lines, width, baseline: item.baseline }
 }
 
 ///|
@@ -200,7 +207,7 @@ fn collect_spacable_items(
 
       // --- Space nodes: rendered text with no atom type ---
       Spacing(text~, ..) =>
-        acc + [{ atom_type: None, text: render_symbol(text) }]
+        acc + [{ atom_type: None, text: render_symbol(text), baseline: 0 }]
 
       // --- Real groups: render as single atom ---
       @katex_parser.ParseNode::OrdGroup(..)
@@ -211,6 +218,20 @@ fn collect_spacable_items(
           {
             atom_type: get_outer_atom_type(n),
             text: render_node_internal(n, state),
+            baseline: 0,
+          },
+        ]
+
+      // --- GenFrac that renders as a block fraction ---
+      @katex_parser.ParseNode::GenFrac(
+        numer~, denom~, has_bar_line=true, left_delim=None, right_delim=None, ..
+      ) if state.in_display =>
+        acc +
+        [
+          {
+            atom_type: Some("mord"),
+            text: render_genfrac_block(numer, denom, state),
+            baseline: frac_baseline(numer, state),
           },
         ]
 
@@ -221,10 +242,19 @@ fn collect_spacable_items(
           {
             atom_type: get_outer_atom_type(n),
             text: render_node_internal(n, state),
+            baseline: 0,
           },
         ]
     }
   })
+}
+
+fn frac_baseline(
+  numer : @katex_parser.ParseNode,
+  state : RenderState,
+) -> Int {
+  let num_state = { ..state, in_display: false }
+  render_node_internal(numer, num_state).split("\n").to_array().length()
 }
 
 ///|

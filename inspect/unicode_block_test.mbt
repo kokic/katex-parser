@@ -105,18 +105,18 @@ test "label beside 2-row matrix (top-aligned)" {
 }
 
 ///|
-///     [a]
-/// M = [b]
+/// M = [a]
+///     [b]
 ///     [c]
-test "label beside 3-row matrix (centered)" {
+test "label beside 3-row matrix (top-aligned)" {
   let rows = @unicode.Block::from("a")
     .above(@unicode.Block::from("b"))
     .above(@unicode.Block::from("c"))
   let matrix = rows.enclose("[", "]")
   let label = @unicode.Block::from("M = ")
   let result = matrix.append_left(label)
-  // 1-line label beside 3-line matrix: top_pad=1, bottom_pad=1
-  @test.assert_eq(result.render(), "    [a]\nM = [b]\n    [c]")
+  // 1-line label beside 3-line matrix: both share baseline 0 → top-aligned
+  @test.assert_eq(result.render(), "M = [a]\n    [b]\n    [c]")
 }
 
 ///|
@@ -141,12 +141,11 @@ test "label beside fraction" {
   let num = @unicode.Block::from("p").center(3)
   let bar = @unicode.Block::from("---")
   let den = @unicode.Block::from("q").center(3)
-  let frac = num.above(bar).above(den)
+  let frac = { ..num.above(bar).above(den), baseline: 1 }
   let label = @unicode.Block::from("r = ")
   let result = frac.append_left(label)
-  // Label (width 4) beside fraction (width 3): the blank padding rows
-  // use the label's width, so there are 4 spaces before the fraction
-  // on the numerator and denominator lines.
+  // Fraction baseline = 1 (fraction bar line), label baseline = 0
+  // Label aligns beside the fraction bar.
   @test.assert_eq(result.render(), "     p \nr = ---\n     q ")
 }
 
@@ -159,7 +158,7 @@ test "label beside fraction with uneven width" {
   let num = @unicode.Block::from("p²").center(5)
   let bar = @unicode.Block::from("-----")
   let den = @unicode.Block::from("q+1").center(5)
-  let frac = num.above(bar).above(den)
+  let frac = { ..num.above(bar).above(den), baseline: 1 }
   let label = @unicode.Block::from("r = ")
   let result = frac.append_left(label)
   @test.assert_eq(result.render(), "     p²  \nr = -----\n     q+1 ")
