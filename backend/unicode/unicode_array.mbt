@@ -40,8 +40,11 @@ fn cell_block(
   let cell_texts = body.map(r => r.map(c => render_node_internal(c, state)))
   let widths = column_widths(cell_texts)
   let rows = cell_texts.map(cell_row => Block::row(cell_row, widths, "  "))
-  rows.fold(init=Block::empty(), (acc, row) => {
+  let block = rows.fold(init=Block::empty(), (acc, row) => {
     guard acc.height() > 0 else { row }
     acc.above(row)
   })
+  // Math axis sits at the vertical center of the array, so surrounding
+  // content (e.g. `=` in `x = \begin{cases}...`) aligns against it.
+  { ..block, baseline: block.height() / 2 }
 }

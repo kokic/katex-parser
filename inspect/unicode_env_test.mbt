@@ -220,3 +220,49 @@ test "render matrix with single column in block mode" {
     "(aa)\n(b )",
   )
 }
+
+///|
+test "render cases with null right delimiter" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // \right. is the null delimiter: no trailing delimiter may appear.
+  // The space inside \text{if } maps to NBSP (U+00A0), matching KaTeX.
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{cases} a & \\text{if } b \\\\ \\\\ c & \\text{if } d\\end{cases}",
+        settings~,
+      ),
+    ),
+    "{a  if\u{A0}b\n{       \n{c  if\u{A0}d",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\left\\{ x \\right.", settings~)),
+    "{x",
+  )
+}
+
+///|
+test "array axis centered in display mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // x = centers against the middle (blank) row of the cases block
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "x = \\begin{cases}\n   a &\\text{if } b \\\\ \\\\\n   c &\\text{if } d\n\\end{cases}",
+        settings~,
+      ),
+    ),
+    "    {a  if\u{A0}b\nx = {       \n    {c  if\u{A0}d",
+  )
+  // Odd row count: label aligns with the exact middle row
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "y = \\begin{cases} x & p \\\\ z & q \\\\ w & r \\end{cases}",
+        settings~,
+      ),
+    ),
+    "    {x  p\ny = {z  q\n    {w  r",
+  )
+}
+

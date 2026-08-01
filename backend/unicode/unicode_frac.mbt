@@ -27,7 +27,7 @@ fn render_genfrac_block(
 /// Wrap a block with single-line delimiters aligned at its baseline row, so
 /// that a delimiter beside a block fraction sits exactly on the fraction bar.
 fn wrap_delims(block : Block, left : String?, right : String?) -> Block {
-  let l = left.map_or(Block::empty(), d => Block::from(render_symbol(d)))
-  let r = right.map_or(Block::empty(), d => Block::from(render_symbol(d)))
+  let l = left.map_or(Block::empty(), d => Block::from(render_delimiter(d)))
+  let r = right.map_or(Block::empty(), d => Block::from(render_delimiter(d)))
   l.beside(block).beside(r)
 }

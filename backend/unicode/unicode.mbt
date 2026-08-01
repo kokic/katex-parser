@@ -158,14 +158,14 @@ fn render_node_internal(
     AccentUnder(label~, base~, ..) =>
       "underaccent(\{render_command_name(label)},\{render_node_internal(base, state)})"
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
-      render_symbol(delim)
+      render_delimiter(delim)
     LeftRight(body~, left~, right~, ..) =>
       if state.in_display {
         match body {
           [Array(body~, ..)] =>
             render_leftright_block(
-              render_symbol(left),
-              render_symbol(right),
+              render_delimiter(left),
+              render_delimiter(right),
               body,
               state,
             ).render()
@@ -177,7 +177,7 @@ fn render_node_internal(
             ).render()
         }
       } else {
-        "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
+        "\{render_delimiter(left)}\{render_internal(body, state)}\{render_delimiter(right)}"
       }
     Kern(dimension~, ..) => render_kern(dimension)
     Enclose(label~, body~, ..) =>
@@ -274,8 +274,8 @@ fn collect_spacable_items(
         let block = match body {
           [Array(body~, ..)] =>
             render_leftright_block(
-              render_symbol(left),
-              render_symbol(right),
+              render_delimiter(left),
+              render_delimiter(right),
               body,
               state,
             )
@@ -402,6 +402,17 @@ let render_symbol : (String) -> String = text => {
 }
 
 ///|
+/// Renders a delimiter. The null delimiter `.` (used by `\left.`/`\right.`)
+/// renders as nothing.
+fn render_delimiter(text : String) -> String {
+  if text == "." {
+    ""
+  } else {
+    render_symbol(text)
+  }
+}
+
+///|
 /// Strips the leading `\` from a control-sequence label so that fallback
 /// notation renders as `name(...)` instead of `\name(...)`. Each fallback site
 /// applies this to its own label, so nested fallbacks are handled level by level.
@@ -524,8 +535,8 @@ fn render_delimited(
   content : String,
   right : String?,
 ) -> String {
-  let left = left.map_or("", render_symbol)
-  let right = right.map_or("", render_symbol)
+  let left = left.map_or("", render_delimiter)
+  let right = right.map_or("", render_delimiter)
   "\{left}\{content}\{right}"
 }
 
