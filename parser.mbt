@@ -27,7 +27,7 @@ fn Parser::make(input : String, settings : Settings) -> Parser {
 ///|
 pub fn parse(
   input : String,
-  settings? : Settings = Settings::default(),
+  settings? : Settings = Default::default(),
 ) -> Array[ParseNode] raise ParseFailure {
   let parser = Parser::make(input, settings)
   parser.gullet.macros.set("\\df@tag", None)

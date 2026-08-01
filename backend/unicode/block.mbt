@@ -101,7 +101,11 @@ pub fn Block::append_right(self : Block, label : Block) -> Block {
 pub fn Block::enclose(self : Block, left : String, right : String) -> Block {
   guard self.lines.length() > 0 else { Block::from("\{left}\{right}") }
   let lines = self.lines.map(l => "\{left}\{l}\{right}")
-  { lines, width: self.width + left.length() + right.length(), baseline: self.baseline }
+  {
+    lines,
+    width: self.width + left.length() + right.length(),
+    baseline: self.baseline,
+  }
 }
 
 ///|

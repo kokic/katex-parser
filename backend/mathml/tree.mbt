@@ -77,6 +77,15 @@ fn make_row(nodes : Array[MathMlNode]) -> MathMlNode {
 }
 
 ///|
+fn MathMlNode::is_empty(node : MathMlNode) -> Bool {
+  match node {
+    Text(value) => value.length() == 0
+    Element(_, _, children) =>
+      children.length() == 0 || children.all(MathMlNode::is_empty)
+  }
+}
+
+///|
 fn combine_expression(nodes : Array[MathMlNode]) -> Array[MathMlNode] {
   let result : Array[MathMlNode] = []
   for node in nodes {

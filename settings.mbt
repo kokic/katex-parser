@@ -98,7 +98,7 @@ pub fn Settings::make(
 }
 
 ///|
-pub fn Settings::default() -> Settings {
+pub impl Default for Settings with fn default() {
   Settings::make()
 }
 

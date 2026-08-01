@@ -20,7 +20,7 @@ pub fn RenderConfig::make(
 }
 
 ///|
-pub fn RenderConfig::default() -> RenderConfig {
+pub impl Default for RenderConfig with fn default() {
   RenderConfig::make()
 }
 

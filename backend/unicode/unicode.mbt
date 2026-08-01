@@ -4,7 +4,7 @@
 /// retained in plain text.
 pub fn render(
   nodes : Array[@katex_parser.ParseNode],
-  config? : RenderConfig = RenderConfig::default(),
+  config? : RenderConfig = Default::default(),
 ) -> String {
   render_internal(nodes, { in_display: false, in_tight: false, config })
 }
@@ -47,6 +47,7 @@ fn join_with_block_spacing(
   result.render()
 }
 
+///|
 fn item_to_block(item : @backend.SpacableItem) -> Block {
   let raw = item.text.split("\n").to_array()
   let width = raw.fold(init=0, fn(m, l) { m.max(l.length()) })
@@ -224,7 +225,12 @@ fn collect_spacable_items(
 
       // --- GenFrac that renders as a block fraction ---
       @katex_parser.ParseNode::GenFrac(
-        numer~, denom~, has_bar_line=true, left_delim=None, right_delim=None, ..
+        numer~,
+        denom~,
+        has_bar_line=true,
+        left_delim=None,
+        right_delim=None,
+        ..
       ) if state.in_display =>
         acc +
         [
@@ -249,10 +255,8 @@ fn collect_spacable_items(
   })
 }
 
-fn frac_baseline(
-  numer : @katex_parser.ParseNode,
-  state : RenderState,
-) -> Int {
+///|
+fn frac_baseline(numer : @katex_parser.ParseNode, state : RenderState) -> Int {
   let num_state = { ..state, in_display: false }
   render_node_internal(numer, num_state).split("\n").to_array().length()
 }

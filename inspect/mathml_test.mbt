@@ -81,3 +81,18 @@ test "render delimiters and arrays" {
     ),
   )
 }
+
+///|
+test "omit math shell for empty content" {
+  inspect(@mathml.render(@katex_parser.parse("\\def\\foo{x}")), content="")
+  inspect(
+    @mathml.render(@katex_parser.parse("\\def\\foo{x}\\gdef\\bar{y}")),
+    content="",
+  )
+  inspect(
+    @mathml.render(@katex_parser.parse("\\def\\foo{x}\\foo")),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x</mi></semantics></math>
+    ),
+  )
+}
