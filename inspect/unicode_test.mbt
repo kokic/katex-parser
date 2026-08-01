@@ -134,6 +134,30 @@ test "named operators keep a space before their operand" {
 }
 
 ///|
+test "spacing macros render as plain spaces" {
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a\\,b")), "a b")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a\\:b")), "a b")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a\\;b")), "a b")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("a\\enspace b")),
+    "a b",
+  )
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a\\quad b")), "a  b")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a\\qquad b")), "a    b")
+  // Negative spaces have no plain-text representation
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a\\!b")), "ab")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\int\\!dx")),
+    "∫ dx",
+  )
+  // Other units keep the kern() fallback
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("x\\kern{1pt}y")),
+    "xkern(1pt)y",
+  )
+}
+
+///|
 test "strip backslash prefix in fallback notation" {
   // Named operators render without the backslash
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\sin")), "sin")
@@ -215,10 +239,10 @@ test "self-delimiting function notation stays atomic" {
     @unicode.render(@katex_parser.parse("\\rule{1em}{2pt}_1")),
     "rule(1em,2pt)₁",
   )
-  // Kern: renders as kern(dim)
+  // Kern: renders as kern(dim) for non-space units
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\kern{1em}_1")),
-    "kern(1em)₁",
+    @unicode.render(@katex_parser.parse("\\kern{1pt}_1")),
+    "kern(1pt)₁",
   )
   // AccentUnder: renders as underaccent(cmd,body) (self-delimiting)
   @test.assert_eq(

@@ -181,7 +181,7 @@ fn render_node_internal(
       } else {
         "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
       }
-    Kern(dimension~, ..) => "kern(\{render_measurement(dimension)})"
+    Kern(dimension~, ..) => render_kern(dimension)
     Enclose(label~, body~, ..) =>
       "\{render_command_name(label)}(\{render_node_internal(body, state)})"
     IncludeGraphics(alt~, ..) => "image(\{alt})"
@@ -515,6 +515,25 @@ fn render_delimited(
 ///|
 fn render_measurement(measurement : @katex_parser.Measurement) -> String {
   "\{measurement.number}\{measurement.unit}"
+}
+
+///|
+/// Renders a horizontal space as plain spaces when its size maps to a standard
+/// spacing unit (`em`/`mu`). Em-sized spaces scale 2 spaces per em; negative or
+/// zero spaces have no plain-text representation and render as nothing. Other
+/// units fall back to `kern(...)`.
+fn render_kern(dimension : @katex_parser.Measurement) -> String {
+  let em = match dimension.unit {
+    "em" => dimension.number
+    "mu" => dimension.number / 18.0
+    _ => return "kern(\{render_measurement(dimension)})"
+  }
+  if em <= 0.0 {
+    return ""
+  }
+  let n = (em * 2.0).round()
+  let count = if n < 1.0 { 1 } else { n.to_int() }
+  " ".repeat(count)
 }
 
 ///|
