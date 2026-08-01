@@ -93,16 +93,19 @@ test "visible repositioned nodes stay transparent" {
 }
 
 ///|
-test "untrusted html commands render empty" {
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\href{a}{b}")), "")
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\url{http://x}")), "")
+test "untrusted html commands keep visible text" {
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\href{a}{b}")), "b")
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\includegraphics{foo}")),
-    "",
+    @unicode.render(@katex_parser.parse("\\url{http://x}")),
+    "http://x",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\includegraphics{img.png}")),
+    "img",
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\htmlClass{foo}{x}")),
-    "",
+    "x",
   )
   // Undefined control sequences still keep their name
   @test.assert_eq(

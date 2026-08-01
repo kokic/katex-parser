@@ -105,12 +105,10 @@ fn html_handler(
     }
     _ => raise InternalInvariant(message="Unrecognized html command")
   }
-  guard (context.is_trusted)(trust_context) else {
-    (context.unsupported_command)(context.func_name)
+  let body = ord_argument(require_function_arg(args, 1, context.func_name))
+  if (context.is_trusted)(trust_context) {
+    Html(mode=context.mode, attributes~, body~)
+  } else {
+    OrdGroup(mode=context.mode, loc=None, body~, semisimple=false)
   }
-  Html(
-    mode=context.mode,
-    attributes~,
-    body=ord_argument(require_function_arg(args, 1, context.func_name)),
-  )
 }

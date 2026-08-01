@@ -39,16 +39,14 @@ fn href_handler(
   _ : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   let href = href_argument(args, 0, context.func_name)
-  guard (context.is_trusted)(
+  let body = require_function_arg(args, 1, context.func_name)
+  if (context.is_trusted)(
     UrlTrust(command="\\href", url=href, protocol=None),
-  ) else {
-    (context.unsupported_command)("\\href")
+  ) {
+    Href(mode=context.mode, href~, body=ord_argument(body))
+  } else {
+    body
   }
-  Href(
-    mode=context.mode,
-    href~,
-    body=ord_argument(require_function_arg(args, 1, context.func_name)),
-  )
 }
 
 ///|
@@ -58,9 +56,6 @@ fn url_handler(
   _ : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   let href = href_argument(args, 0, context.func_name)
-  guard (context.is_trusted)(UrlTrust(command="\\url", url=href, protocol=None)) else {
-    (context.unsupported_command)("\\url")
-  }
   let chars = href
     .to_array()
     .map(char => {
@@ -74,9 +69,10 @@ fn url_handler(
         },
       )
     })
-  Href(
-    mode=context.mode,
-    href~,
-    body=ord_argument(Text(mode=context.mode, font="\\texttt", body=chars)),
-  )
+  let body = ParseNode::Text(mode=context.mode, font="\\texttt", body=chars)
+  if (context.is_trusted)(UrlTrust(command="\\url", url=href, protocol=None)) {
+    Href(mode=context.mode, href~, body=ord_argument(body))
+  } else {
+    body
+  }
 }

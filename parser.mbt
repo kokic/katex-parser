@@ -550,7 +550,6 @@ fn Parser::call_function(
       self.settings.report_nonstrict(error_code, error_message, token)
     },
     is_trusted: context => self.settings.is_trusted(context),
-    unsupported_command: _command => Internal(mode=self.mode),
     parse_optional_size: () => {
       if self.gullet.future().text != "[" {
         None

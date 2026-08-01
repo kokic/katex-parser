@@ -21,7 +21,6 @@ priv struct FunctionContext {
   set_macro : (String, MacroDefinition?) -> Unit
   report_nonstrict : (String, String) -> Unit raise ParseFailure
   is_trusted : (TrustContext) -> Bool
-  unsupported_command : (String) -> ParseNode
   parse_optional_size : () -> Measurement? raise ParseFailure
   display_mode : Bool
   use_strict_behavior : (String, String) -> Bool
