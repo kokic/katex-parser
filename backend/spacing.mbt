@@ -12,6 +12,7 @@ pub(all) struct SpacingSpec {
   thick : String
   medium : String
   thin : String
+  operator : String
 } derive(Eq)
 
 ///|
@@ -37,8 +38,8 @@ fn normal_spacing(left : String, right : String, spec : SpacingSpec) -> String? 
     ("mord", "mbin") => Some(spec.medium)
     ("mord", "mrel") => Some(spec.thick)
     ("mord", "minner") => Some(spec.thin)
-    ("mop", "mord") => Some(spec.thin)
-    ("mop", "mop") | ("mop", "mbig") => Some(spec.thin)
+    ("mop", "mord") => Some(spec.operator)
+    ("mop", "mop") | ("mop", "mbig") => Some(spec.operator)
     ("mop", "mrel") => Some(spec.thick)
     ("mop", "minner") => Some(spec.thin)
     ("mbig", "mord")

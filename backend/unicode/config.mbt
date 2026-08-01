@@ -6,9 +6,10 @@ pub struct RenderConfig {
 } derive(Eq)
 
 ///|
-/// Unicode text spacing: regular spaces for thick/medium, empty for thin.
+/// Unicode text spacing: regular spaces for thick/medium and after operators,
+/// empty for thin.
 pub fn unicode_text_spacing() -> @backend.SpacingSpec {
-  { thick: " ", medium: " ", thin: "" }
+  { thick: " ", medium: " ", thin: "", operator: " " }
 }
 
 ///|
