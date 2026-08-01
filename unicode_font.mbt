@@ -21,11 +21,22 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
   let cp = match font {
     "mathbf" | "boldsymbol" => {
       let base = if font == "boldsymbol" { 0x1D468 } else { 0x1D400 }
+      let greek_cap = if font == "boldsymbol" { 0x1D71C } else { 0x1D6A8 }
+      let greek_small = if font == "boldsymbol" { 0x1D736 } else { 0x1D6C2 }
+      let greek_symbols = if font == "boldsymbol" { 0x1D750 } else { 0x1D6DC }
       match c {
         'A'..='Z' => Some(base + c.to_int() - ('A' : Char).to_int())
         'a'..='z' => Some(base + 26 + c.to_int() - ('a' : Char).to_int())
         '0'..='9' if font != "boldsymbol" =>
           Some(0x1D7CE + c.to_int() - ('0' : Char).to_int())
+        'Α'..='Ω' => Some(greek_cap + c.to_int() - ('Α' : Char).to_int())
+        'α'..='ω' => Some(greek_small + c.to_int() - ('α' : Char).to_int())
+        'ϵ' => Some(greek_symbols + 0)
+        'ϑ' => Some(greek_symbols + 1)
+        'ϰ' => Some(greek_symbols + 2)
+        'ϕ' => Some(greek_symbols + 3)
+        'ϱ' => Some(greek_symbols + 4)
+        'ϖ' => Some(greek_symbols + 5)
         _ => None
       }
     }

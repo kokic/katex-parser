@@ -104,15 +104,22 @@ test "map font characters individually" {
     @unicode.render(@katex_parser.parse("\\mathbb{R}")),
     "ℝ",
   )
-  // Only unmappable characters fall back, not the whole body
+  // Letters with a mapped bold variant render directly
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\mathbf{a\\alpha b}")),
-    "𝐚mathbf(α)𝐛",
+    "𝐚𝛂𝐛",
   )
-  // A fully unmappable body groups into a single fallback
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\mathbf{\\alpha\\beta}")),
-    "mathbf(αβ)",
+    "𝛂𝛃",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbf{\\Gamma\\Omega}")),
+    "𝚪𝛀",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\boldsymbol{\\alpha}")),
+    "𝜶",
   )
   // Symbols with no font variant render as-is
   @test.assert_eq(
