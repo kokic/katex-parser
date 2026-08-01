@@ -28,8 +28,8 @@ fn render_leftright_block(
   right : String,
   body : Array[Array[@katex_parser.ParseNode]],
   state : RenderState,
-) -> String {
-  cell_block(body, state).enclose(left, right).render()
+) -> Block {
+  cell_block(body, state).enclose(left, right)
 }
 
 ///|

@@ -1,9 +1,9 @@
 ///|
-fn render_genfrac_block(
+fn frac_block(
   numer : @katex_parser.ParseNode,
   denom : @katex_parser.ParseNode,
   state : RenderState,
-) -> String {
+) -> Block {
   let num_state = { ..state, in_display: false }
   let den_state = { ..state, in_display: false, in_tight: true }
   let num = Block::from(render_node_internal(numer, num_state))
@@ -11,5 +11,23 @@ fn render_genfrac_block(
   let bar_w = num.width().max(den.width()) + 2
   let bar = Block::from("-".repeat(bar_w))
   let frac = num.center(bar_w).above(bar).above(den.center(bar_w))
-  { ..frac, baseline: num.height() }.render()
+  { ..frac, baseline: num.height() }
+}
+
+///|
+fn render_genfrac_block(
+  numer : @katex_parser.ParseNode,
+  denom : @katex_parser.ParseNode,
+  state : RenderState,
+) -> String {
+  frac_block(numer, denom, state).render()
+}
+
+///|
+/// Wrap a block with single-line delimiters aligned at its baseline row, so
+/// that a delimiter beside a block fraction sits exactly on the fraction bar.
+fn wrap_delims(block : Block, left : String?, right : String?) -> Block {
+  let l = left.map_or(Block::empty(), d => Block::from(render_symbol(d)))
+  let r = right.map_or(Block::empty(), d => Block::from(render_symbol(d)))
+  l.beside(block).beside(r)
 }

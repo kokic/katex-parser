@@ -14,22 +14,39 @@ fn render_internal(
   nodes : Array[@katex_parser.ParseNode],
   state : RenderState,
 ) -> String {
+  render_internal_block(nodes, state).render()
+}
+
+///|
+/// Renders a list of nodes into a `Block`, preserving per-item baseline info
+/// so that block-level content (e.g. fractions) stays vertically aligned with
+/// its neighbors when composed via `beside`.
+fn render_internal_block(
+  nodes : Array[@katex_parser.ParseNode],
+  state : RenderState,
+) -> Block {
   let items = collect_spacable_items(nodes, state)
   let cancelled = @backend.cancel_bin_atoms(items)
   if cancelled.length() > 0 &&
     cancelled.fold(init=false, (has, it) => has || it.text.contains("\n")) {
-    join_with_block_spacing(cancelled, state.in_tight, state.config.spacing)
+    join_with_block(cancelled, state.in_tight, state.config.spacing)
   } else {
-    @backend.join_with_spacing(cancelled, state.in_tight, state.config.spacing)
+    Block::from(
+      @backend.join_with_spacing(
+        cancelled,
+        state.in_tight,
+        state.config.spacing,
+      ),
+    )
   }
 }
 
 ///|
-fn join_with_block_spacing(
+fn join_with_block(
   items : Array[@backend.SpacableItem],
   tight : Bool,
   spec : @backend.SpacingSpec,
-) -> String {
+) -> Block {
   let mut result = item_to_block(items[0])
   for i = 1; i < items.length(); i = i + 1 {
     let prev = items[i - 1]
@@ -44,7 +61,7 @@ fn join_with_block_spacing(
     }
     result = result.beside(item_to_block(curr))
   }
-  result.render()
+  result
 }
 
 ///|
@@ -104,15 +121,18 @@ fn render_node_internal(
       let den_state = { ..state, in_tight: true }
       "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
     }
-    GenFrac(numer~, denom~, left_delim~, right_delim~, ..) => {
-      let num_state = { ..state, in_tight: true }
-      let den_state = { ..state, in_tight: true }
-      render_delimited(
-        left_delim,
-        "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}",
-        right_delim,
-      )
-    }
+    GenFrac(numer~, denom~, left_delim~, right_delim~, ..) =>
+      if state.in_display {
+        wrap_delims(frac_block(numer, denom, state), left_delim, right_delim).render()
+      } else {
+        let num_state = { ..state, in_tight: true }
+        let den_state = { ..state, in_tight: true }
+        render_delimited(
+          left_delim,
+          "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}",
+          right_delim,
+        )
+      }
     Font(font~, body~, ..) => render_font(font, body, state)
     Op(content~, ..) => render_operator_content(content, state)
     OperatorName(body~, ..) => render_internal(body, state)
@@ -142,17 +162,21 @@ fn render_node_internal(
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
       render_symbol(delim)
     LeftRight(body~, left~, right~, ..) =>
-      if state.in_display && body.length() == 1 {
-        match body[0] {
-          Array(body~, ..) =>
+      if state.in_display {
+        match body {
+          [Array(body~, ..)] =>
             render_leftright_block(
               render_symbol(left),
               render_symbol(right),
               body,
               state,
-            )
+            ).render()
           _ =>
-            "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
+            wrap_delims(
+              render_internal_block(body, state),
+              Some(left),
+              Some(right),
+            ).render()
         }
       } else {
         "\{render_symbol(left)}\{render_internal(body, state)}\{render_symbol(right)}"
@@ -228,18 +252,51 @@ fn collect_spacable_items(
         numer~,
         denom~,
         has_bar_line=true,
-        left_delim=None,
-        right_delim=None,
+        left_delim~,
+        right_delim~,
         ..
-      ) if state.in_display =>
+      ) if state.in_display => {
+        let block = wrap_delims(
+          frac_block(numer, denom, state),
+          left_delim,
+          right_delim,
+        )
         acc +
         [
           {
             atom_type: Some("mord"),
-            text: render_genfrac_block(numer, denom, state),
-            baseline: frac_baseline(numer, state),
+            text: block.render(),
+            baseline: block.baseline(),
           },
         ]
+      }
+
+      // --- LeftRight wrapping block content in display mode ---
+      @katex_parser.ParseNode::LeftRight(body~, left~, right~, ..) if state.in_display => {
+        let block = match body {
+          [Array(body~, ..)] =>
+            render_leftright_block(
+              render_symbol(left),
+              render_symbol(right),
+              body,
+              state,
+            )
+          _ =>
+            wrap_delims(
+              render_internal_block(body, state),
+              Some(left),
+              Some(right),
+            )
+        }
+        acc +
+        [
+          {
+            atom_type: Some("minner"),
+            text: block.render(),
+            baseline: block.baseline(),
+          },
+        ]
+      }
 
       // --- Everything else ---
       _ =>
@@ -253,12 +310,6 @@ fn collect_spacable_items(
         ]
     }
   })
-}
-
-///|
-fn frac_baseline(numer : @katex_parser.ParseNode, state : RenderState) -> Int {
-  let num_state = { ..state, in_display: false }
-  render_node_internal(numer, num_state).split("\n").to_array().length()
 }
 
 ///|
