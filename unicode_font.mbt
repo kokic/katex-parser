@@ -37,6 +37,8 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
         'ϕ' => Some(greek_symbols + 3)
         'ϱ' => Some(greek_symbols + 4)
         'ϖ' => Some(greek_symbols + 5)
+        '∇' => Some(greek_cap + 0x19)
+        '∂' => Some(greek_small + 0x19)
         _ => None
       }
     }
@@ -44,6 +46,16 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
       match c {
         'A'..='Z' => Some(0x1D434 + c.to_int() - ('A' : Char).to_int())
         'a'..='z' => Some(0x1D44E + c.to_int() - ('a' : Char).to_int())
+        'Α'..='Ω' => Some(0x1D6E2 + c.to_int() - ('Α' : Char).to_int())
+        'α'..='ω' => Some(0x1D6FC + c.to_int() - ('α' : Char).to_int())
+        'ϵ' => Some(0x1D716)
+        'ϑ' => Some(0x1D717)
+        'ϰ' => Some(0x1D718)
+        'ϕ' => Some(0x1D719)
+        'ϱ' => Some(0x1D71A)
+        'ϖ' => Some(0x1D71B)
+        '∇' => Some(0x1D6FB)
+        '∂' => Some(0x1D715)
         _ => None
       }
     "mathsf" =>
@@ -89,6 +101,7 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
         'Y' => Some(0x1D550)
         'Z' => Some(0x2124)
         'a'..='z' => Some(0x1D552 + c.to_int() - ('a' : Char).to_int())
+        '0'..='9' => Some(0x1D7D8 + c.to_int() - ('0' : Char).to_int())
         _ => None
       }
     "mathcal" =>

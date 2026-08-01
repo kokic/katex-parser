@@ -33,6 +33,25 @@ test "render font commands as Unicode math alphanumerics" {
 }
 
 ///|
+test "render additional font mappings" {
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathbb{1}")), "𝟙")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathbb{42}")), "𝟜𝟚")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathit{\\alpha}")), "𝛼")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathit{\\Gamma\\beta}")),
+    "𝛤𝛽",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbf{\\nabla\\partial}")),
+    "𝛁𝛛",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathit{\\nabla\\partial}")),
+    "𝛻𝜕",
+  )
+}
+
+///|
 test "render text and phantom" {
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\text{hello}")),
