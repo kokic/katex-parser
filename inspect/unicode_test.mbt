@@ -89,7 +89,57 @@ test "Font node treated as atomic for operand grouping" {
   // Font with unmappable body still atomic (self-delimiting notation)
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{\\mathbb{abc}}{2}")),
-    "mathbb(abc)∕2",
+    "𝕒𝕓𝕔∕2",
+  )
+}
+
+///|
+test "map font characters individually" {
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathbf{ab}")), "𝐚𝐛")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbf{abc}")),
+    "𝐚𝐛𝐜",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbb{R}")),
+    "ℝ",
+  )
+  // Only unmappable characters fall back, not the whole body
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbf{a\\alpha b}")),
+    "𝐚mathbf(α)𝐛",
+  )
+  // A fully unmappable body groups into a single fallback
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbf{\\alpha\\beta}")),
+    "mathbf(αβ)",
+  )
+}
+
+///|
+test "strip backslash prefix in fallback notation" {
+  // Named operators render without the backslash
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\sin")), "sin")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\lim_{x}")),
+    "limₓ",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\det A")),
+    "detA",
+  )
+  // Nested fallbacks strip each level's backslash
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\widehat{\\overrightarrow{x}}")),
+    "widehat(overrightarrow(x))",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\hat{\\cancel{x}}")),
+    "hat(cancel(x))",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\underleftrightarrow{x}")),
+    "underaccent(underleftrightarrow,x)",
   )
 }
 
@@ -136,7 +186,7 @@ test "self-delimiting function notation stays atomic" {
   // Enclose (via \cancel): renders as cancel(body)
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\cancel{x}_1")),
-    "\\cancel(x)₁",
+    "cancel(x)₁",
   )
   // Pmb: renders as bold(body)
   @test.assert_eq(
@@ -156,7 +206,7 @@ test "self-delimiting function notation stays atomic" {
   // AccentUnder: renders as underaccent(cmd,body) (self-delimiting)
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\underleftarrow{x}_1")),
-    "underaccent(\\underleftarrow,x)₁",
+    "underaccent(underleftarrow,x)₁",
   )
 }
 
@@ -216,12 +266,12 @@ test "accent uses function notation for multi-character bases" {
   // Multi-char base — no combining mark
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\hat{\\overline{x}}")),
-    "\\hat(overline(x))",
+    "hat(overline(x))",
   )
   // LeftRight is multi-char — function notation
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\hat{\\left(x\\right)}")),
-    "\\hat((x))",
+    "hat((x))",
   )
   // Single-char base still gets combining mark
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\hat{x}")), "x̂")

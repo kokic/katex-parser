@@ -158,7 +158,7 @@ fn render_node_internal(
     XArrow(label~, body~, below=Some(below), ..) =>
       "xrightarrow(\{render_node_internal(body, state)})_(\{render_node_internal(below, state)})^\{label}"
     AccentUnder(label~, base~, ..) =>
-      "underaccent(\{label},\{render_node_internal(base, state)})"
+      "underaccent(\{render_command_name(label)},\{render_node_internal(base, state)})"
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
       render_symbol(delim)
     LeftRight(body~, left~, right~, ..) =>
@@ -183,7 +183,7 @@ fn render_node_internal(
       }
     Kern(dimension~, ..) => "kern(\{render_measurement(dimension)})"
     Enclose(label~, body~, ..) =>
-      "\{label}(\{render_node_internal(body, state)})"
+      "\{render_command_name(label)}(\{render_node_internal(body, state)})"
     IncludeGraphics(alt~, ..) => "image(\{alt})"
     Tag(body~, tag~, ..) =>
       "\{render_internal(body, state)}\t(\{render_internal(tag, state)})"
@@ -393,7 +393,7 @@ fn render_operator_content(
 ) -> String {
   match content {
     SymbolOperator(text) => render_symbol(text)
-    NamedOperator(text) => text
+    NamedOperator(text) => render_command_name(text)
     BodyOperator(body) => render_internal(body, state)
   }
 }
@@ -401,6 +401,18 @@ fn render_operator_content(
 ///|
 let render_symbol : (String) -> String = text => {
   @katex_parser.unicode_symbol(text).unwrap_or(text)
+}
+
+///|
+/// Strips the leading `\` from a control-sequence label so that fallback
+/// notation renders as `name(...)` instead of `\name(...)`. Each fallback site
+/// applies this to its own label, so nested fallbacks are handled level by level.
+fn render_command_name(label : String) -> String {
+  if label.length() > 0 && label[0] == '\\' {
+    label.unsafe_substring(start=1, end=label.length())
+  } else {
+    label
+  }
 }
 
 ///|
@@ -412,14 +424,81 @@ fn render_font(
   if font == "mathrm" || font == "mathnormal" {
     return render_node_internal(body, state)
   }
-  match body {
-    MathOrd(text~, ..) | TextOrd(text~, ..) | Atom(text~, ..) =>
-      match @katex_parser.unicode_font_character(font, text) {
-        Some(char) => char
-        None => "\{font}(\{render_node_internal(body, state)})"
-      }
-    _ => "\{font}(\{render_node_internal(body, state)})"
+  match font_char_sequence(font, body) {
+    Some(rendered) => rendered
+    None => "\{font}(\{render_node_internal(body, state)})"
   }
+}
+
+///|
+/// Maps a font body character-by-character to the font's Unicode alphabet.
+/// Characters without a mapping are individually wrapped in `font(...)`
+/// fallbacks rather than falling back on the whole body. Returns `None` when
+/// the body contains non-character structure that cannot be decomposed.
+fn font_char_sequence(
+  font : String,
+  node : @katex_parser.ParseNode,
+) -> String? {
+  let chars : Array[String] = []
+  guard collect_font_chars(node, chars) else { return None }
+  Some(render_font_text(font, chars))
+}
+
+///|
+/// Accumulates the rendered characters of a font body. Returns `false` when
+/// the body contains non-character structure that cannot be decomposed.
+fn collect_font_chars(
+  node : @katex_parser.ParseNode,
+  chars : Array[String],
+) -> Bool {
+  match node {
+    @katex_parser.ParseNode::MathOrd(text~, ..)
+    | @katex_parser.ParseNode::TextOrd(text~, ..)
+    | @katex_parser.ParseNode::Atom(text~, ..) => {
+      let rendered = render_symbol(text)
+      for ch in rendered {
+        chars.push(String::from_array([ch]))
+      }
+      true
+    }
+    @katex_parser.ParseNode::OrdGroup(body~, ..) => {
+      for child in body {
+        guard collect_font_chars(child, chars) else { return false }
+      }
+      true
+    }
+    _ => false
+  }
+}
+
+///|
+/// Maps each character of a rendered text through the font, grouping
+/// consecutive unmappable characters into a single `font(...)` fallback.
+fn render_font_text(font : String, chars : Array[String]) -> String {
+  let mut result = ""
+  let mut failed : Array[String] = []
+  for s in chars {
+    match @katex_parser.unicode_font_character(font, s) {
+      Some(mapped) => {
+        if failed.length() > 0 {
+          result = result + font_fallback(font, failed)
+          failed = []
+        }
+        result = result + mapped
+      }
+      None => failed.push(s)
+    }
+  }
+  if failed.length() > 0 {
+    result = result + font_fallback(font, failed)
+  }
+  result
+}
+
+///|
+fn font_fallback(font : String, chars : Array[String]) -> String {
+  let text = chars.fold(init="", fn(acc, s) { acc + s })
+  "\{font}(\{text})"
 }
 
 ///|
@@ -545,7 +624,7 @@ fn render_accent(
   match mark {
     Some(mark) if is_single_character_output(rendered_base) =>
       "\{rendered_base}\{mark}"
-    _ => "\{label}(\{rendered_base})"
+    _ => "\{render_command_name(label)}(\{rendered_base})"
   }
 }
 
