@@ -26,6 +26,7 @@ fn is_atomic_expression(node : @katex_parser.ParseNode) -> Bool {
     | Overline(..)
     | Underline(..)
     | Phantom(..)
+    | VPhantom(..)
     | Pmb(..)
     | Kern(..)
     | Enclose(..)
@@ -47,7 +48,6 @@ fn is_atomic_expression(node : @katex_parser.ParseNode) -> Bool {
     // --- Transparent single-body wrappers (delegate to body) ---
     Accent(base~, ..) => is_atomic_expression(base)
     Smash(body~, ..)
-    | VPhantom(body~, ..)
     | VCenter(body~, ..)
     | RaiseBox(body~, ..)
     | Lap(body~, ..) => is_atomic_expression(body)

@@ -74,6 +74,25 @@ test "render text and phantom" {
 }
 
 ///|
+test "phantom family stays consistent" {
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\phantom{x}")), "phantom(x)")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\vphantom{x}")), "vphantom(x)")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\hphantom{x}")), "phantom(x)")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\vphantom{a+b}_1")),
+    "vphantom(a + b)₁",
+  )
+}
+
+///|
+test "visible repositioned nodes stay transparent" {
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\smash{x}")), "x")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\raisebox{1pt}{x}")), "x")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathllap{x}")), "x")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\vcenter{x}")), "x")
+}
+
+///|
 test "pass through color body" {
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\color{#abc}x")), "x")
 }

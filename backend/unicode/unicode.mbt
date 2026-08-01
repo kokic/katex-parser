@@ -139,10 +139,10 @@ fn render_node_internal(
     Overline(body~, ..) => "overline(\{render_node_internal(body, state)})"
     Underline(body~, ..) => "underline(\{render_node_internal(body, state)})"
     Smash(body~, ..)
-    | VPhantom(body~, ..)
     | VCenter(body~, ..)
     | RaiseBox(body~, ..)
     | Lap(body~, ..) => render_node_internal(body, state)
+    VPhantom(body~, ..) => "vphantom(\{render_node_internal(body, state)})"
     CdParent(fragment~, ..) => render_node_internal(fragment, state)
     Phantom(body~, ..) => "phantom(\{render_internal(body, state)})"
     Pmb(body~, ..) => "bold(\{render_internal(body, state)})"
@@ -339,8 +339,7 @@ fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
     VCenter(body~, ..)
     | RaiseBox(body~, ..)
     | Lap(body~, ..)
-    | Smash(body~, ..)
-    | VPhantom(body~, ..) => get_outer_atom_type(body)
+    | Smash(body~, ..) => get_outer_atom_type(body)
     CdParent(fragment~, ..) => get_outer_atom_type(fragment)
 
     // --- Explicit math class ---
@@ -357,6 +356,7 @@ fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
     | Overline(..)
     | Underline(..)
     | Phantom(..)
+    | VPhantom(..)
     | Rule(..)
     | Kern(..)
     | Enclose(..)
