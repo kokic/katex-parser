@@ -149,14 +149,12 @@ fn render_node_internal(
     Rule(width~, height~, ..) =>
       "rule(\{render_measurement(width)},\{render_measurement(height)})"
     MathChoice(display~, ..) => render_internal(display, state)
-    HorizBrace(label~, is_over=true, base~, ..) =>
-      "overbrace(\{render_node_internal(base, state)})^\{label}"
     HorizBrace(label~, base~, ..) =>
-      "underbrace(\{render_node_internal(base, state)})_\{label}"
+      "\{render_command_name(label)}(\{render_node_internal(base, state)})"
     XArrow(label~, body~, below=None, ..) =>
-      "xrightarrow(\{render_node_internal(body, state)})^\{label}"
+      "\{render_command_name(label)}(\{render_node_internal(body, state)})"
     XArrow(label~, body~, below=Some(below), ..) =>
-      "xrightarrow(\{render_node_internal(body, state)})_(\{render_node_internal(below, state)})^\{label}"
+      "\{render_command_name(label)}(\{render_node_internal(body, state)},\{render_node_internal(below, state)})"
     AccentUnder(label~, base~, ..) =>
       "underaccent(\{render_command_name(label)},\{render_node_internal(base, state)})"
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
