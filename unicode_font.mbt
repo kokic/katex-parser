@@ -12,7 +12,7 @@
 /// - `mathsf` — Sans-serif
 /// - `mathtt` — Monospace
 /// - `mathsfit` — Sans-serif Italic
-/// - `mathrm` / `mathnormal` — Roman / Normal (identity mapping not handled here)
+/// - `mathrm` / `mathnormal` — Roman (identity, not handled here) / Italic
 pub fn unicode_font_character(font : String, char : String) -> String? {
   if char.length() != 1 {
     return None

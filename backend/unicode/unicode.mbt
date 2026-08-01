@@ -421,7 +421,7 @@ fn render_font(
   body : @katex_parser.ParseNode,
   state : RenderState,
 ) -> String {
-  if font == "mathrm" || font == "mathnormal" {
+  if font == "mathrm" {
     return render_node_internal(body, state)
   }
   match font_char_sequence(font, body) {

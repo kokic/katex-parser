@@ -49,6 +49,16 @@ test "render additional font mappings" {
     @unicode.render(@katex_parser.parse("\\mathit{\\nabla\\partial}")),
     "𝛻𝜕",
   )
+  // \mathnormal maps to italic, \mathrm stays upright
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathnormal{x}")),
+    "𝑥",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathnormal{\\alpha}")),
+    "𝛼",
+  )
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathrm{x}")), "x")
 }
 
 ///|
