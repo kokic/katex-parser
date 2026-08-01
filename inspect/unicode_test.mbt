@@ -114,6 +114,15 @@ test "map font characters individually" {
     @unicode.render(@katex_parser.parse("\\mathbf{\\alpha\\beta}")),
     "mathbf(αβ)",
   )
+  // Symbols with no font variant render as-is
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbf{x+y}")),
+    "𝐱+𝐲",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbf{x=y}")),
+    "𝐱=𝐲",
+  )
 }
 
 ///|

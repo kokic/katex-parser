@@ -472,8 +472,9 @@ fn collect_font_chars(
 }
 
 ///|
-/// Maps each character of a rendered text through the font, grouping
-/// consecutive unmappable characters into a single `font(...)` fallback.
+/// Maps each character of a rendered text through the font. Letters that have
+/// no mapping fall back to `font(...)` (a bold variant may exist but isn't
+/// mapped); symbols and other characters with no font variant render as-is.
 fn render_font_text(font : String, chars : Array[String]) -> String {
   let mut result = ""
   let mut failed : Array[String] = []
@@ -486,13 +487,31 @@ fn render_font_text(font : String, chars : Array[String]) -> String {
         }
         result = result + mapped
       }
-      None => failed.push(s)
+      None if is_font_letter(s) => failed.push(s)
+      None => {
+        if failed.length() > 0 {
+          result = result + font_fallback(font, failed)
+          failed = []
+        }
+        result = result + s
+      }
     }
   }
   if failed.length() > 0 {
     result = result + font_fallback(font, failed)
   }
   result
+}
+
+///|
+/// True when a character is a letter that could have a math font variant,
+/// i.e. an ASCII letter or a Greek letter.
+fn is_font_letter(s : String) -> Bool {
+  if s.length() != 1 {
+    return false
+  }
+  let c = s[0]
+  (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= 'Α' && c <= 'ω')
 }
 
 ///|
