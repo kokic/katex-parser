@@ -79,7 +79,7 @@ fn cd_row(
   while index < nodes.length() {
     let node = nodes[index]
     if node is TextOrd(text="@", ..) {
-      row.push(cd_cell(cell))
+      row.push(cd_cell(cell.copy()))
       cell.clear()
       index = index + 1
       guard nodes.get(index) is Some(character_node) else {
@@ -146,7 +146,7 @@ fn cd_row(
     }
   }
   if even {
-    row.push(cd_cell(cell))
+    row.push(cd_cell(cell.copy()))
   } else if !row.is_empty() {
     let _ = row.remove(0)
   }

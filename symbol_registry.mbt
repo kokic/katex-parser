@@ -1989,7 +1989,7 @@ fn build_builtin_symbols() -> SymbolRegistry {
     accept_unicode=true,
   )
   registry.define_symbol(Math, OpenGroup, "∣", "\\lvert")
-  registry.define_symbol(Math, OpenGroup, "∥", "\\lVert")
+  registry.define_symbol(Math, OpenGroup, "‖", "\\lVert")
   registry.define_symbol(Math, CloseGroup, "?", "?")
   registry.define_symbol(Math, CloseGroup, "!", "!")
   registry.define_symbol(
@@ -2000,7 +2000,7 @@ fn build_builtin_symbols() -> SymbolRegistry {
     accept_unicode=true,
   )
   registry.define_symbol(Math, CloseGroup, "∣", "\\rvert")
-  registry.define_symbol(Math, CloseGroup, "∥", "\\rVert")
+  registry.define_symbol(Math, CloseGroup, "‖", "\\rVert")
   registry.define_symbol(Math, RelationGroup, "=", "=")
   registry.define_symbol(Math, RelationGroup, ":", ":")
   registry.define_symbol(
@@ -2269,9 +2269,9 @@ fn build_builtin_symbols() -> SymbolRegistry {
     "\\textbar",
     accept_unicode=true,
   )
-  registry.define_symbol(Math, TextOrdGroup, "∥", "\\|")
-  registry.define_symbol(Math, TextOrdGroup, "∥", "\\Vert")
-  registry.define_symbol(Text, TextOrdGroup, "∥", "\\textbardbl")
+registry.define_symbol(Math, TextOrdGroup, "‖", "\\|")
+registry.define_symbol(Math, TextOrdGroup, "‖", "\\Vert")
+registry.define_symbol(Text, TextOrdGroup, "‖", "\\textbardbl")
   registry.define_symbol(Text, TextOrdGroup, "~", "\\textasciitilde")
   registry.define_symbol(Text, TextOrdGroup, "\\", "\\textbackslash")
   registry.define_symbol(Text, TextOrdGroup, "^", "\\textasciicircum")

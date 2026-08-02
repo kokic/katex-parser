@@ -187,6 +187,13 @@ fn render_node_internal(
     IncludeGraphics(alt~, ..) => "image(\{alt})"
     Tag(body~, tag~, ..) =>
       "\{render_internal(body, state)}\t(\{render_internal(tag, state)})"
+    Array(
+      body~,
+      column_separation_type=Some(
+        @katex_parser.ColumnSeparationType::CdSeparation,
+      ),
+      ..
+    ) => render_cd_block(body, state).render()
     Array(body~, ..) =>
       if state.in_display {
         render_array_block(body, state)
