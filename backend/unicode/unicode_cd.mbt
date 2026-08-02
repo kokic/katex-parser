@@ -20,13 +20,13 @@ fn render_cd_block(
   let n_nodes = grid[0].length() / 2 + 1
   let hbar = line_style_frac_bar(state.config.line_style)
   let vbar = cd_vbar(state.config.line_style)
-  let (node_w, arrow_w) = cd_column_widths(grid, n_nodes, vbar)
+  let (node_w, arrow_w, offsets) = cd_column_widths(grid, n_nodes, vbar)
   let bands : Array[Block] = []
   for row_index, row in grid {
     if row_index % 2 == 0 {
-      bands.push(cd_node_row_block(row, node_w, arrow_w, hbar))
+      bands.push(cd_node_row_block(row, node_w, arrow_w, offsets, hbar))
     } else {
-      bands.push(cd_varrow_row_block(row, node_w, arrow_w, vbar))
+      bands.push(cd_varrow_row_block(row, node_w, arrow_w, offsets, vbar))
     }
   }
   let mut result = Block::empty()
@@ -137,12 +137,14 @@ fn cd_varrow_lines(
   left : String,
   right : String,
   vbar : String,
+  offset : Int,
 ) -> Array[String] {
-  let pad = " ".repeat(left.length())
+  let pad = " ".repeat(offset)
+  let labels = pad_right(left, offset) + vbar + right
   match dir {
-    "V" => [pad + vbar, left + vbar + right, pad + "↓"]
-    "A" => [pad + "↑", left + vbar + right, pad + vbar]
-    _ => [pad + vbar, left + vbar + right, pad + vbar]
+    "V" => [pad + vbar, labels, pad + "↓"]
+    "A" => [pad + "↑", labels, pad + vbar]
+    _ => [pad + vbar, labels, pad + vbar]
   }
 }
 
@@ -151,15 +153,31 @@ fn cd_column_widths(
   grid : Array[Array[CdCell]],
   n_nodes : Int,
   vbar : String,
-) -> (Array[Int], Array[Int]) {
+) -> (Array[Int], Array[Int], Array[Int]) {
   let node_w = Array::make(n_nodes, 0)
   let arrow_w = Array::make(n_nodes - 1, 4)
+  // Shaft offset per node column: the max left-label width of its v-arrows.
+  let offsets = Array::make(n_nodes, 0)
+  for row_index, row in grid {
+    if row_index % 2 == 1 {
+      for col, cell in row {
+        if col % 2 == 0 {
+          match cell {
+            CdVArrow(_, left, _) =>
+              offsets[col / 2] = offsets[col / 2].max(left.length())
+            _ => ()
+          }
+        }
+      }
+    }
+  }
   for row_index, row in grid {
     if row_index % 2 == 0 {
       for col, cell in row {
         if col % 2 == 0 {
           match cell {
-            CdNode(text) => node_w[col / 2] = node_w[col / 2].max(text.length())
+            CdNode(text) =>
+              node_w[col / 2] = node_w[col / 2].max(offsets[col / 2] + text.length())
             _ => ()
           }
         } else {
@@ -176,7 +194,7 @@ fn cd_column_widths(
         if col % 2 == 0 {
           match cell {
             CdVArrow(dir, left, right) =>
-              for line in cd_varrow_lines(dir, left, right, vbar) {
+              for line in cd_varrow_lines(dir, left, right, vbar, offsets[col / 2]) {
                 node_w[col / 2] = node_w[col / 2].max(line.length())
               }
             _ => ()
@@ -185,7 +203,12 @@ fn cd_column_widths(
       }
     }
   }
-  (node_w, arrow_w)
+  // The target node of a horizontal arrow is shifted right by its column's
+  // shaft offset, so extend the arrow by that offset to keep the gap even.
+  for k in 0..<arrow_w.length() {
+    arrow_w[k] = arrow_w[k] + offsets[k + 1]
+  }
+  (node_w, arrow_w, offsets)
 }
 
 ///|
@@ -193,6 +216,7 @@ fn cd_node_row_block(
   row : Array[CdCell],
   node_w : Array[Int],
   arrow_w : Array[Int],
+  offsets : Array[Int],
   hbar : String,
 ) -> Block {
   let n = row.length()
@@ -200,7 +224,7 @@ fn cd_node_row_block(
   for col, cell in row {
     if col % 2 == 0 {
       main[col] = match cell {
-        CdNode(text) => text
+        CdNode(text) => " ".repeat(offsets[col / 2]) + text
         _ => ""
       }
     } else {
@@ -211,7 +235,7 @@ fn cd_node_row_block(
       }
     }
   }
-  let mut lines = [cd_pad_line(main, node_w, arrow_w)]
+  let mut lines = [cd_pad_line(main, node_w, arrow_w, offsets)]
   if cd_row_has_upper(row) {
     let cells : Array[String] = Array::make(n, "")
     for col, cell in row {
@@ -222,7 +246,7 @@ fn cd_node_row_block(
         }
       }
     }
-    lines = [cd_pad_line(cells, node_w, arrow_w)] + lines
+    lines = [cd_pad_line(cells, node_w, arrow_w, offsets)] + lines
   }
   if cd_row_has_lower(row) {
     let cells : Array[String] = Array::make(n, "")
@@ -234,7 +258,7 @@ fn cd_node_row_block(
         }
       }
     }
-    lines.push(cd_pad_line(cells, node_w, arrow_w))
+    lines.push(cd_pad_line(cells, node_w, arrow_w, offsets))
   }
   Block::from(lines.join("\n"))
 }
@@ -266,6 +290,7 @@ fn cd_varrow_row_block(
   row : Array[CdCell],
   node_w : Array[Int],
   arrow_w : Array[Int],
+  offsets : Array[Int],
   vbar : String,
 ) -> Block {
   let n = row.length()
@@ -275,12 +300,13 @@ fn cd_varrow_row_block(
     for col, cell in row {
       if col % 2 == 0 {
         cells[col] = match cell {
-          CdVArrow(dir, left, right) => cd_varrow_lines(dir, left, right, vbar)[h]
+          CdVArrow(dir, left, right) =>
+            cd_varrow_lines(dir, left, right, vbar, offsets[col / 2])[h]
           _ => ""
         }
       }
     }
-    lines.push(cd_pad_line(cells, node_w, arrow_w))
+    lines.push(cd_pad_line(cells, node_w, arrow_w, offsets))
   }
   Block::from(lines.join("\n"))
 }
@@ -290,13 +316,24 @@ fn cd_pad_line(
   cells : Array[String],
   node_w : Array[Int],
   arrow_w : Array[Int],
+  offsets : Array[Int],
 ) -> String {
-  let parts = Array::makei(cells.length(), j =>
+  let mut result = ""
+  for j = 0; j < cells.length(); j = j + 1 {
     if j % 2 == 0 {
-      pad_right(cells[j], node_w[j / 2])
+      result = result + pad_right(cells[j], node_w[j / 2])
+      if j + 1 < cells.length() {
+        result = result + " "
+      }
     } else {
-      pad_right(cells[j], arrow_w[j / 2])
+      result = result + pad_right(cells[j], arrow_w[j / 2])
+      // The target node is shifted right by its column's shaft offset, so
+      // shrink this gap by that offset to keep a single space before it.
+      let next_node = j / 2 + 1
+      if next_node < offsets.length() {
+        result = result + " ".repeat((1 - offsets[next_node]).max(0))
+      }
     }
-  )
-  parts.join(" ")
+  }
+  result
 }

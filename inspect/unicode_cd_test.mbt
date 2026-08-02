@@ -10,11 +10,11 @@ test "render 2x2 commutative diagram" {
 
   let output =
     #|    a     
-    #|A  ───→ B 
+    #| A ───→ B 
     #| │      ↑ 
     #|b│      │c
     #| ↓      │ 
-    #|C  ==== D 
+    #| C ==== D 
   @test.assert_eq(@unicode.render(@katex_parser.parse(source, settings~)), output)
 }
 
@@ -41,12 +41,12 @@ test "render 3x3 commutative diagram" {
     #|\end{CD}
 
   let output =
-    #|    a       c     
-    #|A  ───→ B  ───→ C 
+    #|     a      c     
+    #| A ────→ B ───→ C 
     #| │       │      ↑ 
     #|d│      e│      │f
     #| ↓       ↓      │ 
-    #|D  ==== E  ==== F 
+    #| D ===== E ==== F 
   @test.assert_eq(@unicode.render(@katex_parser.parse(source, settings~)), output)
 }
 
@@ -98,11 +98,11 @@ test "render commutative diagram with left and right v-arrow labels" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   let output =
     #|     a     
-    #|A   ───→ B 
+    #| A  ───→ B 
     #| │       ↑ 
     #|b│c      │e
     #| ↓       │ 
-    #|C   ==== D 
+    #| C  ==== D 
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse(
@@ -122,11 +122,11 @@ test "render commutative diagram in ascii line style" {
     #|\begin{CD} A @>a>> B \\ @VbVV @AAcA \\ C @= D \end{CD}
   let output =
     #|    a     
-    #|A  ---→ B 
+    #| A ---→ B 
     #| |      ↑ 
     #|b|      |c
     #| ↓      | 
-    #|C  ==== D 
+    #| C ==== D 
   @test.assert_eq(
     @unicode.render(@katex_parser.parse(source, settings~), config~),
     output,
