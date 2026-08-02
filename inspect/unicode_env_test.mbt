@@ -282,6 +282,172 @@ test "render cases with null right delimiter" {
 }
 
 ///|
+test "array grid lines render in block mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // `|c|c|` vertical bars and `\hline` rules are drawn with box-drawing
+  // glyphs; the rule before the first row forms the top border, the one
+  // between rows a middle rule.
+  let output =
+    #|┌──┬──┐
+    #|│a │ b│
+    #|├──┼──┤
+    #|│c │ d│
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{array}{|c|c|} \\hline a & b \\\\ \\hline c & d\\end{array}",
+        settings~,
+      ),
+    ),
+    output,
+  )
+  // ASCII line style uses `-`/`|`/`+` instead.
+  let config = @unicode.RenderConfig::make(line_style=@unicode.LineStyle::Ascii)
+  let ascii =
+    #|+--+--+
+    #||a | b|
+    #|+--+--+
+    #||c | d|
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{array}{|c|c|} \\hline a & b \\\\ \\hline c & d\\end{array}",
+        settings~,
+      ),
+      config~,
+    ),
+    ascii,
+  )
+}
+
+///|
+test "trailing hline keeps a bottom border in block mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // A trailing `\\ \hline` produces an empty final row that is dropped, but
+  // its rule is kept as the bottom border.
+  let output =
+    #|│a │ b│
+    #|├──┼──┤
+    #|│c │ d│
+    #|└──┴──┘
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{array}{|c|c|} a & b \\\\ \\hline c & d \\\\ \\hline\\end{array}",
+        settings~,
+      ),
+    ),
+    output,
+  )
+}
+
+///|
+test "dashed separators and hlines in block mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // `:` is a dashed vertical separator; `\hdashline` is a dashed rule.
+  let output =
+    #|┌┄┄┬┄┄┐
+    #|│a ┊ b│
+    #|├┄┄┼┄┄┤
+    #|│c ┊ d│
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{array}{|c:c|} \\hdashline a & b \\\\ \\hdashline c & d\\end{array}",
+        settings~,
+      ),
+    ),
+    output,
+  )
+}
+
+///|
+test "block array alignment accounts for display width" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // Column widths are measured by display width, so astral-plane math
+  // alphanumerics (screen width 1) and full-width CJK characters both align
+  // with half-width content.
+  let astral =
+    #|(𝟙   x )
+    #|(aa  yy)
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{pmatrix}𝟙 & x \\\\ aa & yy\\end{pmatrix}",
+        settings~,
+      ),
+    ),
+    astral,
+  )
+  let cjk =
+    #|(中  b)
+    #|(aa  c)
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{pmatrix}\\text{中} & b \\\\ aa & c\\end{pmatrix}",
+        settings~,
+      ),
+    ),
+    cjk,
+  )
+}
+
+///|
+test "single-column array grid in block mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|┌─┐
+    #|│a│
+    #|│b│
+    #|└─┘
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{array}{|c|} \\hline a \\\\ b \\\\ \\hline\\end{array}",
+        settings~,
+      ),
+    ),
+    output,
+  )
+}
+
+///|
+test "ragged rows keep grid cells padded in block mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|┌──┬───┐
+    #|│a │ bb│
+    #|│c │   │
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{array}{|c|c|} \\hline a & bb \\\\ c \\end{array}",
+        settings~,
+      ),
+    ),
+    output,
+  )
+}
+
+///|
+test "trailing backslash in matrix does not add a blank row" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|a
+    #|b
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse(
+        "\\begin{matrix} a \\\\ b \\\\ \\end{matrix}",
+        settings~,
+      ),
+    ),
+    output,
+  )
+}
+
+///|
 test "array axis centered in display mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   // x = centers against the middle (blank) row of the cases block

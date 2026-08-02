@@ -180,11 +180,13 @@ fn render_node_internal(
     LeftRight(body~, left~, right~, ..) =>
       if state.in_display {
         match body {
-          [Array(body~, ..)] =>
+          [Array(body~, columns~, hlines_before_row~, ..)] =>
             render_leftright_block(
               render_delimiter(left),
               render_delimiter(right),
               body,
+              columns,
+              hlines_before_row,
               state,
             ).render()
           _ =>
@@ -212,9 +214,9 @@ fn render_node_internal(
       ),
       ..
     ) => render_cd_block(body, state).render()
-    Array(body~, ..) =>
+    Array(body~, columns~, hlines_before_row~, ..) =>
       if state.in_display {
-        render_array_block(body, state)
+        render_array_block(body, columns, hlines_before_row, state)
       } else {
         render_array_inline(body, state)
       }
@@ -791,11 +793,20 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       )
     @katex_parser.ParseNode::LeftRight(body~, left~, right~, ..) if state.in_display =>
       match body {
-        [@katex_parser.ParseNode::Array(body~, ..)] =>
+        [
+          @katex_parser.ParseNode::Array(
+            body~,
+            columns~,
+            hlines_before_row~,
+            ..
+          ),
+        ] =>
           render_leftright_block(
             render_delimiter(left),
             render_delimiter(right),
             body,
+            columns,
+            hlines_before_row,
             state,
           )
         _ =>
@@ -812,8 +823,8 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       ),
       ..
     ) => render_cd_block(body, state)
-    @katex_parser.ParseNode::Array(body~, ..) if state.in_display =>
-      cell_block(body, state)
+    @katex_parser.ParseNode::Array(body~, columns~, hlines_before_row~, ..) if state.in_display =>
+      cell_block(body, columns, hlines_before_row, state)
     @katex_parser.ParseNode::Array(..) =>
       Block::from(render_node_internal(node, state))
     @katex_parser.ParseNode::Enclose(label~, body~, ..) if label == "\\fbox" =>
