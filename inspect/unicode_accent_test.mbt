@@ -20,3 +20,19 @@ test "render all combining accent commands" {
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathring{x}")), "x̊")
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\vec{x}")), "x⃗")
 }
+
+///|
+test "accent uses function notation for multi-character bases" {
+  // Multi-char base — no combining mark
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\hat{\\overline{x}}")),
+    "hat(overline(x))",
+  )
+  // LeftRight is multi-char — function notation
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\hat{\\left(x\\right)}")),
+    "hat((x))",
+  )
+  // Single-char base still gets combining mark
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\hat{x}")), "x̂")
+}

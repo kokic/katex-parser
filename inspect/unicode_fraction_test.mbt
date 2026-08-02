@@ -5,11 +5,11 @@ test "render deep cfrac with baseline alignment" {
 
   let output =
     #| p               1       
-    #|--- = a₀ + --------------
+    #|─── = a₀ + ──────────────
     #| q                 1     
-    #|            a₁+--------- 
+    #|            a₁+───────── 
     #|                    1    
-    #|                a₂+----  
+    #|                a₂+────  
     #|                    a₃   
 
   let settings = @katex_parser.Settings::make(display_mode=true)
@@ -46,25 +46,45 @@ test "render nested fractions" {
 ///|
 test "render fractions in block mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #| a 
+    #|───
+    #| b 
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a}{b}", settings~)),
-    " a \n---\n b ",
+    output,
   )
+  let output =
+    #| a  
+    #|────
+    #| bc 
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a}{bc}", settings~)),
-    " a  \n----\n bc ",
+    output,
   )
+  let output =
+    #| xy 
+    #|────
+    #| z  
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{xy}{z}", settings~)),
-    " xy \n----\n z  ",
+    output,
   )
+  let output =
+    #| a²  
+    #|─────
+    #| b+c 
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a^2}{b+c}", settings~)),
-    " a²  \n-----\n b+c ",
+    output,
   )
+  let output =
+    #| x 
+    #|───
+    #| y 
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\dfrac{x}{y}", settings~)),
-    " x \n---\n y ",
+    output,
   )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\binom{n}{k}", settings~)),
@@ -76,43 +96,63 @@ test "render fractions in block mode" {
 test "render delimited block fraction aligned at fraction bar" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   // \left( \frac{1}{2} \right): parens sit exactly on the fraction line
+  let output =
+    #|  1  
+    #|(───)
+    #|  2  
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\left(\\frac{1}{2}\\right)", settings~),
     ),
-    "  1  \n(---)\n  2  ",
+    output,
   )
   // Other delimiter styles need no special-casing: single chars align the same
+  let output =
+    #|  a   
+    #|[────]
+    #|  bc  
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\left[\\frac{a}{bc}\\right]", settings~),
     ),
-    "  a   \n[----]\n  bc  ",
+    output,
   )
   // Asymmetric numerator/denominator — still anchored on the bar
+  let output =
+    #|  x²   
+    #|(─────)
+    #|  y+z  
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\left(\\frac{x^2}{y+z}\\right)", settings~),
     ),
-    "  x²   \n(-----)\n  y+z  ",
+    output,
   )
   // \genfrac with a bar line and delimiters follows the same layout
+  let output =
+    #|  x  
+    #|(───)
+    #|  y  
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\genfrac{(}{)}{0.4pt}{1}{x}{y}", settings~),
     ),
-    "  x  \n(---)\n  y  ",
+    output,
   )
 }
 
 ///|
 test "render delimited block fraction inside expression" {
   let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|      1  
+    #|a + (───)
+    #|      2  
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("a+\\left(\\frac{1}{2}\\right)", settings~),
     ),
-    "      1  \na + (---)\n      2  ",
+    output,
   )
 }
 
@@ -132,19 +172,31 @@ test "render left-right delimiters inline in non-display mode" {
 test "render fraction alignment extremes" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   // Very wide numerator, very narrow denominator
+  let output =
+    #| aaaaaaa 
+    #|─────────
+    #|    b    
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{aaaaaaa}{b}", settings~)),
-    " aaaaaaa \n---------\n    b    ",
+    output,
   )
   // Very narrow numerator, very wide denominator
+  let output =
+    #|    a    
+    #|─────────
+    #| bbbbbbb 
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a}{bbbbbbb}", settings~)),
-    "    a    \n---------\n bbbbbbb ",
+    output,
   )
   // Equal width
+  let output =
+    #| aaa 
+    #|─────
+    #| bbb 
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{aaa}{bbb}", settings~)),
-    " aaa \n-----\n bbb ",
+    output,
   )
 }
 

@@ -180,6 +180,8 @@ fn render_node_internal(
         "\{render_delimiter(left)}\{render_internal(body, state)}\{render_delimiter(right)}"
       }
     Kern(dimension~, ..) => render_kern(dimension)
+    Enclose(label~, body~, ..) if label == "\\fbox" =>
+      render_enclose_block(body, state).render()
     Enclose(label~, body~, ..) =>
       "\{render_command_name(label)}(\{render_node_internal(body, state)})"
     IncludeGraphics(alt~, ..) => "image(\{alt})"
@@ -290,6 +292,19 @@ fn collect_spacable_items(
         [
           {
             atom_type: Some("minner"),
+            text: block.render(),
+            baseline: block.baseline(),
+          },
+        ]
+      }
+
+      // --- \fbox/\boxed renders as a drawn box with its own baseline ---
+      @katex_parser.ParseNode::Enclose(label~, body~, ..) if label == "\\fbox" => {
+        let block = render_enclose_block(body, state)
+        acc +
+        [
+          {
+            atom_type: get_outer_atom_type(n),
             text: block.render(),
             baseline: block.baseline(),
           },
@@ -538,6 +553,61 @@ fn render_delimited(
   let left = left.map_or("", render_delimiter)
   let right = right.map_or("", render_delimiter)
   "\{left}\{content}\{right}"
+}
+
+///|
+/// Renders a `\fbox`/`\boxed` body as a box drawn with the configured line
+/// style: ASCII (`-`/`|`, no corners) or Unicode box drawing (`─`/`│` with
+/// corners).
+fn render_enclose_block(
+  body : @katex_parser.ParseNode,
+  state : RenderState,
+) -> Block {
+  enclose_box(render_internal_block([body], state), state.config.line_style)
+}
+
+///|
+/// Draw a box around a block. The box keeps the content's baseline shifted
+/// down by one (the top border line).
+fn enclose_box(block : Block, style : LineStyle) -> Block {
+  let w = block.width()
+  let top = box_border(style, w, true)
+  let bottom = box_border(style, w, false)
+  let side = box_side(style)
+  let middle = block.lines.map(l => side + l + side)
+  let lines = Array::makei(middle.length() + 2, i =>
+    if i == 0 {
+      top
+    } else if i == middle.length() + 1 {
+      bottom
+    } else {
+      middle[i - 1]
+    }
+  )
+  { lines, width: w + 2, baseline: block.baseline() + 1 }
+}
+
+///|
+/// The top or bottom border line of a box of inner width `w`.
+fn box_border(style : LineStyle, w : Int, is_top : Bool) -> String {
+  match style {
+    Ascii => "-".repeat(w + 2)
+    Unicode =>
+      if is_top {
+        "┌" + "─".repeat(w) + "┐"
+      } else {
+        "└" + "─".repeat(w) + "┘"
+      }
+  }
+}
+
+///|
+/// The vertical side character of a box.
+fn box_side(style : LineStyle) -> String {
+  match style {
+    Ascii => "|"
+    Unicode => "│"
+  }
 }
 
 ///|

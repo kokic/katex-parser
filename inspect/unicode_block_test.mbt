@@ -39,7 +39,10 @@ test "Block::above same width" {
   let a = @unicode.Block::from("ab")
   let b = @unicode.Block::from("cd")
   let stacked = a.above(b)
-  @test.assert_eq(stacked.render(), "ab\ncd")
+  let output =
+    #|ab
+    #|cd
+  @test.assert_eq(stacked.render(), output)
   @test.assert_eq(stacked.height(), 2)
   @test.assert_eq(stacked.width(), 2)
 }
@@ -49,7 +52,10 @@ test "Block::above narrow padded to match" {
   let a = @unicode.Block::from("ab")
   let b = @unicode.Block::from("xyz")
   let stacked = a.above(b)
-  @test.assert_eq(stacked.render(), "ab \nxyz")
+  let output =
+    #|ab 
+    #|xyz
+  @test.assert_eq(stacked.render(), output)
   @test.assert_eq(stacked.width(), 3)
 }
 
@@ -58,7 +64,10 @@ test "Block::above reverse narrow padded" {
   let a = @unicode.Block::from("xyz")
   let b = @unicode.Block::from("a")
   let stacked = a.above(b)
-  @test.assert_eq(stacked.render(), "xyz\na  ")
+  let output =
+    #|xyz
+    #|a  
+  @test.assert_eq(stacked.render(), output)
   @test.assert_eq(stacked.width(), 3)
 }
 
@@ -84,7 +93,10 @@ test "Block::enclose single line" {
 test "Block::enclose multi-line" {
   let b = @unicode.Block::from("aa").above(@unicode.Block::from("b"))
   let enclosed = b.enclose("[", "]")
-  @test.assert_eq(enclosed.render(), "[aa]\n[b ]")
+  let output =
+    #|[aa]
+    #|[b ]
+  @test.assert_eq(enclosed.render(), output)
 }
 
 // ---------------------------------------------------------------------------
@@ -101,7 +113,10 @@ test "label beside 2-row matrix (top-aligned)" {
   let label = @unicode.Block::from("M = ")
   let result = matrix.append_left(label)
   // 1-line label beside 2-line matrix: top_pad=0, bottom_pad=1
-  @test.assert_eq(result.render(), "M = [a  b]\n    [c  d]")
+  let output =
+    #|M = [a  b]
+    #|    [c  d]
+  @test.assert_eq(result.render(), output)
 }
 
 ///|
@@ -116,7 +131,11 @@ test "label beside 3-row matrix (top-aligned)" {
   let label = @unicode.Block::from("M = ")
   let result = matrix.append_left(label)
   // 1-line label beside 3-line matrix: both share baseline 0 → top-aligned
-  @test.assert_eq(result.render(), "M = [a]\n    [b]\n    [c]")
+  let output =
+    #|M = [a]
+    #|    [b]
+    #|    [c]
+  @test.assert_eq(result.render(), output)
 }
 
 ///|
@@ -129,7 +148,10 @@ test "label beside 2-row matrix with uneven column widths" {
   let matrix = rows.enclose("[", "]")
   let label = @unicode.Block::from("M = ")
   let result = matrix.append_left(label)
-  @test.assert_eq(result.render(), "M = [aa  b  ]\n    [c   ddd]")
+  let output =
+    #|M = [aa  b  ]
+    #|    [c   ddd]
+  @test.assert_eq(result.render(), output)
 }
 
 ///|
@@ -146,7 +168,11 @@ test "label beside fraction" {
   let result = frac.append_left(label)
   // Fraction baseline = 1 (fraction bar line), label baseline = 0
   // Label aligns beside the fraction bar.
-  @test.assert_eq(result.render(), "     p \nr = ---\n     q ")
+  let output =
+    #|     p 
+    #|r = ---
+    #|     q 
+  @test.assert_eq(result.render(), output)
 }
 
 ///|
@@ -161,7 +187,11 @@ test "label beside fraction with uneven width" {
   let frac = { ..num.above(bar).above(den), baseline: 1 }
   let label = @unicode.Block::from("r = ")
   let result = frac.append_left(label)
-  @test.assert_eq(result.render(), "     p²  \nr = -----\n     q+1 ")
+  let output =
+    #|     p²  
+    #|r = -----
+    #|     q+1 
+  @test.assert_eq(result.render(), output)
 }
 
 ///|
@@ -172,7 +202,10 @@ test "two multi-line blocks side by side" {
   let left = @unicode.Block::from("[a]").above(@unicode.Block::from("[b]"))
   let right = @unicode.Block::from("[x]").above(@unicode.Block::from("[y]"))
   let result = left.beside(right)
-  @test.assert_eq(result.render(), "[a][x]\n[b][y]")
+  let output =
+    #|[a][x]
+    #|[b][y]
+  @test.assert_eq(result.render(), output)
 }
 
 ///|
@@ -187,7 +220,11 @@ test "two blocks of different heights side by side" {
     .above(@unicode.Block::from("[z]"))
   let result = left.beside(right)
   // 2-row left beside 3-row right: left centered → top_pad=0, bottom_pad=1
-  @test.assert_eq(result.render(), "[a][x]\n[b][y]\n   [z]")
+  let output =
+    #|[a][x]
+    #|[b][y]
+    #|   [z]
+  @test.assert_eq(result.render(), output)
 }
 
 ///|
@@ -198,7 +235,10 @@ test "append_right multi-line" {
   let matrix = rows.enclose("[", "]")
   let tag = @unicode.Block::from(",tag")
   let result = matrix.append_right(tag)
-  @test.assert_eq(result.render(), "[a  b],tag\n[c  d]    ")
+  let output =
+    #|[a  b],tag
+    #|[c  d]    
+  @test.assert_eq(result.render(), output)
 }
 
 ///|
@@ -208,7 +248,10 @@ test "append_right multi-line" {
 test "matrix with parentheses" {
   let rows = @unicode.Block::from("a  b").above(@unicode.Block::from("c  d"))
   let matrix = rows.enclose("(", ")")
-  @test.assert_eq(matrix.render(), "(a  b)\n(c  d)")
+  let output =
+    #|(a  b)
+    #|(c  d)
+  @test.assert_eq(matrix.render(), output)
 }
 
 ///|
@@ -218,5 +261,8 @@ test "matrix with parentheses" {
 test "single-column matrix with parentheses" {
   let rows = @unicode.Block::from("a").above(@unicode.Block::from("b"))
   let matrix = rows.enclose("(", ")")
-  @test.assert_eq(matrix.render(), "(a)\n(b)")
+  let output =
+    #|(a)
+    #|(b)
+  @test.assert_eq(matrix.render(), output)
 }

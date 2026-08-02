@@ -152,6 +152,9 @@ test "render matrix environments" {
 ///|
 test "render matrix environments in block mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|(a  b)
+    #|(c  d)
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse(
@@ -159,8 +162,11 @@ test "render matrix environments in block mode" {
         settings~,
       ),
     ),
-    "(a  b)\n(c  d)",
+    output,
   )
+  let output =
+    #|[a  b]
+    #|[c  d]
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse(
@@ -168,19 +174,25 @@ test "render matrix environments in block mode" {
         settings~,
       ),
     ),
-    "[a  b]\n[c  d]",
+    output,
   )
+  let output =
+    #|a
+    #|b
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}", settings~),
     ),
-    "a\nb",
+    output,
   )
 }
 
 ///|
 test "render matrix with uneven column widths in block mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|(aa  b  )
+    #|(c   ddd)
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse(
@@ -188,8 +200,11 @@ test "render matrix with uneven column widths in block mode" {
         settings~,
       ),
     ),
-    "(aa  b  )\n(c   ddd)",
+    output,
   )
+  let output =
+    #|(a  b)
+    #|(c  d)
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse(
@@ -197,13 +212,17 @@ test "render matrix with uneven column widths in block mode" {
         settings~,
       ),
     ),
-    "(a  b)\n(c  d)",
+    output,
   )
 }
 
 ///|
 test "render matrix with single column in block mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|(a)
+    #|(b)
+    #|(c)
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse(
@@ -211,13 +230,16 @@ test "render matrix with single column in block mode" {
         settings~,
       ),
     ),
-    "(a)\n(b)\n(c)",
+    output,
   )
+  let output =
+    #|(aa)
+    #|(b )
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\begin{pmatrix}aa \\\\ b\\end{pmatrix}", settings~),
     ),
-    "(aa)\n(b )",
+    output,
   )
 }
 
@@ -255,6 +277,10 @@ test "array axis centered in display mode" {
     "    {a  if\u{A0}b\nx = {       \n    {c  if\u{A0}d",
   )
   // Odd row count: label aligns with the exact middle row
+  let output =
+    #|    {x  p
+    #|y = {z  q
+    #|    {w  r
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse(
@@ -262,7 +288,7 @@ test "array axis centered in display mode" {
         settings~,
       ),
     ),
-    "    {x  p\ny = {z  q\n    {w  r",
+    output,
   )
 }
 
