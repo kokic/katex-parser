@@ -40,9 +40,7 @@ fn href_handler(
 ) -> ParseNode raise ParseFailure {
   let href = href_argument(args, 0, context.func_name)
   let body = require_function_arg(args, 1, context.func_name)
-  if (context.is_trusted)(
-    UrlTrust(command="\\href", url=href, protocol=None),
-  ) {
+  if (context.is_trusted)(UrlTrust(command="\\href", url=href, protocol=None)) {
     Href(mode=context.mode, href~, body=ord_argument(body))
   } else {
     body

@@ -157,9 +157,16 @@ fn includegraphics_handler(
     alt = graphics_default_alt(src)
   }
   if (context.is_trusted)(
-    UrlTrust(command="\\includegraphics", url=src, protocol=None),
-  ) {
-    IncludeGraphics(mode=context.mode, alt~, width~, height~, totalheight~, src~)
+      UrlTrust(command="\\includegraphics", url=src, protocol=None),
+    ) {
+    IncludeGraphics(
+      mode=context.mode,
+      alt~,
+      width~,
+      height~,
+      totalheight~,
+      src~,
+    )
   } else {
     TextOrd(mode=Text, loc=None, text=alt)
   }

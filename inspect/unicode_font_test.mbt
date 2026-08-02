@@ -16,15 +16,15 @@ test "Font node treated as atomic for operand grouping" {
 
 ///|
 test "map font characters individually" {
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathbf{ab}")), "𝐚𝐛")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbf{ab}")),
+    "𝐚𝐛",
+  )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\mathbf{abc}")),
     "𝐚𝐛𝐜",
   )
-  @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\mathbb{R}")),
-    "ℝ",
-  )
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathbb{R}")), "ℝ")
   // Letters with a mapped bold variant render directly
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\mathbf{a\\alpha b}")),

@@ -176,22 +176,19 @@ fn Parser::parse_size_group(
       if is_blank {
         text = "0pt"
       }
-      match parse_size_measurement(text) {
-        None =>
-          raise InvalidArgument(
-            message="Invalid size: '" + text + "'",
-            loc=token.loc,
-          )
-        Some(value) => {
-          guard valid_size_unit(value.unit) else {
-            raise InvalidArgument(
-              message="Invalid unit: '" + value.unit + "'",
-              loc=token.loc,
-            )
-          }
-          Some(Size(mode=self.mode, value~, is_blank~))
-        }
+      guard parse_size_measurement(text) is Some(value) else {
+        raise InvalidArgument(
+          message="Invalid size: '" + text + "'",
+          loc=token.loc,
+        )
       }
+      guard valid_size_unit(value.unit) else {
+        raise InvalidArgument(
+          message="Invalid unit: '" + value.unit + "'",
+          loc=token.loc,
+        )
+      }
+      Some(Size(mode=self.mode, value~, is_blank~))
     }
   }
 }

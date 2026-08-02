@@ -42,7 +42,10 @@ test "render boxes and fraction bars in ascii style" {
     #|---
     #||x|
     #|---
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\boxed{x}"), config~), output)
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\boxed{x}"), config~),
+    output,
+  )
 
   let output =
     #|---------

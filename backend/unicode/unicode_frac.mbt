@@ -9,7 +9,9 @@ fn frac_block(
   let num = Block::from(render_node_internal(numer, num_state))
   let den = Block::from(render_node_internal(denom, den_state))
   let bar_w = num.width().max(den.width()) + 2
-  let bar = Block::from(line_style_frac_bar(state.config.line_style).repeat(bar_w))
+  let bar = Block::from(
+    line_style_frac_bar(state.config.line_style).repeat(bar_w),
+  )
   let frac = num.center(bar_w).above(bar).above(den.center(bar_w))
   { ..frac, baseline: num.height() }
 }

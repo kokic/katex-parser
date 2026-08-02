@@ -107,17 +107,10 @@ fn matrix_environment_handler(
       )
     _ => raise InternalInvariant(message="Expected matrix array")
   }
-  match matrix_delimiters(base_name) {
-    None => array
-    Some((left, right)) =>
-      LeftRight(
-        mode=context.mode,
-        body=[array],
-        left~,
-        right~,
-        right_color=None,
-      )
-  }
+  matrix_delimiters(base_name).map_or(array, value => {
+    let (left, right) = value
+    LeftRight(mode=context.mode, body=[array], left~, right~, right_color=None)
+  })
 }
 
 ///|

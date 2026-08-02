@@ -27,8 +27,7 @@ fn render_internal_block(
 ) -> Block {
   let items = collect_spacable_items(nodes, state)
   let cancelled = @backend.cancel_bin_atoms(items)
-  if cancelled.length() > 0 &&
-    cancelled.fold(init=false, (has, it) => has || it.text.contains("\n")) {
+  if cancelled.any(it => it.text.contains("\n")) {
     join_with_block(cancelled, state.in_tight, state.config.spacing)
   } else {
     Block::from(
@@ -52,11 +51,10 @@ fn join_with_block(
     let prev = items[i - 1]
     let curr = items[i]
     match (prev.atom_type, curr.atom_type) {
-      (Some(left), Some(right)) =>
-        match @backend.math_spacing(left, right, tight, spec) {
-          Some(space) => result = result.beside(Block::from(space))
-          None => ()
-        }
+      (Some(left), Some(right)) if @backend.math_spacing(
+          left, right, tight, spec,
+        )
+        is Some(space) => result = result.beside(Block::from(space))
       _ => ()
     }
     result = result.beside(item_to_block(curr))
@@ -66,10 +64,7 @@ fn join_with_block(
 
 ///|
 fn item_to_block(item : @backend.SpacableItem) -> Block {
-  let raw = item.text.split("\n").to_array()
-  let width = raw.fold(init=0, fn(m, l) { m.max(l.length()) })
-  let lines = raw.map(fn(l) { pad_right(l.to_owned(), width) })
-  { lines, width, baseline: item.baseline }
+  { ..Block::from(item.text), baseline: item.baseline }
 }
 
 ///|
@@ -190,7 +185,7 @@ fn render_node_internal(
     Array(
       body~,
       column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::CdSeparation,
+        @katex_parser.ColumnSeparationType::CdSeparation
       ),
       ..
     ) => render_cd_block(body, state).render()
@@ -466,10 +461,7 @@ fn render_font(
 /// Characters without a mapping are individually wrapped in `font(...)`
 /// fallbacks rather than falling back on the whole body. Returns `None` when
 /// the body contains non-character structure that cannot be decomposed.
-fn font_char_sequence(
-  font : String,
-  node : @katex_parser.ParseNode,
-) -> String? {
+fn font_char_sequence(font : String, node : @katex_parser.ParseNode) -> String? {
   let chars : Array[String] = []
   guard collect_font_chars(node, chars) else { return None }
   Some(render_font_text(font, chars))
@@ -547,7 +539,7 @@ fn is_font_letter(s : String) -> Bool {
 
 ///|
 fn font_fallback(font : String, chars : Array[String]) -> String {
-  let text = chars.fold(init="", fn(acc, s) { acc + s })
+  let text = chars.fold(init="", (acc, s) => acc + s)
   "\{font}(\{text})"
 }
 
@@ -582,7 +574,7 @@ fn enclose_box(block : Block, style : LineStyle) -> Block {
   let bottom = box_border(style, w, false)
   let side = box_side(style)
   let middle = block.lines.map(l => side + l + side)
-  let lines = Array::makei(middle.length() + 2, i =>
+  let lines = Array::makei(middle.length() + 2, i => {
     if i == 0 {
       top
     } else if i == middle.length() + 1 {
@@ -590,7 +582,7 @@ fn enclose_box(block : Block, style : LineStyle) -> Block {
     } else {
       middle[i - 1]
     }
-  )
+  })
   { lines, width: w + 2, baseline: block.baseline() + 1 }
 }
 

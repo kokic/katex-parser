@@ -179,8 +179,5 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
       }
     _ => None
   }
-  match cp {
-    Some(cp) => Some(String::from_array([Int::unsafe_to_char(cp)]))
-    None => None
-  }
+  cp.map(cp => String::from_array([Int::unsafe_to_char(cp)]))
 }

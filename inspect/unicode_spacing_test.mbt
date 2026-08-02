@@ -20,18 +20,12 @@ test "spacing macros render as plain spaces" {
   @test.assert_eq(@unicode.render(@katex_parser.parse("a\\,b")), "a b")
   @test.assert_eq(@unicode.render(@katex_parser.parse("a\\:b")), "a b")
   @test.assert_eq(@unicode.render(@katex_parser.parse("a\\;b")), "a b")
-  @test.assert_eq(
-    @unicode.render(@katex_parser.parse("a\\enspace b")),
-    "a b",
-  )
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a\\enspace b")), "a b")
   @test.assert_eq(@unicode.render(@katex_parser.parse("a\\quad b")), "a  b")
   @test.assert_eq(@unicode.render(@katex_parser.parse("a\\qquad b")), "a    b")
   // Negative spaces have no plain-text representation
   @test.assert_eq(@unicode.render(@katex_parser.parse("a\\!b")), "ab")
-  @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\int\\!dx")),
-    "∫ dx",
-  )
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\int\\!dx")), "∫ dx")
   // Other units keep the kern() fallback
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("x\\kern{1pt}y")),

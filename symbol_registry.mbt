@@ -2269,9 +2269,9 @@ fn build_builtin_symbols() -> SymbolRegistry {
     "\\textbar",
     accept_unicode=true,
   )
-registry.define_symbol(Math, TextOrdGroup, "‖", "\\|")
-registry.define_symbol(Math, TextOrdGroup, "‖", "\\Vert")
-registry.define_symbol(Text, TextOrdGroup, "‖", "\\textbardbl")
+  registry.define_symbol(Math, TextOrdGroup, "‖", "\\|")
+  registry.define_symbol(Math, TextOrdGroup, "‖", "\\Vert")
+  registry.define_symbol(Text, TextOrdGroup, "‖", "\\textbardbl")
   registry.define_symbol(Text, TextOrdGroup, "~", "\\textasciitilde")
   registry.define_symbol(Text, TextOrdGroup, "\\", "\\textbackslash")
   registry.define_symbol(Text, TextOrdGroup, "^", "\\textasciicircum")

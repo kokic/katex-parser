@@ -29,14 +29,10 @@ fn render_cd_block(
       bands.push(cd_varrow_row_block(row, node_w, arrow_w, offsets, vbar))
     }
   }
-  let mut result = Block::empty()
-  for band in bands {
-    if result.height() == 0 {
-      result = band
-    } else {
-      result = result.above(band)
-    }
-  }
+  let result = bands.fold(init=Block::empty(), (acc, band) => {
+    guard acc.height() > 0 else { band }
+    acc.above(band)
+  })
   { ..result, baseline: result.height() / 2 }
 }
 
@@ -46,7 +42,8 @@ fn classify_cd_cell(
   state : RenderState,
 ) -> CdCell {
   match cell {
-    @katex_parser.ParseNode::Styling(body=[inner], ..) => classify_cd_inner(inner, cell, state)
+    @katex_parser.ParseNode::Styling(body=[inner], ..) =>
+      classify_cd_inner(inner, cell, state)
     @katex_parser.ParseNode::Styling(body=[], ..) => CdEmpty
     _ => CdNode(render_node_internal(cell, state))
   }
@@ -59,17 +56,17 @@ fn classify_cd_inner(
   state : RenderState,
 ) -> CdCell {
   match inner {
-    @katex_parser.ParseNode::XArrow(label~, body~, below~, ..) =>
-      match cd_arrow_dir(label) {
-        Some(dir) =>
-          CdHArrow(
-            dir,
-            render_node_internal(body, state),
-            below.map_or("", fn(b) { render_node_internal(b, state) }),
-          )
-        None => CdNode(render_node_internal(cell, state))
-      }
-    @katex_parser.ParseNode::CdParent(fragment~, ..) => classify_cd_parent(fragment, cell, state)
+    @katex_parser.ParseNode::XArrow(label~, body~, below~, ..) if cd_arrow_dir(
+        label,
+      )
+      is Some(dir) =>
+      CdHArrow(
+        dir,
+        render_node_internal(body, state),
+        below.map_or("", b => render_node_internal(b, state)),
+      )
+    @katex_parser.ParseNode::CdParent(fragment~, ..) =>
+      classify_cd_parent(fragment, cell, state)
     _ => CdNode(render_node_internal(cell, state))
   }
 }
@@ -91,10 +88,8 @@ fn classify_cd_parent(
             left = render_node_internal(l, state)
           @katex_parser.ParseNode::CdLabel(side="right", label=r, ..) =>
             right = render_node_internal(r, state)
-          @katex_parser.ParseNode::DelimSizing(delim~, ..) =>
-            if delim == "\\uparrow" {
-              dir = "A"
-            }
+          @katex_parser.ParseNode::DelimSizing(delim~, ..) if delim ==
+            "\\uparrow" => dir = "A"
           _ => ()
         }
       }
@@ -177,14 +172,19 @@ fn cd_column_widths(
         if col % 2 == 0 {
           match cell {
             CdNode(text) =>
-              node_w[col / 2] = node_w[col / 2].max(offsets[col / 2] + text.length())
+              node_w[col / 2] = node_w[col / 2].max(
+                offsets[col / 2] + text.length(),
+              )
             _ => ()
           }
         } else {
           match cell {
             CdHArrow(_, upper, lower) =>
-              arrow_w[col / 2] = arrow_w[col / 2].max(upper.length()).max(lower.length())
-            CdNode(text) => arrow_w[col / 2] = arrow_w[col / 2].max(text.length())
+              arrow_w[col / 2] = arrow_w[col / 2]
+                .max(upper.length())
+                .max(lower.length())
+            CdNode(text) =>
+              arrow_w[col / 2] = arrow_w[col / 2].max(text.length())
             _ => ()
           }
         }
@@ -194,7 +194,14 @@ fn cd_column_widths(
         if col % 2 == 0 {
           match cell {
             CdVArrow(dir, left, right) =>
-              for line in cd_varrow_lines(dir, left, right, vbar, offsets[col / 2]) {
+              for
+                line in cd_varrow_lines(
+                  dir,
+                  left,
+                  right,
+                  vbar,
+                  offsets[col / 2],
+                ) {
                 node_w[col / 2] = node_w[col / 2].max(line.length())
               }
             _ => ()
@@ -265,24 +272,22 @@ fn cd_node_row_block(
 
 ///|
 fn cd_row_has_upper(row : Array[CdCell]) -> Bool {
-  for cell in row {
+  row.any(cell => {
     match cell {
-      CdHArrow(_, upper, _) if upper.length() > 0 => return true
-      _ => ()
+      CdHArrow(_, upper, _) => upper.length() > 0
+      _ => false
     }
-  }
-  false
+  })
 }
 
 ///|
 fn cd_row_has_lower(row : Array[CdCell]) -> Bool {
-  for cell in row {
+  row.any(cell => {
     match cell {
-      CdHArrow(_, _, lower) if lower.length() > 0 => return true
-      _ => ()
+      CdHArrow(_, _, lower) => lower.length() > 0
+      _ => false
     }
-  }
-  false
+  })
 }
 
 ///|

@@ -35,8 +35,14 @@ test "render font commands as Unicode math alphanumerics" {
 ///|
 test "render additional font mappings" {
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathbb{1}")), "𝟙")
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathbb{42}")), "𝟜𝟚")
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathit{\\alpha}")), "𝛼")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathbb{42}")),
+    "𝟜𝟚",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathit{\\alpha}")),
+    "𝛼",
+  )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\mathit{\\Gamma\\beta}")),
     "𝛤𝛽",
@@ -75,9 +81,18 @@ test "render text and phantom" {
 
 ///|
 test "phantom family stays consistent" {
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\phantom{x}")), "phantom(x)")
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\vphantom{x}")), "vphantom(x)")
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\hphantom{x}")), "phantom(x)")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\phantom{x}")),
+    "phantom(x)",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\vphantom{x}")),
+    "vphantom(x)",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\hphantom{x}")),
+    "phantom(x)",
+  )
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\vphantom{a+b}_1")),
     "vphantom(a + b)₁",
@@ -87,7 +102,10 @@ test "phantom family stays consistent" {
 ///|
 test "visible repositioned nodes stay transparent" {
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\smash{x}")), "x")
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\raisebox{1pt}{x}")), "x")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\raisebox{1pt}{x}")),
+    "x",
+  )
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathllap{x}")), "x")
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\vcenter{x}")), "x")
 }
@@ -291,4 +309,3 @@ test "array axis centered in display mode" {
     output,
   )
 }
-

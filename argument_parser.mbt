@@ -34,12 +34,12 @@ fn Parser::parse_arguments(
         raise InternalInvariant(
           message="Null mandatory function argument after parser validation",
         )
+      Some(arg) if optional => {
+        opt_args.push(Some(arg))
+        continue
+      }
       Some(arg) => {
-        if optional {
-          opt_args.push(Some(arg))
-        } else {
-          args.push(arg)
-        }
+        args.push(arg)
         continue
       }
     }
@@ -93,13 +93,11 @@ fn Parser::parse_primitive_group(
       loc=None,
     )
   }
-  match self.parse_group(name, None) {
-    Some(EmitAtom(group)) => Some(group)
-    Some(SkipAtom) | None => {
-      let token = self.fetch()
-      raise InvalidArgument(message="Expected group as " + name, loc=token.loc)
-    }
+  guard self.parse_group(name, None) is Some(EmitAtom(group)) else {
+    let token = self.fetch()
+    raise InvalidArgument(message="Expected group as " + name, loc=token.loc)
   }
+  Some(group)
 }
 
 ///|

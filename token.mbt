@@ -13,7 +13,7 @@ fn Token::make(text : String, loc? : SourceLocation) -> Token {
 
 ///|
 fn token_location(token : Token?) -> SourceLocation? {
-  token.map(token => token.loc).bind(x => x)
+  token.bind(token => token.loc)
 }
 
 ///|

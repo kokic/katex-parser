@@ -33,14 +33,13 @@ fn parse_char_number(
   first : Token,
   base : Int,
 ) -> Int raise ParseFailure {
-  let first_digit = match digit_value(first.text) {
-    Some(value) if value < base => value
-    _ =>
-      raise InvalidArgument(
-        message="Invalid base-\{base} digit \{first.text}",
-        loc=first.loc,
-      )
+  guard digit_value(first.text) is Some(value) && value < base else {
+    raise InvalidArgument(
+      message="Invalid base-\{base} digit \{first.text}",
+      loc=first.loc,
+    )
   }
+  let first_digit = value
   for number = first_digit {
     let token = context.future()
     match digit_value(token.text) {

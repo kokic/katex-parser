@@ -202,10 +202,9 @@ fn MacroExpander::push_argument_job(
   start : Token,
   arg : MacroArgument,
 ) -> Token {
-  let eof = match arg.end.loc {
-    Some(loc) => Token::make("EOF", loc~)
-    None => Token::make("EOF")
-  }
+  let eof = arg.end.loc.map_or(Token::make("EOF"), loc => {
+    Token::make("EOF", loc~)
+  })
   self.push_token(eof)
   self.push_tokens(arg.tokens)
   start.range(arg.end, "")

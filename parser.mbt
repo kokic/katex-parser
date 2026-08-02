@@ -289,12 +289,8 @@ fn Parser::parse_atom(
     None => None
     Some(SkipAtom) => Some(SkipAtom)
     Some(EmitAtom(Internal(..))) => Some(SkipAtom)
-    Some(EmitAtom(base)) =>
-      if self.mode == Text {
-        Some(EmitAtom(base))
-      } else {
-        Some(EmitAtom(self.parse_scripts(base)))
-      }
+    Some(EmitAtom(base)) if self.mode == Text => Some(EmitAtom(base))
+    Some(EmitAtom(base)) => Some(EmitAtom(self.parse_scripts(base)))
   }
 }
 
@@ -585,14 +581,13 @@ fn Parser::call_function(
     parse_prefixed_function: name => self.parse_prefixed_function(name),
     parse_environment: name => self.parse_environment(name),
   }
-  match lookup_function(func_name) {
-    None => raise MissingFunctionHandler(func_name~, loc=None)
-    Some(spec) =>
-      match spec.handler {
-        None => raise MissingFunctionHandler(func_name~, loc=None)
-        Some(handler) => handler(context, args, opt_args)
-      }
+  guard lookup_function(func_name) is Some(spec) else {
+    raise MissingFunctionHandler(func_name~, loc=None)
   }
+  guard spec.handler is Some(handler) else {
+    raise MissingFunctionHandler(func_name~, loc=None)
+  }
+  handler(context, args, opt_args)
 }
 
 ///|
@@ -600,42 +595,39 @@ fn Parser::parse_environment(
   self : Parser,
   name : String,
 ) -> ParseNode raise ParseFailure {
-  match lookup_environment(name) {
-    None =>
-      raise InvalidArgument(message="No such environment: " + name, loc=None)
-    Some(spec) => {
-      let arguments = FunctionSpec::make(
-        [],
-        spec.num_args,
-        num_optional_args=spec.num_optional_args,
-        arg_types=spec.arg_types,
+  guard lookup_environment(name) is Some(spec) else {
+    raise InvalidArgument(message="No such environment: " + name, loc=None)
+  }
+  let arguments = FunctionSpec::make(
+    [],
+    spec.num_args,
+    num_optional_args=spec.num_optional_args,
+    arg_types=spec.arg_types,
+  )
+  let (args, opt_args) = self.parse_arguments(
+    "\\begin{" + name + "}",
+    arguments,
+  )
+  let context : EnvironmentContext = {
+    mode: self.mode,
+    display_mode: self.settings.display_mode,
+    leqno: self.settings.leqno,
+    env_name: name,
+    parse_array: options => self.parse_array_environment(options),
+    parse_matrix_alignment: () => self.parse_matrix_alignment(),
+    parse_cd: () => self.parse_cd_environment(),
+  }
+  let result = (spec.handler)(context, args, opt_args)
+  self.expect("\\end", consume=false)
+  match self.parse_function(None, None) {
+    Some(EmitAtom(EnvironmentEnd(name=end_name, ..))) if end_name == name =>
+      result
+    Some(EmitAtom(EnvironmentEnd(name=end_name, ..))) =>
+      raise InvalidArgument(
+        message="Mismatch: \\begin{\{name}} matched by \\end{\{end_name}}",
+        loc=None,
       )
-      let (args, opt_args) = self.parse_arguments(
-        "\\begin{" + name + "}",
-        arguments,
-      )
-      let context : EnvironmentContext = {
-        mode: self.mode,
-        display_mode: self.settings.display_mode,
-        leqno: self.settings.leqno,
-        env_name: name,
-        parse_array: options => self.parse_array_environment(options),
-        parse_matrix_alignment: () => self.parse_matrix_alignment(),
-        parse_cd: () => self.parse_cd_environment(),
-      }
-      let result = (spec.handler)(context, args, opt_args)
-      self.expect("\\end", consume=false)
-      match self.parse_function(None, None) {
-        Some(EmitAtom(EnvironmentEnd(name=end_name, ..))) if end_name == name =>
-          result
-        Some(EmitAtom(EnvironmentEnd(name=end_name, ..))) =>
-          raise InvalidArgument(
-            message="Mismatch: \\begin{\{name}} matched by \\end{\{end_name}}",
-            loc=None,
-          )
-        _ => raise InternalInvariant(message="Expected environment end")
-      }
-    }
+    _ => raise InternalInvariant(message="Expected environment end")
   }
 }
 
@@ -661,10 +653,10 @@ fn Parser::parse_prefixed_function(
   name : String,
 ) -> ParseNode raise ParseFailure {
   self.gullet.push_token(Token::make(name))
-  match self.parse_function(None, None) {
-    Some(EmitAtom(node)) => node
-    _ => raise InternalInvariant(message="Expected function after macro prefix")
+  guard self.parse_function(None, None) is Some(EmitAtom(node)) else {
+    raise InternalInvariant(message="Expected function after macro prefix")
   }
+  node
 }
 
 ///|
@@ -684,10 +676,9 @@ fn Parser::parse_symbol(self : Parser) -> ParseNode? raise ParseFailure {
   } else {
     let normalized = normalize_unicode_symbol(self.mode, original_text)
     let mark_start = trailing_combining_mark_start(normalized)
-    let text = match mark_start {
-      Some(start) => normalized.unsafe_substring(start=0, end=start)
-      None => normalized
-    }
+    let text = mark_start.map_or(normalized, start => {
+      normalized.unsafe_substring(start=0, end=start)
+    })
     let text = match mark_start {
       Some(_) if text == "i" => "ı"
       Some(_) if text == "j" => "ȷ"

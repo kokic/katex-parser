@@ -12,8 +12,8 @@ pub(all) struct Block {
 ///|
 pub fn Block::from(s : String) -> Block {
   let raw = s.split("\n").to_array()
-  let width = raw.fold(init=0, fn(m, l) { m.max(l.length()) })
-  let lines = raw.map(fn(l) { pad_right(l.to_owned(), width) })
+  let width = raw.fold(init=0, (m, l) => m.max(l.length()))
+  let lines = raw.map(l => pad_right(l.to_owned(), width))
   { lines, width, baseline: 0 }
 }
 
@@ -135,7 +135,7 @@ pub fn pad_right(s : String, width : Int) -> String {
 ///|
 /// Compute the maximum width per column across all rows of cell strings.
 pub fn column_widths(cells : Array[Array[String]]) -> Array[Int] {
-  let max_cols = cells.fold(init=0, fn(m, row) {
+  let max_cols = cells.fold(init=0, (m, row) => {
     let len = row.length()
     if len > m {
       len

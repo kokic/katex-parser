@@ -13,6 +13,7 @@ pub fn RenderConfig::make(
   { display_mode, annotation }
 }
 
+///|
 pub impl Default for RenderConfig with fn default() {
   RenderConfig::make()
 }

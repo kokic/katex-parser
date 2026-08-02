@@ -15,7 +15,10 @@ test "render 2x2 commutative diagram" {
     #|b│      │c
     #| ↓      │ 
     #| C ==== D 
-  @test.assert_eq(@unicode.render(@katex_parser.parse(source, settings~)), output)
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse(source, settings~)),
+    output,
+  )
 }
 
 ///|
@@ -25,7 +28,9 @@ test "render single-row commutative diagram" {
     #|   a    
     #|A ───→ B
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\begin{CD} A @>a>> B \\end{CD}", settings~)),
+    @unicode.render(
+      @katex_parser.parse("\\begin{CD} A @>a>> B \\end{CD}", settings~),
+    ),
     output,
   )
 }
@@ -47,7 +52,10 @@ test "render 3x3 commutative diagram" {
     #|d│      e│      │f
     #| ↓       ↓      │ 
     #| D ===== E ==== F 
-  @test.assert_eq(@unicode.render(@katex_parser.parse(source, settings~)), output)
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse(source, settings~)),
+    output,
+  )
 }
 
 ///|
@@ -57,7 +65,9 @@ test "render commutative diagram with lower arrow label" {
     #|A ───→ B
     #|   b    
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\begin{CD} A @>>b>B \\end{CD}", settings~)),
+    @unicode.render(
+      @katex_parser.parse("\\begin{CD} A @>>b>B \\end{CD}", settings~),
+    ),
     output,
   )
 }
@@ -70,7 +80,9 @@ test "render commutative diagram with upper and lower arrow labels" {
     #|A ───→ B
     #|   b    
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\begin{CD} A @>a>b>B \\end{CD}", settings~)),
+    @unicode.render(
+      @katex_parser.parse("\\begin{CD} A @>a>b>B \\end{CD}", settings~),
+    ),
     output,
   )
 }
@@ -82,13 +94,17 @@ test "render left arrow and vert bar arrows" {
     #|   a    
     #|A ←─── B
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\begin{CD} A @<a<< B \\end{CD}", settings~)),
+    @unicode.render(
+      @katex_parser.parse("\\begin{CD} A @<a<< B \\end{CD}", settings~),
+    ),
     output,
   )
   let output =
     #|A ‖    B
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\begin{CD} A @| B \\end{CD}", settings~)),
+    @unicode.render(
+      @katex_parser.parse("\\begin{CD} A @| B \\end{CD}", settings~),
+    ),
     output,
   )
 }
