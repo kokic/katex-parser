@@ -257,3 +257,44 @@ test "block fraction keeps its baseline through groups and scripts" {
     output,
   )
 }
+
+///|
+test "render \\atop as a stacked fraction without a bar" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // \atop stacks numerator over denominator with no fraction bar
+  let output =
+    #| a 
+    #| b 
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("a \\atop b", settings~)),
+    output,
+  )
+  // \genfrac with a zero/blank bar follows the same layout
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("\\genfrac{}{}{0pt}{}{a}{b}", settings~),
+    ),
+    output,
+  )
+  // A non-zero bar still draws the line
+  let output =
+    #| a 
+    #|───
+    #| b 
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("\\genfrac{}{}{0.4pt}{}{a}{b}", settings~),
+    ),
+    output,
+  )
+  // A bar-less stack under a radical keeps its baseline
+  let output =
+    #|   a  
+    #|√( b )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\sqrt{a \\atop b}", settings~)),
+    output,
+  )
+  // Inline \atop keeps the comma-separated fallback
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a \\atop b")), "a,b")
+}

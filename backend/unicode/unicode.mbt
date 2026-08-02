@@ -101,6 +101,23 @@ fn render_node_internal(
     Sqrt(body~, index=None, ..) => render_radical("", body, state)
     Sqrt(body~, index=Some(index), ..) => render_root(index, body, state)
     Infix(replace_with~, ..) => replace_with
+    // \atop/\atopfrac: no bar line, no delimiters — stacked without a bar
+    GenFrac(
+      numer~,
+      denom~,
+      has_bar_line=false,
+      left_delim=None,
+      right_delim=None,
+      ..
+    ) => {
+      guard !state.in_display else {
+        render_genfrac_block(numer, denom, state, has_bar_line=false)
+      }
+      let num_state = { ..state, in_tight: true }
+      let den_state = { ..state, in_tight: true }
+      "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}"
+    }
+    // Binomial: no bar line, delimiters present — (n,k) in all modes
     GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) => {
       let num_state = { ..state, in_tight: true }
       let den_state = { ..state, in_tight: true }
@@ -110,15 +127,21 @@ fn render_node_internal(
         right_delim,
       )
     }
+    // Regular fraction: bar line, no delimiters
     GenFrac(numer~, denom~, left_delim=None, right_delim=None, ..) => {
       guard !state.in_display else { render_genfrac_block(numer, denom, state) }
       let num_state = { ..state, in_tight: true }
       let den_state = { ..state, in_tight: true }
       "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
     }
-    GenFrac(numer~, denom~, left_delim~, right_delim~, ..) =>
+    // Genfrac with a bar line and delimiters
+    GenFrac(numer~, denom~, has_bar_line~, left_delim~, right_delim~, ..) =>
       if state.in_display {
-        wrap_delims(frac_block(numer, denom, state), left_delim, right_delim).render()
+        wrap_delims(
+          frac_block(numer, denom, state, has_bar_line~),
+          left_delim,
+          right_delim,
+        ).render()
       } else {
         let num_state = { ..state, in_tight: true }
         let den_state = { ..state, in_tight: true }
@@ -578,9 +601,9 @@ fn render_root_block(
   match unicode_script(index_text, UnicodeSuperscript) {
     Some(prefix) => render_radical_block(prefix, body, state)
     None =>
-      Block::from("root(\{index_text},").beside(
-        render_operand_block(body, state),
-      ).beside(Block::from(")"))
+      Block::from("root(\{index_text},")
+      .beside(render_operand_block(body, state))
+      .beside(Block::from(")"))
   }
 }
 
@@ -706,17 +729,14 @@ fn render_operator_content_block(
 ///|
 /// Renders a single node into a `Block`, preserving baseline information so
 /// that multi-line display-mode content stays vertically aligned.
-fn content_block(
-  node : @katex_parser.ParseNode,
-  state : RenderState,
-) -> Block {
+fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
   match node {
     // --- Transparent wrappers: expose children ---
     @katex_parser.ParseNode::Styling(body~, style~, ..) =>
       content_body_block(body, {
         ..state,
         in_display: state.in_display ||
-          style == @katex_parser.StyleLevel::DisplayStyle,
+        style == @katex_parser.StyleLevel::DisplayStyle,
       })
     @katex_parser.ParseNode::Text(body~, ..) =>
       content_body_block(body, { ..state, in_tight: true })
@@ -731,13 +751,23 @@ fn content_block(
     @katex_parser.ParseNode::Smash(body~, ..)
     | @katex_parser.ParseNode::VCenter(body~, ..)
     | @katex_parser.ParseNode::RaiseBox(body~, ..)
-    | @katex_parser.ParseNode::Lap(body~, ..) =>
-      content_block(body, state)
+    | @katex_parser.ParseNode::Lap(body~, ..) => content_block(body, state)
     @katex_parser.ParseNode::CdParent(fragment~, ..) =>
       content_block(fragment, state)
     // --- Multi-line block producers in display mode ---
+    // \atop/\atopfrac: no bar line, no delimiters — stacked without a bar
+    @katex_parser.ParseNode::GenFrac(
+      numer~,
+      denom~,
+      has_bar_line=false,
+      left_delim=None,
+      right_delim=None,
+      ..
+    ) if state.in_display => frac_block(numer, denom, state, has_bar_line=false)
+    // Binomial: no bar line, delimiters present — (n,k) in all modes
     @katex_parser.ParseNode::GenFrac(has_bar_line=false, ..) if state.in_display =>
       Block::from(render_node_internal(node, state))
+    // Regular fraction: bar line, no delimiters
     @katex_parser.ParseNode::GenFrac(
       numer~,
       denom~,
@@ -745,14 +775,20 @@ fn content_block(
       right_delim=None,
       ..
     ) if state.in_display => frac_block(numer, denom, state)
+    // Genfrac with a bar line and delimiters
     @katex_parser.ParseNode::GenFrac(
       numer~,
       denom~,
+      has_bar_line~,
       left_delim~,
       right_delim~,
       ..
     ) if state.in_display =>
-      wrap_delims(frac_block(numer, denom, state), left_delim, right_delim)
+      wrap_delims(
+        frac_block(numer, denom, state, has_bar_line~),
+        left_delim,
+        right_delim,
+      )
     @katex_parser.ParseNode::LeftRight(body~, left~, right~, ..) if state.in_display =>
       match body {
         [@katex_parser.ParseNode::Array(body~, ..)] =>
@@ -772,13 +808,13 @@ fn content_block(
     @katex_parser.ParseNode::Array(
       body~,
       column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::CdSeparation,
+        @katex_parser.ColumnSeparationType::CdSeparation
       ),
       ..
     ) => render_cd_block(body, state)
     @katex_parser.ParseNode::Array(body~, ..) if state.in_display =>
       cell_block(body, state)
-    @katex_parser.ParseNode::Array(body~, ..) =>
+    @katex_parser.ParseNode::Array(..) =>
       Block::from(render_node_internal(node, state))
     @katex_parser.ParseNode::Enclose(label~, body~, ..) if label == "\\fbox" =>
       render_enclose_block(body, state)
@@ -817,14 +853,14 @@ fn content_block(
     @katex_parser.ParseNode::XArrow(label~, body~, below=Some(below), ..) =>
       render_function_block(
         render_command_name(label),
-        content_block(body, state).beside(Block::from(",")).beside(
-          content_block(below, state),
-        ),
+        content_block(body, state)
+        .beside(Block::from(","))
+        .beside(content_block(below, state)),
       )
     @katex_parser.ParseNode::AccentUnder(label~, base~, ..) =>
-      Block::from(
-        "underaccent(\{render_command_name(label)},",
-      ).beside(content_block(base, state)).beside(Block::from(")"))
+      Block::from("underaccent(\{render_command_name(label)},")
+      .beside(content_block(base, state))
+      .beside(Block::from(")"))
     @katex_parser.ParseNode::Accent(label~, base~, ..) =>
       render_accent_block(label, base, state)
     @katex_parser.ParseNode::Font(font~, body~, ..) =>
@@ -836,9 +872,9 @@ fn content_block(
     @katex_parser.ParseNode::MathChoice(display~, ..) =>
       content_body_block(display, state)
     @katex_parser.ParseNode::Tag(body~, tag~, ..) =>
-      content_body_block(body, state).beside(Block::from("\t")).beside(
-        content_body_block(tag, state),
-      )
+      content_body_block(body, state)
+      .beside(Block::from("\t"))
+      .beside(content_body_block(tag, state))
     @katex_parser.ParseNode::HtmlMathML(mathml~, ..) =>
       content_body_block(mathml, state)
     @katex_parser.ParseNode::Internal(..)
@@ -915,7 +951,11 @@ fn render_accent_block(
   match mark {
     Some(mark) if is_single_character_output(rendered_base) =>
       Block::from("\{rendered_base}\{mark}")
-    _ => render_function_block(render_command_name(label), content_block(base, state))
+    _ =>
+      render_function_block(
+        render_command_name(label),
+        content_block(base, state),
+      )
   }
 }
 
