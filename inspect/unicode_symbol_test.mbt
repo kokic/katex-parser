@@ -72,9 +72,7 @@ test "radical aligns with block fractions in display mode" {
     #|√(────)
     #|   2   
   @test.assert_eq(
-    @unicode.render(
-      @katex_parser.parse("\\sqrt{\\frac{\\pi e}{2}}", settings~),
-    ),
+    @unicode.render(@katex_parser.parse("\\sqrt{\\frac{\\pi e}{2}}", settings~)),
     output,
   )
   // A radical as a sibling of other atoms shares the fraction-bar baseline
@@ -83,9 +81,7 @@ test "radical aligns with block fractions in display mode" {
     #|x + √(───)
     #|       b  
   @test.assert_eq(
-    @unicode.render(
-      @katex_parser.parse("x + \\sqrt{\\frac{a}{b}}", settings~),
-    ),
+    @unicode.render(@katex_parser.parse("x + \\sqrt{\\frac{a}{b}}", settings~)),
     output,
   )
 }
