@@ -23,8 +23,8 @@ test "boxed content centers in display mode" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   let output =
     #|    ┌───────┐
-    #|x = │     c │
-    #|    │π = ───│
+    #|    │     c │
+    #|x = │π = ───│
     #|    │     d │
     #|    └───────┘
   @test.assert_eq(

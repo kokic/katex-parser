@@ -63,3 +63,29 @@ test "render radicals with fractions and deep nesting" {
     "√((a∕b)∕c)",
   )
 }
+
+///|
+test "radical aligns with block fractions in display mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|   πe  
+    #|√(────)
+    #|   2   
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("\\sqrt{\\frac{\\pi e}{2}}", settings~),
+    ),
+    output,
+  )
+  // A radical as a sibling of other atoms shares the fraction-bar baseline
+  let output =
+    #|       a  
+    #|x + √(───)
+    #|       b  
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("x + \\sqrt{\\frac{a}{b}}", settings~),
+    ),
+    output,
+  )
+}

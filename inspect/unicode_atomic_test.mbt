@@ -127,3 +127,30 @@ test "compound body inside styling is not atomic" {
     "(a+b)₁",
   )
 }
+
+///|
+test "block content in scripts renders inline" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // Fractions in scripts stay on one line rather than misaligning a block
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("x^{\\frac{a}{b}}", settings~)),
+    "x^(a∕b)",
+  )
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("x_{\\frac{a}{b}}", settings~)),
+    "x_(a∕b)",
+  )
+}
+
+///|
+test "fallback function notation aligns around block fractions" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  let output =
+    #|          a  
+    #|overline(───)
+    #|          b  
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\overline{\\frac{a}{b}}", settings~)),
+    output,
+  )
+}

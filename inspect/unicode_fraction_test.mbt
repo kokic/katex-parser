@@ -212,3 +212,48 @@ test "render fractions with configurable slash" {
     "(a+b)/(c+d)",
   )
 }
+
+///|
+test "block fraction keeps its baseline through groups and scripts" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  // An explicit group around the fraction keeps the delimiters on the bar
+  let output =
+    #|  a  
+    #|(───)
+    #|  b  
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("\\left({\\frac{a}{b}}\\right)", settings~),
+    ),
+    output,
+  )
+  // \left\{ ... \right. aligns the brace on the bar too
+  let output =
+    #|  a 
+    #|{───
+    #|  b 
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("\\left\\{\\frac{a}{b}\\right.", settings~),
+    ),
+    output,
+  )
+  // A grouped fraction between atoms aligns them on the bar
+  let output =
+    #|  b  
+    #|a───d
+    #|  c  
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("a{\\frac{b}{c}}d", settings~)),
+    output,
+  )
+  // A subscript after a block fraction sits on the bar line
+  let output =
+    #|  a   
+    #|(───)₁
+    #|  b   
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\frac{a}{b}_1", settings~)),
+    output,
+  )
+}
