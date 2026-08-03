@@ -4,9 +4,9 @@ test "render block math with horizontal alignment" {
     #|\sum_{n\ge1}\frac{1}{n^2}=\frac{\pi^2}{6}
 
   let output =
-    #|         1      π² 
-    #|∑_(n≥1) ──── = ────
-    #|         n²     6  
+    #|     1      π² 
+    #| ∑  ──── = ────
+    #|n≥1  n²     6  
 
   let settings = @katex_parser.Settings::make(display_mode=true)
   @test.assert_eq(

@@ -83,6 +83,53 @@ test "render delimiters and arrays" {
 }
 
 ///|
+test "render aligned environment" {
+  inspect(
+    @mathml.render(
+      @katex_parser.parse("\\begin{aligned}a&=b\\\\c&=d\\end{aligned}"),
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable rowspacing="0.25em" columnspacing="0em" columnalign="right left"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>b</mi></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>d</mi></mrow></mstyle></mtd></mtr></mtable></semantics></math>
+    ),
+  )
+  inspect(
+    @mathml.render(
+      @katex_parser.parse(
+        "\\begin{aligned}a&=b&c&=d\\\\e&=f&g&=h\\end{aligned}",
+      ),
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable rowspacing="0.25em" columnspacing="0em 1em 0em" columnalign="right left right left"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>b</mi></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>d</mi></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>e</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>f</mi></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>g</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>h</mi></mrow></mstyle></mtd></mtr></mtable></semantics></math>
+    ),
+  )
+}
+
+///|
+test "render align environment in display mode" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  inspect(
+    @mathml.render(
+      @katex_parser.parse("\\begin{align}a&=b\\\\c&=d\\end{align}", settings~),
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnspacing="0em" columnalign="right left"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>b</mi></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>d</mi></mrow></mstyle></mtd></mtr></mtable></mstyle></semantics></math>
+    ),
+  )
+}
+
+///|
+test "render smallmatrix with reduced row spacing" {
+  inspect(
+    @mathml.render(
+      @katex_parser.parse("\\begin{smallmatrix}a&b\\\\c&d\\end{smallmatrix}"),
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable rowspacing="0.1em" columnspacing="0.2778em" columnalign="center center"><mtr><mtd><mstyle scriptlevel="1" displaystyle="false"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="1" displaystyle="false"><mi>b</mi></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="1" displaystyle="false"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="1" displaystyle="false"><mi>d</mi></mstyle></mtd></mtr></mtable></semantics></math>
+    ),
+  )
+}
+
+///|
 test "omit math shell for empty content" {
   inspect(@mathml.render(@katex_parser.parse("\\def\\foo{x}")), content="")
   inspect(

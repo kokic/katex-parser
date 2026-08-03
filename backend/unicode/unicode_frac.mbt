@@ -42,3 +42,28 @@ fn wrap_delims(block : Block, left : String?, right : String?) -> Block {
   let r = right.map_or(Block::empty(), d => Block::from(render_delimiter(d)))
   l.beside(block).beside(r)
 }
+
+///|
+/// Renders a bar-less delimited stack (binomial, `\bracefrac`, `\brackfrac`)
+/// as a block whose delimiters span both rows. Used in display mode; inline
+/// contexts render as `(n,k)` instead.
+fn barless_delimited_block(
+  numer : @katex_parser.ParseNode,
+  denom : @katex_parser.ParseNode,
+  left : String?,
+  right : String?,
+  state : RenderState,
+) -> Block {
+  let num_state = { ..state, in_display: false }
+  let den_state = { ..state, in_display: false, in_tight: true }
+  let num = Block::from(render_node_internal(numer, num_state))
+  let den = Block::from(render_node_internal(denom, den_state))
+  let w = num.width().max(den.width())
+  let l = left.map_or("", render_delimiter)
+  let r = right.map_or("", render_delimiter)
+  let lines = [
+    "\{l}\{center_text(num.render(), w)}\{r}",
+    "\{l}\{center_text(den.render(), w)}\{r}",
+  ]
+  { lines, width: w + display_width(l) + display_width(r), baseline: 0 }
+}

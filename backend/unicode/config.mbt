@@ -50,6 +50,7 @@ pub impl Default for RenderConfig with fn default() {
 
 ///|
 priv struct RenderState {
+  style : @katex_parser.StyleLevel
   in_display : Bool
   in_tight : Bool
   config : RenderConfig

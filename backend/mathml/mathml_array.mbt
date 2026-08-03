@@ -29,6 +29,7 @@ fn render_array(
   separation : @katex_parser.ColumnSeparationType?,
   tags : Array[Array[@katex_parser.ParseNode]?]?,
   _leqno : Bool,
+  add_jot : Bool,
   state : RenderState,
 ) -> MathMlNode {
   let rows = Array::makei(body.length(), i => {
@@ -53,14 +54,14 @@ fn render_array(
       None => element("mtr", children=row)
     }
   })
-  let row_spacing = if array_stretch == 1.0 {
-    "0.16em"
-  } else {
-    (0.16 + array_stretch - 1).to_string() + "em"
+
+  let row_spacing = {
+    guard !(array_stretch == 0.5) else { "0.1em" }
+    em(0.16 + array_stretch - 1 + (if add_jot { 0.09 } else { 0.0 }))
   }
   let attrs = [
     ("rowspacing", row_spacing),
-    ("columnspacing", column_spacing(separation)),
+    ("columnspacing", column_spacing(separation, columns)),
     ..columns.map_or([], spec => array_column_attributes(spec)),
     ..row_lines(hlines).map_or([], lines => [("rowlines", lines)]),
   ]
@@ -79,11 +80,8 @@ fn row_lines(hlines : Array[Array[Bool]]) -> String? {
       "solid"
     }
   })
-  if lines.any(line => line != "none") {
-    Some(lines.join(" "))
-  } else {
-    None
-  }
+  guard lines.any(line => line != "none") else { None }
+  Some(lines.join(" "))
 }
 
 ///|
@@ -121,9 +119,28 @@ fn array_column_attributes(
 }
 
 ///|
-fn column_spacing(kind : @katex_parser.ColumnSeparationType?) -> String {
+fn em(value : Double) -> String {
+  ((value * 100.0).round() / 100.0).to_string() + "em"
+}
+
+///|
+fn column_spacing(
+  kind : @katex_parser.ColumnSeparationType?,
+  columns : Array[@katex_parser.ArrayColumn]?,
+) -> String {
   match kind {
-    Some(AlignSeparation) => "0em 1em"
+    Some(AlignSeparation) => {
+      let count = columns.map_or(0, specs => {
+        specs.fold(init=0, (acc, spec) => {
+          match spec {
+            AlignColumn(..) => acc + 1
+            SeparatorColumn(..) => acc
+          }
+        })
+      })
+      guard !(count <= 1) else { "" }
+      Array::makei(count - 1, index => "\{index % 2}em").join(" ")
+    }
     Some(AlignAtSeparation) | Some(GatherSeparation) => "0em"
     Some(SmallSeparation) => "0.2778em"
     Some(CdSeparation) => "0.5em"

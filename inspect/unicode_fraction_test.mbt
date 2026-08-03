@@ -86,9 +86,12 @@ test "render fractions in block mode" {
     @unicode.render(@katex_parser.parse("\\dfrac{x}{y}", settings~)),
     output,
   )
+  let output =
+    #|(n)
+    #|(k)
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\binom{n}{k}", settings~)),
-    "(n,k)",
+    output,
   )
 }
 

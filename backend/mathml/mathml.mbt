@@ -193,8 +193,9 @@ fn render_node(
     Tag(body~, tag~, ..) => render_tag(body, tag, state)
     Array(
       body~,
-      columns~,
+      add_jot~,
       array_stretch~,
+      columns~,
       row_gaps~,
       hlines_before_row~,
       column_separation_type~,
@@ -204,7 +205,7 @@ fn render_node(
     ) =>
       render_array(
         body, columns, array_stretch, row_gaps, hlines_before_row, column_separation_type,
-        tags, leqno, state,
+        tags, leqno, add_jot, state,
       )
     CdLabel(side~, label~, ..) => render_cd_label(side, label, state)
     Cr(new_line~, size~, ..) => render_cr(new_line, size)

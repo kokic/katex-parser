@@ -143,6 +143,38 @@ test "block content in scripts renders inline" {
 }
 
 ///|
+test "mathchoice selects variant by current style" {
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("a\\mathchoice{D}{T}{S}{SS}b")),
+    "aTb",
+  )
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("a\\textstyle\\mathchoice{D}{T}{S}{SS}b"),
+    ),
+    "aTb",
+  )
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("a\\displaystyle\\mathchoice{D}{T}{S}{SS}b"),
+    ),
+    "aDb",
+  )
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("a\\scriptstyle\\mathchoice{D}{T}{S}{SS}b"),
+    ),
+    "aSb",
+  )
+  @test.assert_eq(
+    @unicode.render(
+      @katex_parser.parse("a\\scriptscriptstyle\\mathchoice{D}{T}{S}{SS}b"),
+    ),
+    "aSSb",
+  )
+}
+
+///|
 test "fallback function notation aligns around block fractions" {
   let settings = @katex_parser.Settings::make(display_mode=true)
   let output =

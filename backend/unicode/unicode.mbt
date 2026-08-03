@@ -6,7 +6,12 @@ pub fn render(
   nodes : Array[@katex_parser.ParseNode],
   config? : RenderConfig = Default::default(),
 ) -> String {
-  render_internal(nodes, { in_display: false, in_tight: false, config })
+  render_internal(nodes, {
+    style: @katex_parser.StyleLevel::TextStyle,
+    in_display: false,
+    in_tight: false,
+    config,
+  })
 }
 
 ///|
@@ -88,6 +93,7 @@ fn render_node_internal(
     Styling(body~, style~, ..) =>
       render_internal(body, {
         ..state,
+        style,
         in_display: state.in_display || style == DisplayStyle,
       })
     Text(body~, ..) => render_internal(body, { ..state, in_tight: true })
@@ -117,7 +123,10 @@ fn render_node_internal(
       let den_state = { ..state, in_tight: true }
       "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}"
     }
-    // Binomial: no bar line, delimiters present — (n,k) in all modes
+    // Binomial: no bar line, delimiters present — stacked block in display
+    // mode, (n,k) inline otherwise.
+    GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) if state.in_display =>
+      barless_delimited_block(numer, denom, left_delim, right_delim, state).render()
     GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) => {
       let num_state = { ..state, in_tight: true }
       let den_state = { ..state, in_tight: true }
@@ -166,7 +175,11 @@ fn render_node_internal(
     Pmb(body~, ..) => "bold(\{render_internal(body, state)})"
     Rule(width~, height~, ..) =>
       "rule(\{render_measurement(width)},\{render_measurement(height)})"
-    MathChoice(display~, ..) => render_internal(display, state)
+    MathChoice(display~, text~, script~, scriptscript~, ..) =>
+      render_internal(
+        math_choice_variant(display, text, script, scriptscript, state.style),
+        state,
+      )
     HorizBrace(label~, base~, ..) =>
       "\{render_command_name(label)}(\{render_node_internal(base, state)})"
     XArrow(label~, body~, below=None, ..) =>
@@ -245,6 +258,7 @@ fn collect_spacable_items(
       Styling(body~, style~, ..) => {
         let child_state = {
           ..state,
+          style,
           in_display: state.in_display ||
           style == @katex_parser.StyleLevel::DisplayStyle,
         }
@@ -348,6 +362,22 @@ fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
 
     // --- Partial groups: shouldn't reach here ---
     Color(..) | Sizing(..) | HBox(..) | Href(..) | Html(..) => Some("mord")
+  }
+}
+
+///|
+fn math_choice_variant(
+  display : Array[@katex_parser.ParseNode],
+  text : Array[@katex_parser.ParseNode],
+  script : Array[@katex_parser.ParseNode],
+  scriptscript : Array[@katex_parser.ParseNode],
+  style : @katex_parser.StyleLevel,
+) -> Array[@katex_parser.ParseNode] {
+  match style {
+    @katex_parser.StyleLevel::DisplayStyle => display
+    @katex_parser.StyleLevel::TextStyle => text
+    @katex_parser.StyleLevel::ScriptStyle => script
+    @katex_parser.StyleLevel::ScriptScriptStyle => scriptscript
   }
 }
 
@@ -670,10 +700,65 @@ fn render_sup_sub_block(
   sub : @katex_parser.ParseNode?,
   state : RenderState,
 ) -> Block {
-  let base = base.map_or(Block::empty(), b => render_operand_block(b, state))
-  let sub = render_script(sub, UnicodeSubscript, "_", state)
-  let sup = render_script(sup, UnicodeSuperscript, "^", state)
-  base.beside(Block::from("\{sub}\{sup}"))
+  match base {
+    Some(base) if operator_uses_limits(base, state) =>
+      render_limits_block(base, sup, sub, state)
+    _ => {
+      let base = base.map_or(Block::empty(), b => render_operand_block(b, state))
+      let sub = render_script(sub, UnicodeSubscript, "_", state)
+      let sup = render_script(sup, UnicodeSuperscript, "^", state)
+      base.beside(Block::from("\{sub}\{sup}"))
+    }
+  }
+}
+
+///|
+/// True when a large operator with `limits=true` should draw its scripts as
+/// limits above and below (display mode only; integrals and `\nolimits`
+/// operators stay on the side).
+fn operator_uses_limits(
+  base : @katex_parser.ParseNode,
+  state : RenderState,
+) -> Bool {
+  match base {
+    // \operatorname* draws limits in every style; other large operators with
+    // limits=true stack only in display mode. Integrals and \nolimits stay on
+    // the side.
+    Op(limits=true, always_handle_sup_sub~, ..) =>
+      state.in_display || always_handle_sup_sub
+    OperatorName(always_handle_sup_sub=true, ..) => true
+    _ => false
+  }
+}
+
+///|
+/// Renders an operator with its scripts stacked as limits above and below,
+/// keeping the operator's line as the block baseline. Limit bodies are
+/// rendered inline (tight state) so block fractions inside limits stay on one
+/// line.
+fn render_limits_block(
+  base : @katex_parser.ParseNode,
+  sup : @katex_parser.ParseNode?,
+  sub : @katex_parser.ParseNode?,
+  state : RenderState,
+) -> Block {
+  let tight_state = { ..state, in_display: false, in_tight: true }
+  let op_text = render_node_internal(base, tight_state)
+  let sup_text = sup.map_or("", s => render_node_internal(s, tight_state))
+  let sub_text = sub.map_or("", s => render_node_internal(s, tight_state))
+  let w = display_width(op_text)
+    .max(display_width(sup_text))
+    .max(display_width(sub_text))
+  let lines : Array[String] = []
+  if sup_text.length() > 0 {
+    lines.push(center_text(sup_text, w))
+  }
+  lines.push(center_text(op_text, w))
+  let baseline = lines.length() - 1
+  if sub_text.length() > 0 {
+    lines.push(center_text(sub_text, w))
+  }
+  { lines, width: w, baseline }
 }
 
 ///|
@@ -735,6 +820,7 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
     @katex_parser.ParseNode::Styling(body~, style~, ..) =>
       content_body_block(body, {
         ..state,
+        style,
         in_display: state.in_display ||
         style == @katex_parser.StyleLevel::DisplayStyle,
       })
@@ -764,9 +850,16 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       right_delim=None,
       ..
     ) if state.in_display => frac_block(numer, denom, state, has_bar_line=false)
-    // Binomial: no bar line, delimiters present — (n,k) in all modes
-    @katex_parser.ParseNode::GenFrac(has_bar_line=false, ..) if state.in_display =>
-      Block::from(render_node_internal(node, state))
+    // Binomial: no bar line, delimiters present — stacked block in display
+    @katex_parser.ParseNode::GenFrac(
+      numer~,
+      denom~,
+      has_bar_line=false,
+      left_delim~,
+      right_delim~,
+      ..
+    ) if state.in_display =>
+      barless_delimited_block(numer, denom, left_delim, right_delim, state)
     // Regular fraction: bar line, no delimiters
     @katex_parser.ParseNode::GenFrac(
       numer~,
@@ -878,8 +971,17 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       render_operator_content_block(content, state)
     @katex_parser.ParseNode::OperatorName(body~, ..) =>
       content_body_block(body, state)
-    @katex_parser.ParseNode::MathChoice(display~, ..) =>
-      content_body_block(display, state)
+    @katex_parser.ParseNode::MathChoice(
+      display~,
+      text~,
+      script~,
+      scriptscript~,
+      ..
+    ) =>
+      content_body_block(
+        math_choice_variant(display, text, script, scriptscript, state.style),
+        state,
+      )
     @katex_parser.ParseNode::Tag(body~, tag~, ..) =>
       content_body_block(body, state)
       .beside(Block::from("\t"))

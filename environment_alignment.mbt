@@ -103,7 +103,12 @@ fn aligned_environment_handler(
     auto_tag,
     leqno: context.leqno,
     add_jot: true,
-    column_separation_type: Some(AlignSeparation),
+    column_separation_type: Some(
+      {
+        guard context.env_name == "aligned" else { AlignAtSeparation }
+        AlignSeparation
+      },
+    ),
   })
   let array = insert_alignment_empty_groups(array)
   let columns = alignment_columns(
