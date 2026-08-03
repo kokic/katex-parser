@@ -219,10 +219,9 @@ fn delimiter_is_active(
 ) -> Bool {
   delimiters
   .get(match_index)
-  .map(delimiter => {
+  .map_or(false, delimiter => {
     (depth == 0 || (depth == 1 && delimiter == "{")) && token.text == delimiter
   })
-  .unwrap_or(false)
 }
 
 ///|
@@ -253,9 +252,7 @@ fn MacroExpander::consume_arg(
   self : MacroExpander,
   delimiters : Array[String]?,
 ) -> MacroArgument raise ParseFailure {
-  let is_delimited = delimiters
-    .map(values => !values.is_empty())
-    .unwrap_or(false)
+  let is_delimited = delimiters.map_or(false, values => !values.is_empty())
   if !is_delimited {
     self.consume_spaces()
   }
@@ -518,16 +515,15 @@ fn MacroExpander::expand_macro_as_text(
   self : MacroExpander,
   name : String,
 ) -> String? raise ParseFailure {
-  match self.expand_macro(name) {
-    None => None
-    Some(tokens) => {
-      let builder = StringBuilder()
-      for token in tokens {
-        builder.write_string(token.text)
-      }
-      Some(builder.to_string())
+  self
+  .expand_macro(name)
+  .map(tokens => {
+    let builder = StringBuilder()
+    for token in tokens {
+      builder.write_string(token.text)
     }
-  }
+    builder.to_string()
+  })
 }
 
 ///|

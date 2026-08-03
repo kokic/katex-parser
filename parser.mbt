@@ -32,17 +32,16 @@ pub fn parse(
   let parser = Parser::make(input, settings)
   parser.gullet.macros.set("\\df@tag", None)
   let body = parser.parse()
-  let body = match parser.gullet.macros.get("\\df@tag") {
-    None => body
-    Some(_) => {
-      guard settings.display_mode else {
-        raise InvalidArgument(
-          message="\\tag works only in display equations",
-          loc=None,
-        )
-      }
-      [Tag(mode=Text, body~, tag=parser.subparse([Token::make("\\df@tag")]))]
+  let body = if parser.gullet.macros.get("\\df@tag") is Some(_) {
+    guard settings.display_mode else {
+      raise InvalidArgument(
+        message="\\tag works only in display equations",
+        loc=None,
+      )
     }
+    [Tag(mode=Text, body~, tag=parser.subparse([Token::make("\\df@tag")]))]
+  } else {
+    body
   }
   parser.gullet.macros.set("\\current@color", None)
   parser.gullet.macros.set("\\color", None)
@@ -78,8 +77,9 @@ fn Parser::expect(
   guard token.text == text else {
     raise ExpectedToken(expected=text, actual=Diagnostic::from_token(token))
   }
-  guard consume else { () }
-  self.consume()
+  if consume {
+    self.consume()
+  }
 }
 
 ///|
@@ -193,14 +193,13 @@ fn Parser::parse_left_right(
   try {
     let body = self.parse_expression(false, None)
     self.expect("\\right", consume=false)
-    match self.parse_function(None, None) {
-      Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) =>
-        LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
-      _ =>
-        raise InternalInvariant(
-          message="\\right did not produce a closing delimiter",
-        )
+    guard self.parse_function(None, None)
+      is Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) else {
+      raise InternalInvariant(
+        message="\\right did not produce a closing delimiter",
+      )
     }
+    LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
   } catch {
     err => {
       self.leftright_depth = self.leftright_depth - 1
@@ -442,10 +441,10 @@ fn Parser::parse_group(
     let last = self.fetch()
     self.expect(group_end)
     self.gullet.end_group()
-    let loc = match (first_token.loc, last.loc) {
-      (Some(start_loc), Some(end_loc)) =>
-        Some(SourceLocation::range(start_loc, end_loc))
-      _ => None
+    let loc = if first_token.loc is Some(start_loc) && last.loc is Some(end_loc) {
+      Some(SourceLocation::range(start_loc, end_loc))
+    } else {
+      None
     }
     Some(
       EmitAtom(
