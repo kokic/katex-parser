@@ -52,13 +52,12 @@ test "parse failures expose source locations" {
 
 ///|
 test "color model syntax is rejected like KaTeX" {
-  let rejected =
-    try {
-      let _ = @katex_parser.parse("\\color[HTML]{FF0000} x")
-      false
-    } catch {
-      InvalidArgument(message=_, loc=_) => true
-      _ => false
-    }
+  let rejected = try {
+    let _ = @katex_parser.parse("\\color[HTML]{FF0000} x")
+    false
+  } catch {
+    InvalidArgument(message=_, loc=_) => true
+    _ => false
+  }
   @test.assert_eq(rejected, true)
 }

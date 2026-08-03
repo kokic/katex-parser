@@ -27,6 +27,18 @@ test "render structural nodes without losing information" {
 }
 
 ///|
+test "overlay \\not onto the following symbol" {
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\not=")), "≠")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\not<")), "≮")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\not\\in")), "∉")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\not x")), "x̸")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("a\\not=b")), "a ≠ b")
+  // Predefined negated relations render as single characters
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\neq")), "≠")
+  @test.assert_eq(@unicode.render(@katex_parser.parse("\\notin")), "∉")
+}
+
+///|
 test "use UnicodeMath syntax for unsupported scripts" {
   @test.assert_eq(@unicode.render(@katex_parser.parse("x^{q}")), "x^q")
 }

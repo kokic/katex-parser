@@ -130,6 +130,34 @@ test "render smallmatrix with reduced row spacing" {
 }
 
 ///|
+test "overlay \\not onto the following symbol" {
+  inspect(
+    @mathml.render(@katex_parser.parse("\\not=")),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≠</mo></semantics></math>
+    ),
+  )
+  inspect(
+    @mathml.render(@katex_parser.parse("\\not<")),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>&lt;̸</mo></semantics></math>
+    ),
+  )
+  inspect(
+    @mathml.render(@katex_parser.parse("a\\not=b")),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mo>≠</mo><mi>b</mi></mrow></semantics></math>
+    ),
+  )
+  inspect(
+    @mathml.render(@katex_parser.parse("\\not x")),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x̸</mi></semantics></math>
+    ),
+  )
+}
+
+///|
 test "omit math shell for empty content" {
   inspect(@mathml.render(@katex_parser.parse("\\def\\foo{x}")), content="")
   inspect(

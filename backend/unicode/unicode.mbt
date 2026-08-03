@@ -30,7 +30,7 @@ fn render_internal_block(
   nodes : Array[@katex_parser.ParseNode],
   state : RenderState,
 ) -> Block {
-  let items = collect_spacable_items(nodes, state)
+  let items = merge_not_overlay(collect_spacable_items(nodes, state))
   let cancelled = @backend.cancel_bin_atoms(items)
   if cancelled.any(it => it.text.contains("\n")) {
     join_with_block(cancelled, state.in_tight, state.config.spacing)
@@ -253,6 +253,42 @@ fn render_node_internal(
     Accent(label~, base~, ..) => render_accent(label, base, state)
     Verb(body~, ..) => body
   }
+}
+
+///|
+/// Merges a standalone `\not` overlay into the following symbol. The MathML
+/// branch of the `\not` macro is `\char"338` (the combining long solidus
+/// U+0338), which this backend renders as a bare combining mark. Mirrors
+/// KaTeX's buildMathML handling: instead of leaving the mark standalone (which
+/// would gain a stray space before a following relation), it is appended after
+/// the next single-character symbol so the slash visually overlays it.
+/// `\not=` therefore renders as `=\u0338` (≈ ≠) rather than `̸ =`.
+fn merge_not_overlay(
+  items : Array[@backend.SpacableItem],
+) -> Array[@backend.SpacableItem] {
+  let result : Array[@backend.SpacableItem] = []
+  let mut skip_next = false
+  for i in 0..<items.length() {
+    let item = items[i]
+    if skip_next {
+      skip_next = false
+      continue
+    }
+    if item.text == "\u0338" && i + 1 < items.length() {
+      let next = items[i + 1]
+      let next_text = next.text
+      if next.atom_type is Some(_) &&
+        next_text.length() > 0 &&
+        is_single_character_output(next_text) &&
+        !is_zero_width_mark(next_text[0].to_int()) {
+        result.push({ ..next, text: next_text + "\u0338" })
+        skip_next = true
+        continue
+      }
+    }
+    result.push(item)
+  }
+  result
 }
 
 ///|

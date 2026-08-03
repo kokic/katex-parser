@@ -113,8 +113,27 @@ fn combine_expression(nodes : Array[MathMlNode]) -> Array[MathMlNode] {
           left_attrs,
           left_children + right_children,
         )
+      // \not: overlay the combining long solidus (U+0338) onto the following
+      // symbol, mirroring KaTeX buildMathML.
+      (
+        Element("mi", _, [Text("\u0338")]),
+        Element(kind, right_attrs, [Text(right_text), .. rest]),
+      ) if (kind == "mi" || kind == "mo" || kind == "mn") &&
+        right_text.length() > 0 =>
+        result[result.length() - 1] = Element(
+          kind,
+          right_attrs,
+          [Text(overlay_not(right_text))] + Array::from_iter(rest.iter()),
+        )
       _ => result.push(node)
     }
   }
   result
+}
+
+///|
+fn overlay_not(text : String) -> String {
+  text.unsafe_substring(start=0, end=1) +
+  "\u0338" +
+  text.unsafe_substring(start=1, end=text.length())
 }
