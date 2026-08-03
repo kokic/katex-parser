@@ -19,9 +19,10 @@ fn render_array_block(
   body : Array[Array[@katex_parser.ParseNode]],
   columns : Array[@katex_parser.ArrayColumn]?,
   hlines_before_row : Array[Array[Bool]],
+  separation : @katex_parser.ColumnSeparationType?,
   state : RenderState,
 ) -> String {
-  cell_block(body, columns, hlines_before_row, state).render()
+  cell_block(body, columns, hlines_before_row, separation, state).render()
 }
 
 ///|
@@ -31,9 +32,12 @@ fn render_leftright_block(
   body : Array[Array[@katex_parser.ParseNode]],
   columns : Array[@katex_parser.ArrayColumn]?,
   hlines_before_row : Array[Array[Bool]],
+  separation : @katex_parser.ColumnSeparationType?,
   state : RenderState,
 ) -> Block {
-  cell_block(body, columns, hlines_before_row, state).enclose(left, right)
+  cell_block(body, columns, hlines_before_row, separation, state).enclose(
+    left, right,
+  )
 }
 
 ///|
@@ -41,31 +45,37 @@ fn render_leftright_block(
 /// spec (`|`, `:`) and horizontal rules from `\hline`/`\hdashline`. Trailing
 /// empty rows (produced by a final `\\`) are dropped, with their rules kept
 /// as a bottom border.
+///
+/// Cells are rendered as `Block`s so multi-line content (e.g. block fractions)
+/// contributes its real width and vertical span. Within a row, cell baselines
+/// are aligned on a common axis, matching how `beside` composes mixed-height
+/// content. Alignment environments (`aligned`/`alignat`/`gather`) honor their
+/// column alignment (`r`/`l`/`c`); plain arrays stay left-aligned.
 fn cell_block(
   body : Array[Array[@katex_parser.ParseNode]],
   columns : Array[@katex_parser.ArrayColumn]?,
   hlines_before_row : Array[Array[Bool]],
+  separation : @katex_parser.ColumnSeparationType?,
   state : RenderState,
 ) -> Block {
-  let cell_texts = body.map(r => r.map(c => render_node_internal(c, state)))
-  let n = cell_texts.length()
+  let cell_blocks = body.map(r => r.map(c => content_block(c, state)))
+  let n = cell_blocks.length()
   let mut last = n - 1
-  while last >= 0 && cell_texts[last].all(s => s == "") {
+  while last >= 0 && cell_blocks[last].all(b => b.lines.length() == 0) {
     last = last - 1
   }
   guard last >= 0 else { return Block::empty() }
-  let rows = Array::makei(last + 1, i => cell_texts[i])
-  let widths = column_widths(rows)
+  let rows = Array::makei(last + 1, i => cell_blocks[i])
+  let widths = column_block_widths(rows)
   let ncols = widths.length()
   guard ncols > 0 else { return Block::empty() }
+  let aligns = column_alignments(columns, ncols, separation)
   let vlines = separator_glyphs(columns, ncols, state.config.line_style)
-  let (line_width, vbar_pos) = row_geometry(widths, vlines)
+  let (line_width, vbar_pos) = row_geometry(widths, vlines, separation)
   let hline_kind = hline_band_kinds(hlines_before_row, last)
   let lines = render_array_lines(
-    rows,
+    rows.map(row => row_block(row, widths, aligns, vlines, separation)),
     hlines_before_row,
-    widths,
-    vlines,
     vbar_pos,
     line_width,
     hline_kind,
@@ -73,9 +83,221 @@ fn cell_block(
     last,
   )
   let block = Block::from(lines.join("\n"))
+  let block = pad_gather(block, separation)
   // Math axis sits at the vertical center of the array, so surrounding
   // content (e.g. `=` in `x = \begin{cases}...`) aligns against it.
   { ..block, baseline: block.height() / 2 }
+}
+
+///|
+/// For `gather`/`gathered`, KaTeX centers each row across the display width.
+/// With no viewer width available, approximate the layout by padding the
+/// widest row with four spaces on each side and centering the rows in it.
+fn pad_gather(
+  block : Block,
+  separation : @katex_parser.ColumnSeparationType?,
+) -> Block {
+  guard separation is Some(@katex_parser.ColumnSeparationType::GatherSeparation) else {
+    block
+  }
+  let lines = block.lines.map(l => "    " + l + "    ")
+  { lines, width: block.width + 8, baseline: block.baseline }
+}
+
+///|
+/// Computes the display width of every column from the maximum block width in
+/// that column across all rows.
+fn column_block_widths(rows : Array[Array[Block]]) -> Array[Int] {
+  let max_cols = rows.fold(init=0, (m, row) => {
+    let len = row.length()
+    if len > m {
+      len
+    } else {
+      m
+    }
+  })
+  let widths = Array::make(max_cols, 0)
+  for row in rows {
+    for j, cell in row {
+      let w = cell.width()
+      if w > widths[j] {
+        widths[j] = w
+      }
+    }
+  }
+  widths
+}
+
+///|
+/// The horizontal alignment of every column. Only alignment environments
+/// (`aligned`/`alignat`/`gather`) honor the declared alignment; other arrays
+/// keep their cells left-aligned to preserve the existing plain-text look.
+fn column_alignments(
+  columns : Array[@katex_parser.ArrayColumn]?,
+  ncols : Int,
+  separation : @katex_parser.ColumnSeparationType?,
+) -> Array[String] {
+  let parsed : Array[String] = Array::make(ncols, "l")
+  guard columns is Some(cols) else { return parsed }
+  let mut col = 0
+  for spec in cols {
+    match spec {
+      @katex_parser.ArrayColumn::AlignColumn(alignment~, ..) => {
+        if col < ncols {
+          parsed[col] = alignment
+        }
+        col = col + 1
+      }
+      @katex_parser.ArrayColumn::SeparatorColumn(..) => ()
+    }
+  }
+  match separation {
+    Some(@katex_parser.ColumnSeparationType::AlignSeparation)
+    | Some(@katex_parser.ColumnSeparationType::AlignAtSeparation)
+    | Some(@katex_parser.ColumnSeparationType::GatherSeparation) => parsed
+    _ => Array::make(ncols, "l")
+  }
+}
+
+///|
+/// A row of cells padded to their column widths, with every cell's baseline
+/// placed on a common axis so that tall cells (block fractions) and short
+/// ones line up the way `beside` does. Vertical separators are drawn as
+/// full-height bars between the columns.
+fn row_block(
+  cells : Array[Block],
+  widths : Array[Int],
+  aligns : Array[String],
+  vlines : Array[String?],
+  separation : @katex_parser.ColumnSeparationType?,
+) -> Block {
+  let ncols = widths.length()
+  let padded = Array::makei(ncols, j => {
+    pad_cell(cells.get(j).unwrap_or(Block::empty()), widths[j], aligns[j])
+  })
+  let mut row_bl = 0
+  for j in 0..<ncols {
+    row_bl = row_bl.max(padded[j].baseline)
+  }
+  let tops : Array[Int] = Array::makei(ncols, j => row_bl - padded[j].baseline)
+  let mut row_h = row_bl + 1
+  for j in 0..<ncols {
+    row_h = row_h.max(tops[j] + padded[j].lines.length())
+  }
+  let lines : Array[String] = Array::make(row_h, "")
+  let mut width = 0
+  match vlines[0] {
+    Some(v) => {
+      for i in 0..<row_h {
+        lines[i] = lines[i] + v
+      }
+      width = width + display_width(v)
+    }
+    None => ()
+  }
+  for j in 0..<ncols {
+    let cell_lines = vertical_lines(padded[j], tops[j], row_h)
+    for i in 0..<row_h {
+      lines[i] = lines[i] + cell_lines[i]
+    }
+    width = width + widths[j]
+    if j < ncols - 1 {
+      let gap = boundary_gap(vlines, j + 1, separation)
+      for i in 0..<row_h {
+        lines[i] = lines[i] + gap
+      }
+      width = width + display_width(gap)
+    } else {
+      match vlines[ncols] {
+        Some(v) => {
+          for i in 0..<row_h {
+            lines[i] = lines[i] + v
+          }
+          width = width + display_width(v)
+        }
+        None => ()
+      }
+    }
+  }
+  { lines, width, baseline: row_bl }
+}
+
+///|
+/// Pads a cell block to a column width according to its alignment. Empty
+/// cells grow to the width without any lines.
+fn pad_cell(b : Block, width : Int, align : String) -> Block {
+  guard b.lines.length() > 0 else { { lines: [], width, baseline: 0 } }
+  guard width > b.width else { b }
+  match align {
+    "r" =>
+      {
+        lines: b.lines.map(l => " ".repeat(width - display_width(l)) + l),
+        width,
+        baseline: b.baseline,
+      }
+    "c" =>
+      {
+        lines: b.lines.map(l => {
+          let need = width - display_width(l)
+          let left = need / 2
+          " ".repeat(left) + l + " ".repeat(need - left)
+        }),
+        width,
+        baseline: b.baseline,
+      }
+    _ =>
+      {
+        lines: b.lines.map(l => pad_right(l, width)),
+        width,
+        baseline: b.baseline,
+      }
+  }
+}
+
+///|
+/// Vertically positions a cell's lines inside a row of height `row_h` so its
+/// baseline sits on row `top`.
+fn vertical_lines(b : Block, top : Int, row_h : Int) -> Array[String] {
+  let h = b.lines.length()
+  let empty = " ".repeat(b.width)
+  let top_lines = Array::make(top, empty)
+  let bottom_lines = Array::make((row_h - top - h).max(0), empty)
+  top_lines + b.lines + bottom_lines
+}
+
+///|
+fn column_gap(
+  separation : @katex_parser.ColumnSeparationType?,
+  boundary : Int,
+) -> String {
+  match separation {
+    Some(@katex_parser.ColumnSeparationType::AlignSeparation) =>
+      if boundary % 2 == 0 {
+        "  "
+      } else {
+        ""
+      }
+    Some(@katex_parser.ColumnSeparationType::AlignAtSeparation)
+    | Some(@katex_parser.ColumnSeparationType::GatherSeparation)
+    | Some(@katex_parser.ColumnSeparationType::CdSeparation) => ""
+    Some(@katex_parser.ColumnSeparationType::SmallSeparation) => "  "
+    None => "  "
+  }
+}
+
+///|
+/// The text between two adjacent columns: a one-space gap around a vertical
+/// separator when the boundary has one, otherwise the separation-specific
+/// inter-column gap.
+fn boundary_gap(
+  vlines : Array[String?],
+  boundary : Int,
+  separation : @katex_parser.ColumnSeparationType?,
+) -> String {
+  match vlines[boundary] {
+    Some(v) => " " + v + " "
+    None => column_gap(separation, boundary)
+  }
 }
 
 ///|
@@ -83,10 +305,8 @@ fn cell_block(
 /// into a list of lines. `hlines_before_row[i]` holds the rules before row
 /// `i`; entries after the last kept row are drawn as a bottom border.
 fn render_array_lines(
-  rows : Array[Array[String]],
+  row_blocks : Array[Block],
   hlines_before_row : Array[Array[Bool]],
-  widths : Array[Int],
-  vlines : Array[String?],
   vbar_pos : Array[Int?],
   line_width : Int,
   hline_kind : Array[Array[Int]],
@@ -106,7 +326,7 @@ fn render_array_lines(
         ),
       )
     }
-    lines.push(row_line(rows[k], widths, vlines))
+    lines.push(row_blocks[k].render())
   }
   for k in (last + 1)..<hlines_before_row.length() {
     for band, dashed in hlines_before_row.get(k).unwrap_or([]) {
@@ -150,48 +370,12 @@ fn band_of(kinds : Array[Array[Int]], k : Int, band : Int) -> Int {
 }
 
 ///|
-/// A row line of padded cells joined by inter-column gaps, with vertical
-/// separator glyphs inserted at the corresponding boundaries.
-fn row_line(
-  cells : Array[String],
-  widths : Array[Int],
-  vlines : Array[String?],
-) -> String {
-  let mut result = ""
-  match vlines[0] {
-    Some(v) => result = result + v
-    None => ()
-  }
-  for j in 0..<widths.length() {
-    result = result + pad_right(cells.get(j).unwrap_or(""), widths[j])
-    if j < widths.length() - 1 {
-      result = result + boundary_gap(vlines[j + 1])
-    } else {
-      match vlines[widths.length()] {
-        Some(v) => result = result + v
-        None => ()
-      }
-    }
-  }
-  result
-}
-
-///|
-/// The text between two adjacent columns: two spaces, or one space around a
-/// vertical separator when the boundary has one.
-fn boundary_gap(vline : String?) -> String {
-  match vline {
-    Some(v) => " \{v} "
-    None => "  "
-  }
-}
-
-///|
 /// Computes the total display width of a row and the character position of
 /// every vertical separator within it.
 fn row_geometry(
   widths : Array[Int],
   vlines : Array[String?],
+  separation : @katex_parser.ColumnSeparationType?,
 ) -> (Int, Array[Int?]) {
   let n = widths.length()
   let vbar_pos : Array[Int?] = Array::make(n + 1, None)
@@ -206,12 +390,13 @@ fn row_geometry(
   for j in 0..<n {
     cursor = cursor + widths[j]
     if j < n - 1 {
+      let gap = boundary_gap(vlines, j + 1, separation)
       match vlines[j + 1] {
         Some(_) => {
           vbar_pos[j + 1] = Some(cursor + 1)
-          cursor = cursor + 3
+          cursor = cursor + display_width(gap)
         }
-        None => cursor = cursor + 2
+        None => cursor = cursor + display_width(gap)
       }
     } else {
       match vlines[n] {

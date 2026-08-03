@@ -193,13 +193,22 @@ fn render_node_internal(
     LeftRight(body~, left~, right~, ..) =>
       if state.in_display {
         match body {
-          [Array(body~, columns~, hlines_before_row~, ..)] =>
+          [
+            Array(
+              body~,
+              columns~,
+              hlines_before_row~,
+              column_separation_type~,
+              ..
+            ),
+          ] =>
             render_leftright_block(
               render_delimiter(left),
               render_delimiter(right),
               body,
               columns,
               hlines_before_row,
+              column_separation_type,
               state,
             ).render()
           _ =>
@@ -227,9 +236,11 @@ fn render_node_internal(
       ),
       ..
     ) => render_cd_block(body, state).render()
-    Array(body~, columns~, hlines_before_row~, ..) =>
+    Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) =>
       if state.in_display {
-        render_array_block(body, columns, hlines_before_row, state)
+        render_array_block(
+          body, columns, hlines_before_row, column_separation_type, state,
+        )
       } else {
         render_array_inline(body, state)
       }
@@ -889,6 +900,7 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
             body~,
             columns~,
             hlines_before_row~,
+            column_separation_type~,
             ..
           ),
         ] =>
@@ -898,6 +910,7 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
             body,
             columns,
             hlines_before_row,
+            column_separation_type,
             state,
           )
         _ =>
@@ -914,8 +927,16 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       ),
       ..
     ) => render_cd_block(body, state)
-    @katex_parser.ParseNode::Array(body~, columns~, hlines_before_row~, ..) if state.in_display =>
-      cell_block(body, columns, hlines_before_row, state)
+    @katex_parser.ParseNode::Array(
+      body~,
+      columns~,
+      hlines_before_row~,
+      column_separation_type~,
+      ..
+    ) if state.in_display =>
+      cell_block(
+        body, columns, hlines_before_row, column_separation_type, state,
+      )
     @katex_parser.ParseNode::Array(..) =>
       Block::from(render_node_internal(node, state))
     @katex_parser.ParseNode::Enclose(label~, body~, ..) if label == "\\fbox" =>
