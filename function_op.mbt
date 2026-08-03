@@ -151,37 +151,35 @@ fn mathop_handler(
 
 ///|
 fn named_operator_spec() -> FunctionSpec {
-  FunctionSpec::make(named_operator_commands, 0, handler=(
-    context,
-    args,
-    opt_args,
-  ) => named_operator_handler(context, args, opt_args))
+  FunctionSpec::make(named_operator_commands, 0, handler=named_operator_handler)
 }
 
 ///|
+#warnings("-unused_error_type")
 fn named_operator_handler(
   context : FunctionContext,
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
-) -> ParseNode {
+) -> ParseNode raise ParseFailure {
   named_operator(context.mode, false, context.func_name)
 }
 
 ///|
 fn limited_named_operator_spec() -> FunctionSpec {
-  FunctionSpec::make(limited_named_operator_commands, 0, handler=(
-    context,
-    args,
-    opt_args,
-  ) => limited_named_operator_handler(context, args, opt_args))
+  FunctionSpec::make(
+    limited_named_operator_commands,
+    0,
+    handler=limited_named_operator_handler,
+  )
 }
 
 ///|
+#warnings("-unused_error_type")
 fn limited_named_operator_handler(
   context : FunctionContext,
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
-) -> ParseNode {
+) -> ParseNode raise ParseFailure {
   named_operator(context.mode, true, context.func_name)
 }
 

@@ -139,18 +139,10 @@ fn cancels_right_of_bin(ty : String) -> Bool {
 /// Apply bin cancellation: Mbin atoms become Mord in certain contexts.
 pub fn cancel_bin_atoms(items : Array[SpacableItem]) -> Array[SpacableItem] {
   let n = items.length()
-  if n == 0 {
-    return items
-  }
-  fn is_bin(ty : String?) -> Bool {
-    match ty {
-      Some("mbin") => true
-      _ => false
-    }
-  }
-
+  guard n != 0 else { return items }
+  
   // Handle leftmost boundary
-  if is_bin(items[0].atom_type) {
+  if items[0].atom_type is Some("mbin") {
     items[0] = { ..items[0], atom_type: Some("mord") }
   }
 
@@ -172,7 +164,7 @@ pub fn cancel_bin_atoms(items : Array[SpacableItem]) -> Array[SpacableItem] {
   }
 
   // Handle rightmost boundary
-  if n >= 1 && is_bin(items[n - 1].atom_type) {
+  if n >= 1 && items[n - 1].atom_type is Some("mbin") {
     items[n - 1] = { ..items[n - 1], atom_type: Some("mord") }
   }
 

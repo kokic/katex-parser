@@ -148,16 +148,17 @@ fn relax_spec() -> FunctionSpec {
     0,
     allowed_in_argument=true,
     allowed_in_text=true,
-    handler=(context, args, opt_args) => relax_handler(context, args, opt_args),
+    handler=relax_handler,
   )
 }
 
 ///|
+#warnings("-unused_error_type")
 fn relax_handler(
   _context : FunctionContext,
   _args : Array[ParseNode],
   _opt_args : Array[ParseNode?],
-) -> ParseNode {
+) -> ParseNode raise ParseFailure {
   Internal(mode=_context.mode)
 }
 

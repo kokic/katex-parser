@@ -287,14 +287,7 @@ fn hline_rule(
 
 ///|
 fn is_vbar_position(vbar_pos : Array[Int?], i : Int) -> Bool {
-  let mut found = false
-  for pos in vbar_pos {
-    match pos {
-      Some(p) if p == i => found = true
-      _ => ()
-    }
-  }
-  found
+  vbar_pos.any(pos => pos is Some(p) && p == i)
 }
 
 ///|

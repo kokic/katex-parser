@@ -103,9 +103,8 @@ fn MacroExpander::feed(self : MacroExpander, input : String) -> Unit {
 ///|
 #warnings("-unused_value")
 fn MacroExpander::switch_mode(self : MacroExpander, mode : Mode) -> Unit {
-  if self.mode != mode {
-    self.mode = mode
-  }
+  guard self.mode != mode else { () }
+  self.mode = mode
 }
 
 ///|
