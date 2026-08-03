@@ -140,7 +140,7 @@ fn cancels_right_of_bin(ty : String) -> Bool {
 pub fn cancel_bin_atoms(items : Array[SpacableItem]) -> Array[SpacableItem] {
   let n = items.length()
   guard n != 0 else { return items }
-  
+
   // Handle leftmost boundary
   if items[0].atom_type is Some("mbin") {
     items[0] = { ..items[0], atom_type: Some("mord") }
@@ -180,12 +180,9 @@ pub fn join_with_spacing(
   spec : SpacingSpec,
 ) -> String {
   let n = items.length()
-  if n == 0 {
-    return ""
-  }
-  if n == 1 {
-    return items[0].text
-  }
+  guard n > 0 else { return "" }
+  guard n > 1 else { return items[0].text }
+
   let mut result : String = items[0].text
   for i = 1; i < n; i = i + 1 {
     let prev = items[i - 1]
