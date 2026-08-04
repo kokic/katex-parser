@@ -4,13 +4,13 @@ test "render deep cfrac with baseline alignment" {
     #|\frac{p}{q}=a_0+\cfrac{1}{a_1+\cfrac{1}{a_2+\cfrac{1}{a_3}}}
 
   let output =
-    #| p               1       
-    #|─── = a₀ + ──────────────
-    #| q                 1     
-    #|            a₁+───────── 
-    #|                    1    
-    #|                a₂+────  
-    #|                    a₃   
+    #| p                 1         
+    #|─── = a₀ + ──────────────────
+    #| q                    1      
+    #|            a₁ + ─────────── 
+    #|                        1    
+    #|                  a₂ + ────  
+    #|                        a₃   
 
   let settings = @katex_parser.Settings::make(display_mode=true)
   @test.assert_eq(
@@ -71,9 +71,9 @@ test "render fractions in block mode" {
     output,
   )
   let output =
-    #| a²  
-    #|─────
-    #| b+c 
+    #|  a²   
+    #|───────
+    #| b + c 
   @test.assert_eq(
     @unicode.render(@katex_parser.parse("\\frac{a^2}{b+c}", settings~)),
     output,
@@ -122,9 +122,9 @@ test "render delimited block fraction aligned at fraction bar" {
   )
   // Asymmetric numerator/denominator — still anchored on the bar
   let output =
-    #|  x²   
-    #|(─────)
-    #|  y+z  
+    #|   x²    
+    #|(───────)
+    #|  y + z  
   @test.assert_eq(
     @unicode.render(
       @katex_parser.parse("\\left(\\frac{x^2}{y+z}\\right)", settings~),
