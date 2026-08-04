@@ -200,12 +200,13 @@ fn render_node(
       hlines_before_row~,
       column_separation_type~,
       tags~,
+      auto_tags~,
       leqno~,
       ..
     ) =>
       render_array(
         body, columns, array_stretch, row_gaps, hlines_before_row, column_separation_type,
-        tags, leqno, add_jot, state,
+        tags, auto_tags, leqno, add_jot, state,
       )
     CdLabel(side~, label~, ..) => render_cd_label(side, label, state)
     Cr(new_line~, size~, ..) => render_cr(new_line, size)

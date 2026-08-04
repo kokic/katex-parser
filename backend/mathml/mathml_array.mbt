@@ -28,7 +28,8 @@ fn render_array(
   hlines : Array[Array[Bool]],
   separation : @katex_parser.ColumnSeparationType?,
   tags : Array[Array[@katex_parser.ParseNode]?]?,
-  _leqno : Bool,
+  auto_tags : Array[Bool]?,
+  leqno : Bool,
   add_jot : Bool,
   state : RenderState,
 ) -> MathMlNode {
@@ -36,22 +37,30 @@ fn render_array(
     let row = body[i].map(cell => {
       element("mtd", children=[render_group(cell, state)])
     })
-    match tags {
-      Some(all_tags) =>
-        match all_tags[i] {
-          Some(tag) =>
-            element(
-              "mlabeledtr",
-              children=[
-                  element("mtd", children=[
-                    make_row(render_expression(tag, state)),
-                  ]),
-                ] +
-                row,
-            )
-          None => element("mtr", children=row)
-        }
-      None => element("mtr", children=row)
+    let manual_tag = match tags {
+      Some(all_tags) => all_tags[i] is Some(_)
+      None => false
+    }
+    let automatic_tag = match auto_tags {
+      Some(all_tags) => all_tags[i]
+      None => false
+    }
+    if manual_tag || automatic_tag {
+      // Mirror KaTeX's array mathml builder: a tagged row is padded with empty
+      // glue cells and an equation-number cell (the tag text itself is only
+      // rendered on the HTML side).
+      let glue = element("mtd", attributes=[("class", "mtr-glue")])
+      let tag_cell = element("mtd", attributes=[("class", "mml-eqn-num")])
+      element(
+        "mtr",
+        children=if leqno {
+          [tag_cell] + [glue] + row + [glue]
+        } else {
+          [glue] + row + [glue] + [tag_cell]
+        },
+      )
+    } else {
+      element("mtr", children=row)
     }
   })
 

@@ -112,7 +112,71 @@ test "render align environment in display mode" {
       @katex_parser.parse("\\begin{align}a&=b\\\\c&=d\\end{align}", settings~),
     ),
     content=(
-      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnspacing="0em" columnalign="right left"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>b</mi></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>d</mi></mrow></mstyle></mtd></mtr></mtable></mstyle></semantics></math>
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnspacing="0em" columnalign="right left"><mtr><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>b</mi></mrow></mstyle></mtd><mtd class="mtr-glue"></mtd><mtd class="mml-eqn-num"></mtd></mtr><mtr><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>d</mi></mrow></mstyle></mtd><mtd class="mtr-glue"></mtd><mtd class="mml-eqn-num"></mtd></mtr></mtable></mstyle></semantics></math>
+    ),
+  )
+}
+
+///|
+test "render auto-numbered display environments" {
+  let settings = @katex_parser.Settings::make(display_mode=true)
+  let cfg = @mathml.RenderConfig::make(display_mode=true)
+  // align tags every row (glue + eqn-num cells), mirroring KaTeX
+  inspect(
+    @mathml.render(
+      @katex_parser.parse(
+        "\\begin{align}a&=b\\tag{*}\\\\c&=d\\end{align}",
+        settings~,
+      ),
+      config=cfg,
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnspacing="0em" columnalign="right left"><mtr><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>b</mi></mrow></mstyle></mtd><mtd class="mtr-glue"></mtd><mtd class="mml-eqn-num"></mtd></mtr><mtr><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>d</mi></mrow></mstyle></mtd><mtd class="mtr-glue"></mtd><mtd class="mml-eqn-num"></mtd></mtr></mtable></mstyle></semantics></math>
+    ),
+  )
+  // gather has a single centered column, still auto-tagged
+  inspect(
+    @mathml.render(
+      @katex_parser.parse("\\begin{gather}a=b\\\\c=d\\end{gather}", settings~),
+      config=cfg,
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnspacing="0em" columnalign="center"><mtr><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mi>a</mi><mo>=</mo><mi>b</mi></mrow></mstyle></mtd><mtd class="mtr-glue"></mtd><mtd class="mml-eqn-num"></mtd></mtr><mtr><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mi>c</mi><mo>=</mo><mi>d</mi></mrow></mstyle></mtd><mtd class="mtr-glue"></mtd><mtd class="mml-eqn-num"></mtd></mtr></mtable></mstyle></semantics></math>
+    ),
+  )
+  // equation has no explicit columns
+  inspect(
+    @mathml.render(
+      @katex_parser.parse("\\begin{equation}x\\end{equation}", settings~),
+      config=cfg,
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.16em" columnspacing="1em"><mtr><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>x</mi></mstyle></mtd><mtd class="mtr-glue"></mtd><mtd class="mml-eqn-num"></mtd></mtr></mtable></mstyle></semantics></math>
+    ),
+  )
+  // starred variants are not tagged: plain rows, no glue cells
+  inspect(
+    @mathml.render(
+      @katex_parser.parse("\\begin{align*}a&=b\\\\c&=d\\end{align*}", settings~),
+      config=cfg,
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnspacing="0em" columnalign="right left"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>b</mi></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>d</mi></mrow></mstyle></mtd></mtr></mtable></mstyle></semantics></math>
+    ),
+  )
+}
+
+///|
+test "render leqno tags on the left" {
+  let settings = @katex_parser.Settings::make(display_mode=true, leqno=true)
+  let cfg = @mathml.RenderConfig::make(display_mode=true)
+  inspect(
+    @mathml.render(
+      @katex_parser.parse("\\begin{align}a&=b\\\\c&=d\\end{align}", settings~),
+      config=cfg,
+    ),
+    content=(
+      #|<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnspacing="0em" columnalign="right left"><mtr><mtd class="mml-eqn-num"></mtd><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>a</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>b</mi></mrow></mstyle></mtd><mtd class="mtr-glue"></mtd></mtr><mtr><mtd class="mml-eqn-num"></mtd><mtd class="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi>c</mi></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mrow></mrow><mo>=</mo><mi>d</mi></mrow></mstyle></mtd><mtd class="mtr-glue"></mtd></mtr></mtable></mstyle></semantics></math>
     ),
   )
 }
