@@ -817,11 +817,39 @@ fn render_script(
 ) -> String {
   let tight_state = { ..state, in_display: false, in_tight: true }
   node.map_or("", node => {
+    let text = render_node_internal(node, tight_state)
     let default = () => "\{fallback_prefix}\{render_operand(node, tight_state)}"
-    unicode_script(render_node_internal(node, tight_state), kind).unwrap_or_else(
-      default,
-    )
+    match (kind, split_prime_prefix(text)) {
+      (UnicodeSuperscript, Some((primes, rest))) =>
+        match unicode_script(rest, kind) {
+          Some(mapped) => "\{primes}\{mapped}"
+          None => default()
+        }
+      _ => unicode_script(text, kind).unwrap_or_else(default)
+    }
   })
+}
+
+///|
+/// Splits a leading run of prime characters (`′`) from `text`. A prime
+/// superscript has no Unicode superscript form, but reads naturally as an
+/// apostrophe (`'`) in plain text.
+fn split_prime_prefix(text : String) -> (String, String)? {
+  let mut count = 0
+  for char in text {
+    if char == '′' {
+      count = count + 1
+    } else {
+      break
+    }
+  }
+  guard count > 0 else { return None }
+  Some(
+    (
+      "'".repeat(count),
+      text.unsafe_substring(start=count, end=text.length()),
+    ),
+  )
 }
 
 ///|

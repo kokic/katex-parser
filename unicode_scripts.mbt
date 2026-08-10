@@ -136,3 +136,19 @@ pub fn unicode_script_character(
   }
   None
 }
+
+///|
+/// True when the codepoint falls within one of the supported Unicode script
+/// blocks. Mirrors KaTeX's `supportedCodepoint` (unicodeScripts.ts).
+pub fn supported_codepoint(code : Int) -> Bool {
+  (0x0100 <= code && code <= 0x024F) || // Latin Extended-A/B
+  (0x0300 <= code && code <= 0x036F) || // Combining Diacritical marks
+  (0x0400 <= code && code <= 0x04FF) || // Cyrillic
+  (0x0530 <= code && code <= 0x058F) || // Armenian
+  (0x0900 <= code && code <= 0x109F) || // Brahmic
+  (0x10A0 <= code && code <= 0x10FF) || // Georgian
+  (0x3000 <= code && code <= 0x30FF) || // CJK symbols, Hiragana, Katakana
+  (0x4E00 <= code && code <= 0x9FAF) || // CJK ideograms
+  (0xFF00 <= code && code <= 0xFF60) || // Fullwidth punctuation
+  (0xAC00 <= code && code <= 0xD7AF) // Hangul
+}

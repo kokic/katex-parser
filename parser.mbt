@@ -17,7 +17,13 @@ priv enum AtomResult {
 fn Parser::make(input : String, settings : Settings) -> Parser {
   {
     mode: Math,
-    gullet: MacroExpander::make(input, settings),
+    gullet: MacroExpander::make(
+      input,
+      settings,
+      report_nonstrict=(error_code, error_message) => {
+        settings.report_nonstrict(error_code, error_message, None)
+      },
+    ),
     settings,
     next_token: None,
     leftright_depth: 0,
@@ -350,6 +356,23 @@ fn Parser::parse_scripts(
       }
       sub = Some(self.handle_sup_subscript("subscript"))
       continue
+    } else if token.text == "'" {
+      if sup is Some(_) {
+        raise DoubleSuperscript(loc=token.loc)
+      }
+      let primes : Array[ParseNode] = []
+      while self.fetch().text == "'" {
+        let prime_token = self.fetch()
+        primes.push(
+          TextOrd(mode=self.mode, loc=prime_token.loc, text="\\prime"),
+        )
+        self.consume()
+      }
+      if self.fetch().text == "^" {
+        primes.push(self.handle_sup_subscript("superscript"))
+      }
+      sup = Some(OrdGroup(mode=self.mode, loc=None, body=primes, semisimple=false))
+      continue
     } else {
       match lookup_unicode_script(token.text) {
         None => break make_supsub_or_base(self.mode, base, sup, sub)
@@ -458,7 +481,9 @@ fn Parser::parse_group(
         match self.parse_symbol() {
           Some(node) => Some(EmitAtom(node))
           None =>
-            if text.length() > 0 && text[0] == '\\' {
+            if text.length() > 0 &&
+              text[0] == '\\' &&
+              !is_implicit_command(text) {
               if self.settings.throw_on_error {
                 raise UndefinedControlSequence(name=text, loc=first_token.loc)
               } else {
@@ -674,6 +699,14 @@ fn Parser::parse_symbol(self : Parser) -> ParseNode? raise ParseFailure {
     Some(parse_verb_token(original_text))
   } else {
     let normalized = normalize_unicode_symbol(self.mode, original_text)
+    // KaTeX Parser.ts: accented Unicode text decomposition in math mode
+    if self.mode == Math && normalized != original_text {
+      self.settings.report_nonstrict(
+        "unicodeTextInMathMode",
+        "Accented Unicode text character \"\{original_text[0]}\" used in math mode",
+        Some(token),
+      )
+    }
     let mark_start = trailing_combining_mark_start(normalized)
     let text = mark_start.map_or(normalized, start => {
       normalized.unsafe_substring(start=0, end=start)
@@ -683,10 +716,18 @@ fn Parser::parse_symbol(self : Parser) -> ParseNode? raise ParseFailure {
       Some(_) if text == "j" => "ȷ"
       _ => text
     }
-    match make_base_symbol_node(self.mode, text, token.loc) {
-      None => None
-      Some(base) => {
+    match lookup_symbol(self.mode, text) {
+      Some(spec) => {
+        // KaTeX Parser.ts: Latin-1 fallback letters (Ð Þ þ) in math mode
+        if self.mode == Math && is_extra_latin(text) {
+          self.settings.report_nonstrict(
+            "unicodeTextInMathMode",
+            "Latin-1/Unicode text character \"\{text[0]}\" used in math mode",
+            Some(token),
+          )
+        }
         self.consume()
+        let base = make_symbol_node(self.mode, text, token.loc, spec)
         match mark_start {
           None => Some(base)
           Some(start) =>
@@ -700,6 +741,25 @@ fn Parser::parse_symbol(self : Parser) -> ParseNode? raise ParseFailure {
             )
         }
       }
+      None if text.length() > 0 && text[0] >= 0x80 => {
+        // KaTeX Parser.ts: unrecognized Unicode characters
+        if !supported_codepoint(text[0].to_int()) {
+          self.settings.report_nonstrict(
+            "unknownSymbol",
+            "Unrecognized Unicode character \"\{text[0]}\" (\{text[0].to_int()})",
+            Some(token),
+          )
+        } else if self.mode == Math {
+          self.settings.report_nonstrict(
+            "unicodeTextInMathMode",
+            "Unicode text character \"\{text[0]}\" used in math mode",
+            Some(token),
+          )
+        }
+        self.consume()
+        Some(TextOrd(mode=Text, loc=token.loc, text~))
+      }
+      None => None
     }
   }
 }
@@ -735,19 +795,12 @@ fn parse_verb_token(text : String) -> ParseNode raise ParseFailure {
 }
 
 ///|
-fn make_base_symbol_node(
-  mode : Mode,
-  text : String,
-  loc : SourceLocation?,
-) -> ParseNode? {
-  match lookup_symbol(mode, text) {
-    Some(spec) => Some(make_symbol_node(mode, text, loc, spec))
-    None =>
-      if text.length() > 0 && text[0] >= 0x80 {
-        Some(TextOrd(mode=Text, loc~, text~))
-      } else {
-        None
-      }
+/// True when the text is one of the Latin-1 letters KaTeX registers as
+/// fallback symbols (Ð Þ þ, symbols.ts extraLatin).
+fn is_extra_latin(text : String) -> Bool {
+  match text.length() {
+    0 => false
+    _ => text[0] == 'Ð' || text[0] == 'Þ' || text[0] == 'þ'
   }
 }
 
