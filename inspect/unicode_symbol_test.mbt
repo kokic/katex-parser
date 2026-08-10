@@ -12,7 +12,7 @@ test "render operators, symbols, and spacing to Unicode" {
     #|\chi(X, E) = \int_X \operatorname{ch}(E) \cdot \operatorname{td}(T_X)
   @test.assert_eq(
     @unicode.render(@katex_parser.parse(source)),
-    "χ(X,E) = ∫_X ch(E) ⋅ td(T_X)",
+    "χ(X, E) = ∫_X ch(E) ⋅ td(T_X)",
   )
 }
 

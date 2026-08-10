@@ -19,10 +19,10 @@ pub impl Default for LineStyle with fn default() {
 }
 
 ///|
-/// Unicode text spacing: regular spaces for thick/medium and after operators,
-/// empty for thin.
+/// Unicode text spacing: regular spaces for thick/medium, thin and after
+/// operators.
 pub fn unicode_text_spacing() -> @backend.SpacingSpec {
-  { thick: " ", medium: " ", thin: "", operator: " " }
+  { thick: " ", medium: " ", thin: " ", operator: " " }
 }
 
 ///|
