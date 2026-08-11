@@ -166,10 +166,14 @@ fn quote_string(text : String) -> String {
 ///|
 /// Renders a length for use inside `#...(...)` calls (code mode), where the
 /// `ex` unit is not lexable (`0.1ex` reads as the float `0.1e`). `ex` is
-/// approximated as `em`.
+/// converted to `em` with the standard x-height ratio of 0.5.
 fn render_measurement(measurement : @katex_parser.Measurement) -> String {
-  let unit = if measurement.unit == "ex" { "em" } else { measurement.unit }
-  "\{measurement.number}\{unit}"
+  if measurement.unit == "ex" {
+    let em = (measurement.number * 0.5 * 1000.0).round() / 1000.0
+    "\{em}em"
+  } else {
+    "\{measurement.number}\{measurement.unit}"
+  }
 }
 
 ///|

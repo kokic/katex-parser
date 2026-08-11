@@ -198,9 +198,8 @@ fn contains_separator(columns : Array[@katex_parser.ArrayColumn]) -> Bool {
 /// Emits an array with horizontal lines or `|` column separators as a Typst
 /// `#table(...)`: cells are `[$...$]` content, `table.hline()` draws the
 /// `\hline`/`\hdashline` marks (dashed for the latter), and `table.vline()`
-/// draws the separator columns. Vertical lines are emitted once per row band
-/// (a band starts at row 0 or after any hline), spanning the rows between
-/// hlines.
+/// draws the separator columns. Vlines are written in every row — Typst
+/// merges coincident segments, so they render as one full-height line.
 fn render_array_table(
   body : Array[Array[@katex_parser.ParseNode]],
   columns : Array[@katex_parser.ArrayColumn]?,
@@ -243,27 +242,9 @@ fn render_array_table(
         lines.push("  \{render_table_hline(row_lines)},")
       _ => ()
     }
-    let new_band = i == 0 || hlines_before_row.get(i).map_or(
-      false,
-      row => row.length() > 0,
+    lines.push(
+      "  \{table_row(body[i], vline_boundaries, ncols, state).join(", ")},",
     )
-    if new_band {
-      let row = body[i]
-      let cells : Array[String] = []
-      for j in 0 ..< row.length() {
-        if vline_boundaries.contains(j) {
-          cells.push("table.vline(), [$\{render_cell(row[j], state)}$]")
-        } else {
-          cells.push("[$\{render_cell(row[j], state)}$]")
-        }
-      }
-      if vline_boundaries.contains(ncols) {
-        cells.push("table.vline()")
-      }
-      lines.push("  \{cells.join(", ")},")
-    } else {
-      lines.push("  \{row_cells(body[i], state).join(", ")},")
-    }
   }
   match hlines_before_row.get(body.length()) {
     Some(row_lines) if row_lines.length() > 0 =>
@@ -275,11 +256,24 @@ fn render_array_table(
 }
 
 ///|
-fn row_cells(
+fn table_row(
   row : Array[@katex_parser.ParseNode],
+  vline_boundaries : Set[Int],
+  ncols : Int,
   state : RenderState,
 ) -> Array[String] {
-  row.map(cell => "[$\{render_cell(cell, state)}$]")
+  let cells : Array[String] = []
+  for j in 0 ..< row.length() {
+    if vline_boundaries.contains(j) {
+      cells.push("table.vline(), [$\{render_cell(row[j], state)}$]")
+    } else {
+      cells.push("[$\{render_cell(row[j], state)}$]")
+    }
+  }
+  if vline_boundaries.contains(ncols) {
+    cells.push("table.vline()")
+  }
+  cells
 }
 
 ///|
