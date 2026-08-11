@@ -5,7 +5,7 @@ fn render_array(
 ) -> String {
   match node {
     Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) => {
-      if hlines_before_row.any(row => row.any(line => line)) {
+      if hlines_before_row.any(row => row.length() > 0) {
         unsupported_comment("array with horizontal lines")
       } else {
         match column_separation_type {
@@ -19,7 +19,7 @@ fn render_array(
           Some(@katex_parser.ColumnSeparationType::GatherSeparation) =>
             unsupported_comment("gathered")
           Some(@katex_parser.ColumnSeparationType::SmallSeparation) =>
-            unsupported_comment("smallmatrix")
+            render_substack(body, columns, state)
           Some(@katex_parser.ColumnSeparationType::CdSeparation) =>
             unsupported_comment("cd")
         }
@@ -44,7 +44,7 @@ fn render_leftright_array(
       column_separation_type~,
       ..
     ) =>
-      if hlines_before_row.any(row => row.any(line => line)) {
+      if hlines_before_row.any(row => row.length() > 0) {
         unsupported_comment("array with horizontal lines")
       } else if column_separation_type is None &&
         is_left_brace(left) &&
@@ -63,7 +63,15 @@ fn render_leftright_array(
         }
         render_mat_body(body, columns, delim, state)
       } else {
-        render_array(array, state)
+        match column_separation_type {
+          Some(@katex_parser.ColumnSeparationType::SmallSeparation) => {
+            // `\left( \substack{...} \right)`: the stack has no delimiter of
+            // its own, so the surrounding `lr` is preserved.
+            let content = render_substack(body, columns, state)
+            wrap_lr(content, left, right)
+          }
+          _ => render_array(array, state)
+        }
       }
     _ => ""
   }
@@ -105,6 +113,43 @@ fn render_mat_body(
     } else {
       "mat(\{rows}\{delim_arg}\{align_arg})"
     }
+  }
+}
+
+///|
+/// `\substack` expands to the one-column `subarray` environment; `smallmatrix`
+/// (also `SmallSeparation`) has one column per row. There is no 0.15 `stack`
+/// math function, so a single-column array is emitted as `mat(...)` with
+/// `;`-separated rows, which renders as a compact centered stack. A
+/// multi-column `smallmatrix` stays unsupported.
+fn render_substack(
+  body : Array[Array[@katex_parser.ParseNode]],
+  columns : Array[@katex_parser.ArrayColumn]?,
+  state : RenderState,
+) -> String {
+  match columns {
+    None => render_stack_rows(body, state)
+    Some(cols) =>
+      if cols.length() <= 1 && cols.all(col => col is AlignColumn(..)) {
+        render_stack_rows(body, state)
+      } else {
+        unsupported_comment("smallmatrix")
+      }
+  }
+}
+
+///|
+fn render_stack_rows(
+  body : Array[Array[@katex_parser.ParseNode]],
+  state : RenderState,
+) -> String {
+  let rows = body
+    .map(row => row.map(cell => render_cell(cell, state)).join(", "))
+    .join("; ")
+  if rows == "" {
+    unsupported_comment("empty array")
+  } else {
+    "mat(\{rows})"
   }
 }
 

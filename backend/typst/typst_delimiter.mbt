@@ -8,18 +8,24 @@ fn render_left_right(
   match body {
     [array] if array is @katex_parser.ParseNode::Array(..) =>
       render_leftright_array(array, left, right, state)
-    _ => {
-      let l = render_lr_delim(left)
-      let r = render_lr_delim(right)
-      if l == "" && r == "" {
-        render_nodes(body, state)
-      } else if l == "" || r == "" {
-        let visible = if l == "" { r } else { l }
-        "\{render_nodes(body, state)} lr(size: #2em, \{visible})"
-      } else {
-        "lr(\{l} \{render_nodes(body, state)} \{r})"
-      }
-    }
+    _ => wrap_lr(render_nodes(body, state), left, right)
+  }
+}
+
+///|
+/// Wraps rendered content in the given delimiters: both visible → `lr(...)`;
+/// a single visible side → fixed-size `lr` next to the content; none → the
+/// bare content.
+fn wrap_lr(content : String, left : String, right : String) -> String {
+  let l = render_lr_delim(left)
+  let r = render_lr_delim(right)
+  if l == "" && r == "" {
+    content
+  } else if l == "" || r == "" {
+    let visible = if l == "" { r } else { l }
+    "\{content} lr(size: #2em, \{visible})"
+  } else {
+    "lr(\{l} \{content} \{r})"
   }
 }
 
