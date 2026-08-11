@@ -76,22 +76,26 @@ fn render_sup_sub(
         @katex_parser.ParseNode::XArrow(label~, body~, below~, ..) =>
           render_folded_arrow(label, body, below, sup, sub, state)
         @katex_parser.ParseNode::Op(
-          content=BodyOperator(_),
+          content=BodyOperator(body),
           limits=true,
           ..
-        )
-        | @katex_parser.ParseNode::OperatorName(limits=true, ..) => {
-          // `\overset`/`\underset`/`\operatorname*` attach their scripts as
-          // limits above/below the operator.
-          let base_str = render_node(node, state)
-          let t_str = sup.map_or("", node =>
-            ", t: \{wrap_arg(render_node(node, state))}"
-          )
-          let b_str = sub.map_or("", node =>
-            ", b: \{wrap_arg(render_node(node, state))}"
-          )
-          "attach(\{base_str}\{t_str}\{b_str})"
+        ) => {
+          // `\dddot`/`\ddddot` expand to
+          // `\overset{\raisebox{-0.1ex}{\normalsize ...}}{x}`; recognize that
+          // shape and emit the native dot accents instead of the generic
+          // `attach` fallback.
+          let dots = match sup {
+            Some(sup_node) => dddot_dots(sup_node)
+            None => None
+          }
+          match dots {
+            Some(count) =>
+              "accent(\{wrap_arg(render_nodes(body, state))}, \{dddot_symbol(count)})"
+            None => render_sup_attach(node, sup, sub, state)
+          }
         }
+        @katex_parser.ParseNode::OperatorName(limits=true, ..) =>
+          render_sup_attach(node, sup, sub, state)
         _ => {
           let base_str = render_node(node, state)
           let sup_str = sup.map_or("", node =>
@@ -104,6 +108,25 @@ fn render_sup_sub(
         }
       }
   }
+}
+
+///|
+/// `\overset`/`\underset`/`\operatorname*` attach their scripts as limits
+/// above/below the operator.
+fn render_sup_attach(
+  base : @katex_parser.ParseNode,
+  sup : @katex_parser.ParseNode?,
+  sub : @katex_parser.ParseNode?,
+  state : RenderState,
+) -> String {
+  let base_str = render_node(base, state)
+  let t_str = sup.map_or("", node =>
+    ", t: \{wrap_arg(render_node(node, state))}"
+  )
+  let b_str = sub.map_or("", node =>
+    ", b: \{wrap_arg(render_node(node, state))}"
+  )
+  "attach(\{base_str}\{t_str}\{b_str})"
 }
 
 ///|

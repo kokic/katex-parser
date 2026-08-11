@@ -81,7 +81,7 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
     Rule(width~, height~, ..) =>
       "#rect(width: \{render_measurement(width)}, height: \{render_measurement(height)})"
     RaiseBox(dy~, body~, ..) =>
-      "#raise(\{render_measurement(dy)}, $\{render_node(body, state)}$)"
+      "#place(dy: \{render_measurement(dy)}, $\{render_node(body, state)}$)"
     HBox(body~, ..) => render_nodes(body, state)
     Lap(..) => unsupported_comment("\\llap/\\rlap/\\clap")
     MathChoice(display~, text~, script~, scriptscript~, ..) =>
@@ -162,8 +162,12 @@ fn quote_string(text : String) -> String {
 }
 
 ///|
+/// Renders a length for use inside `#...(...)` calls (code mode), where the
+/// `ex` unit is not lexable (`0.1ex` reads as the float `0.1e`). `ex` is
+/// approximated as `em`.
 fn render_measurement(measurement : @katex_parser.Measurement) -> String {
-  "\{measurement.number}\{measurement.unit}"
+  let unit = if measurement.unit == "ex" { "em" } else { measurement.unit }
+  "\{measurement.number}\{unit}"
 }
 
 ///|

@@ -44,9 +44,53 @@ fn render_accent(
   base : @katex_parser.ParseNode,
   state : RenderState,
 ) -> String {
-  match accent_names.get(label) {
-    Some(name) => "\{name}(\{wrap_arg(render_node(base, state))})"
-    None => unsupported_comment("accent " + label)
+  match label {
+    "\\textcircled" => "#circle[$\{render_node(base, state)}$]"
+    _ =>
+      match accent_names.get(label) {
+        Some(name) => "\{name}(\{wrap_arg(render_node(base, state))})"
+        None => unsupported_comment("accent " + label)
+      }
+  }
+}
+
+///|
+/// Detects the `\dddot`/`\ddddot` macro expansion shape
+/// `\overset{\raisebox{-0.1ex}{\normalsize ...}}{x}` and returns the number of
+/// dots (3 or 4) in the raise box, or `None`.
+fn dddot_dots(node : @katex_parser.ParseNode) -> Int? {
+  match node {
+    OrdGroup(
+      body=[
+        RaiseBox(
+          body=Styling(body=[OrdGroup(body=[Sizing(body=dots, ..)], ..)], ..),
+          ..,
+        ),
+        ..,
+      ],
+      ..,
+    ) =>
+      if dots.length() >= 3 &&
+        dots.length() <= 4 &&
+        dots.all(fn(n) {
+          match n {
+            TextOrd(text=".", ..) => true
+            _ => false
+          }
+        }) {
+        Some(dots.length())
+      } else {
+        None
+      }
+    _ => None
+  }
+}
+
+///|
+fn dddot_symbol(count : Int) -> String {
+  match count {
+    4 => "dot.quad"
+    _ => "dot.triple"
   }
 }
 
