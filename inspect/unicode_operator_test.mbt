@@ -7,7 +7,10 @@ test "named operators keep a space before their operand" {
   // Opening delimiters already provide visual separation
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\det(x)")), "det(x)")
   // \left(...\right) is \mathinner: thin space before it (mop → minner)
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\det\\left(x\\right)")), "det (x)")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\det\\left(x\\right)")),
+    "det (x)",
+  )
 }
 
 ///|

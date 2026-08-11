@@ -17,13 +17,10 @@ priv enum AtomResult {
 fn Parser::make(input : String, settings : Settings) -> Parser {
   {
     mode: Math,
-    gullet: MacroExpander::make(
-      input,
-      settings,
-      report_nonstrict=(error_code, error_message) => {
-        settings.report_nonstrict(error_code, error_message, None)
-      },
-    ),
+    gullet: MacroExpander::make(input, settings, report_nonstrict=(
+      error_code,
+      error_message,
+    ) => settings.report_nonstrict(error_code, error_message, None)),
     settings,
     next_token: None,
     leftright_depth: 0,
@@ -371,7 +368,9 @@ fn Parser::parse_scripts(
       if self.fetch().text == "^" {
         primes.push(self.handle_sup_subscript("superscript"))
       }
-      sup = Some(OrdGroup(mode=self.mode, loc=None, body=primes, semisimple=false))
+      sup = Some(
+        OrdGroup(mode=self.mode, loc=None, body=primes, semisimple=false),
+      )
       continue
     } else {
       match lookup_unicode_script(token.text) {

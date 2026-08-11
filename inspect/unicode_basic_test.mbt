@@ -191,7 +191,10 @@ test "render explicit math classes" {
     @unicode.render(@katex_parser.parse("\\mathopen{(}a\\mathclose{)}")),
     "(a)",
   )
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathpunct{,}b")), ", b")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("\\mathpunct{,}b")),
+    ", b",
+  )
   @test.assert_eq(@unicode.render(@katex_parser.parse("\\mathinner{a}")), "a")
 }
 

@@ -44,13 +44,17 @@ test "toplevel infix operator spacing" {
 }
 
 ///|
+
 ///|
 test "prime superscripts render as apostrophes" {
   // ' is a superscript prime, equivalent to ^\prime (KaTeX Parser.ts)
   @test.assert_eq(@unicode.render(@katex_parser.parse("A'")), "A'")
   @test.assert_eq(@unicode.render(@katex_parser.parse("A^\\prime")), "A'")
   @test.assert_eq(@unicode.render(@katex_parser.parse("A''")), "A''")
-  @test.assert_eq(@unicode.render(@katex_parser.parse("A^{\\prime\\prime}")), "A''")
+  @test.assert_eq(
+    @unicode.render(@katex_parser.parse("A^{\\prime\\prime}")),
+    "A''",
+  )
   @test.assert_eq(@unicode.render(@katex_parser.parse("f'(x)")), "f'(x)")
   // A superscript with primes and scriptable content keeps the scripts
   @test.assert_eq(@unicode.render(@katex_parser.parse("A'^2")), "A'²")
@@ -68,6 +72,7 @@ test "prime superscripts render as apostrophes" {
   }
 }
 
+///|
 test "TeX spacing around infix operators" {
   // Binary operators get spacing
   @test.assert_eq(@unicode.render(@katex_parser.parse("a+b")), "a + b")

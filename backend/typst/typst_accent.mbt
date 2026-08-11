@@ -64,11 +64,11 @@ fn dddot_dots(node : @katex_parser.ParseNode) -> Int? {
       body=[
         RaiseBox(
           body=Styling(body=[OrdGroup(body=[Sizing(body=dots, ..)], ..)], ..),
-          ..,
+          ..
         ),
         ..,
       ],
-      ..,
+      ..
     ) =>
       if dots.length() >= 3 &&
         dots.length() <= 4 &&
@@ -123,7 +123,9 @@ fn render_xarrow(
 ) -> String {
   let arrow = xarrow_name(label)
   let body_str = wrap_arg(render_node(body, state))
-  let b_str = below.map_or("", node => ", b: \{wrap_arg(render_node(node, state))}")
+  let b_str = below.map_or("", node => {
+    ", b: \{wrap_arg(render_node(node, state))}"
+  })
   // The `body` field holds the label drawn above the arrow.
   "attach(\{arrow}, t: \{body_str}\{b_str})"
 }

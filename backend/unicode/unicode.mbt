@@ -845,10 +845,7 @@ fn split_prime_prefix(text : String) -> (String, String)? {
   }
   guard count > 0 else { return None }
   Some(
-    (
-      "'".repeat(count),
-      text.unsafe_substring(start=count, end=text.length()),
-    ),
+    ("'".repeat(count), text.unsafe_substring(start=count, end=text.length())),
   )
 }
 

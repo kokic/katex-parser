@@ -1,10 +1,7 @@
 ///|
-fn render_array(
-  node : @katex_parser.ParseNode,
-  state : RenderState,
-) -> String {
+fn render_array(node : @katex_parser.ParseNode, state : RenderState) -> String {
   match node {
-    Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) => {
+    Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) =>
       if hlines_before_row.any(row => row.length() > 0) {
         render_array_table(body, columns, hlines_before_row, state)
       } else {
@@ -12,9 +9,7 @@ fn render_array(
           None => render_mat_body(body, columns, None, state)
           Some(@katex_parser.ColumnSeparationType::AlignSeparation) =>
             render_aligned(body, state)
-          Some(
-            @katex_parser.ColumnSeparationType::AlignAtSeparation,
-          ) =>
+          Some(@katex_parser.ColumnSeparationType::AlignAtSeparation) =>
             unsupported_comment("alignat")
           Some(@katex_parser.ColumnSeparationType::GatherSeparation) =>
             unsupported_comment("gathered")
@@ -24,7 +19,6 @@ fn render_array(
             unsupported_comment("cd")
         }
       }
-    }
     _ => ""
   }
 }
@@ -37,15 +31,11 @@ fn render_leftright_array(
   state : RenderState,
 ) -> String {
   match array {
-    Array(
-      body~,
-      columns~,
-      hlines_before_row~,
-      column_separation_type~,
-      ..
-    ) =>
+    Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) =>
       if hlines_before_row.any(row => row.length() > 0) {
-        let content = render_array_table(body, columns, hlines_before_row, state)
+        let content = render_array_table(
+          body, columns, hlines_before_row, state,
+        )
         wrap_lr(content, left, right)
       } else if column_separation_type is None &&
         is_left_brace(left) &&
@@ -53,7 +43,9 @@ fn render_leftright_array(
         render_cases(body, state)
       } else if column_separation_type is None {
         if columns.map_or(false, contains_separator) {
-          let content = render_array_table(body, columns, hlines_before_row, state)
+          let content = render_array_table(
+            body, columns, hlines_before_row, state,
+          )
           wrap_lr(content, left, right)
         } else {
           let delim = match (left, right) {
@@ -90,12 +82,12 @@ fn is_left_brace(left : String) -> Bool {
 
 ///|
 fn all_l(columns : Array[@katex_parser.ArrayColumn]) -> Bool {
-  columns.all(column =>
+  columns.all(column => {
     match column {
       AlignColumn(alignment~, ..) => alignment == "l"
       _ => false
     }
-  )
+  })
 }
 
 ///|
@@ -110,10 +102,7 @@ fn render_mat_body(
   } else {
     let rows = body.map(row => render_mat_row(row, state)).join("; ")
     let delim_arg = delim.map_or("", d => ", delim: \{d}")
-    let align_arg = columns
-      .map(column_align_args)
-      .bind(x => x)
-      .unwrap_or("")
+    let align_arg = columns.map(column_align_args).bind(x => x).unwrap_or("")
     if rows == "" {
       unsupported_comment("empty array")
     } else {
@@ -162,10 +151,8 @@ fn render_stack_rows(
 ///|
 /// Typst `mat` only supports a single uniform alignment, so per-column specs
 /// are emitted only when every column agrees.
-fn column_align_args(
-  columns : Array[@katex_parser.ArrayColumn],
-) -> String? {
-  let aligns : Array[String] = columns.map(column =>
+fn column_align_args(columns : Array[@katex_parser.ArrayColumn]) -> String? {
+  let aligns : Array[String] = columns.map(column => {
     match column {
       AlignColumn(alignment~, ..) =>
         match alignment {
@@ -175,9 +162,9 @@ fn column_align_args(
         }
       _ => "center"
     }
-  )
+  })
   let mut uniform = true
-  for i in 1 ..< aligns.length() {
+  for i in 1..<aligns.length() {
     if aligns[i] != aligns[0] {
       uniform = false
     }
@@ -209,14 +196,15 @@ fn render_array_table(
 ) -> String {
   let ncols = match columns {
     Some(cols) =>
-      cols.filter_map(col =>
+      cols
+      .filter_map(col => {
         match col {
           AlignColumn(..) => Some(1)
           _ => None
         }
-      ).length()
-    None =>
-      if body.length() > 0 { body[0].length() } else { 0 }
+      })
+      .length()
+    None => if body.length() > 0 { body[0].length() } else { 0 }
   }
   let vline_boundaries : Set[Int] = Set([])
   let aligns : Array[String] = []
@@ -224,8 +212,7 @@ fn render_array_table(
     Some(cols) =>
       for col in cols {
         match col {
-          AlignColumn(alignment~, ..) =>
-            aligns.push(align_name(alignment))
+          AlignColumn(alignment~, ..) => aligns.push(align_name(alignment))
           SeparatorColumn(..) => vline_boundaries.add(aligns.length())
         }
       }
@@ -237,7 +224,7 @@ fn render_array_table(
     "  align: \{render_table_align(aligns)},",
     "  stroke: none,",
   ]
-  for i in 0 ..< body.length() {
+  for i in 0..<body.length() {
     match hlines_before_row.get(i) {
       Some(row_lines) if row_lines.length() > 0 =>
         lines.push("  \{render_table_hline(row_lines)},")
@@ -276,7 +263,7 @@ fn table_row(
   state : RenderState,
 ) -> Array[String] {
   let cells : Array[String] = []
-  for j in 0 ..< row.length() {
+  for j in 0..<row.length() {
     if vline_boundaries.contains(j) {
       cells.push("table.vline(), [$\{render_cell(row[j], state)}$]")
     } else {
@@ -325,12 +312,13 @@ fn render_mat_row(
 }
 
 ///|
-fn render_cell(
-  cell : @katex_parser.ParseNode,
-  state : RenderState,
-) -> String {
+fn render_cell(cell : @katex_parser.ParseNode, state : RenderState) -> String {
   let rendered = render_node(cell, state)
-  if rendered == "" { "zws" } else { rendered }
+  if rendered == "" {
+    "zws"
+  } else {
+    rendered
+  }
 }
 
 ///|
@@ -340,17 +328,20 @@ fn render_cases(
   body : Array[Array[@katex_parser.ParseNode]],
   state : RenderState,
 ) -> String {
-  let items = body
-    .map(row => row.map(cell => render_cell(cell, state)).join(" & "))
+  let items = body.map(row => {
+    row.map(cell => render_cell(cell, state)).join(" & ")
+  })
   "cases(\{items.join(", ")})"
 }
 
 ///|
+/// Aligned rows: cells joined with `&`, rows with `\ `. Empty cells render
+/// as nothing — the alignment point alone suffices (`&  &`).
 fn render_aligned(
   body : Array[Array[@katex_parser.ParseNode]],
   state : RenderState,
 ) -> String {
   body
-    .map(row => row.map(cell => render_cell(cell, state)).join(" & "))
-    .join(" \\ ")
+  .map(row => row.map(cell => render_node(cell, state)).join(" & "))
+  .join(" \\ ")
 }

@@ -49,9 +49,8 @@ fn render_delimiter(delim : String) -> String {
 }
 
 ///|
-/// Renders a delimiter as `lr(...)` content: `(` `)` `[` `]` are always
-/// escaped; `{` `}` are escaped via code points since a bare `{` would open a
-/// brace group.
+/// Renders a delimiter as `lr(...)` content: `(` `)` `[` `]` and `{` `}` are
+/// escaped with a backslash since a bare one would open a brace group.
 fn render_lr_delim(delim : String) -> String {
   if delim == "." {
     ""
@@ -61,8 +60,8 @@ fn render_lr_delim(delim : String) -> String {
       ")" => "\\)"
       "[" => "\\["
       "]" => "\\]"
-      "{" | "\\{" => "\\u{7b}"
-      "}" | "\\}" => "\\u{7d}"
+      "{" | "\\{" => "\\{"
+      "}" | "\\}" => "\\}"
       _ => render_symbol(delim)
     }
   }

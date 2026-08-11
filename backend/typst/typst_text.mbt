@@ -6,8 +6,7 @@ fn render_text(
 ) -> String {
   let base = match plain_text_of(body) {
     Some(text) => quote_string(text)
-    None =>
-      "(\{body.map(node => render_text_child(node, state)).join(" ")})"
+    None => "(\{body.map(node => render_text_child(node, state)).join(" ")})"
   }
   match font {
     "\\textbf" => "#strong[$text\{base}$]"
@@ -22,9 +21,7 @@ fn render_text_child(
   state : RenderState,
 ) -> String {
   match node {
-    TextOrd(text~, ..)
-    | MathOrd(text~, ..)
-    | Spacing(text~, ..) =>
+    TextOrd(text~, ..) | MathOrd(text~, ..) | Spacing(text~, ..) =>
       quote_string(@katex_parser.unicode_symbol(text).unwrap_or(text))
     _ => render_node(node, state)
   }
@@ -49,12 +46,44 @@ fn render_font(
   body : @katex_parser.ParseNode,
   state : RenderState,
 ) -> String {
+  // A purely textual body whose text is a predefined Typst operator name
+  // (`\rm mod` -> `mod`) emits the bare name: it is already upright and
+  // carries operator semantics.
+  match body {
+    OrdGroup(body=nodes, ..) =>
+      match plain_text_of(nodes) {
+        Some(text) if typst_operator_names.contains(text) => text
+        _ => render_font_wrapped(font, body, state)
+      }
+    _ => render_font_wrapped(font, body, state)
+  }
+}
+
+///|
+fn render_font_wrapped(
+  font : String,
+  body : @katex_parser.ParseNode,
+  state : RenderState,
+) -> String {
   match font_functions.get(font) {
-    Some(name) =>
-      "\{name}(\{wrap_arg(render_node(body, state))})"
-    None if font == "mathsfit" =>
-      "italic(sans(\{wrap_arg(render_node(body, state))}))"
+    Some(name) => "\{name}(\{font_body(body, state)})"
+    None if font == "mathsfit" => "italic(sans(\{font_body(body, state)}))"
     // mathnormal, bold (for \pmb bodies handled elsewhere): pass through
     _ => render_node(body, state)
+  }
+}
+
+///|
+/// Renders a font body: purely textual bodies collapse to a quoted string so
+/// the letters render as one word (`upright("abc")`), not as space-separated
+/// atoms; anything with math structure renders recursively.
+fn font_body(body : @katex_parser.ParseNode, state : RenderState) -> String {
+  match body {
+    OrdGroup(body=nodes, ..) =>
+      match plain_text_of(nodes) {
+        Some(text) => quote_string(text)
+        None => wrap_arg(render_nodes(nodes, state))
+      }
+    _ => wrap_arg(render_node(body, state))
   }
 }

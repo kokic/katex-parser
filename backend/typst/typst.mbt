@@ -20,7 +20,94 @@ fn render_nodes(
   state : RenderState,
 ) -> String {
   let rendered = nodes.map(node => render_node(node, state))
-  merge_not(rendered).join(" ")
+  join_math(fold_norm(fold_primes(merge_not(rendered))))
+}
+
+///|
+/// Consecutive prime marks (`x' ' '` from a `\prime` OrdGroup) fold into a
+/// single run: Typst reads `z'''` directly, and the folded run no longer
+/// trips the script-parenthesizing rule (which only wraps on spaces).
+fn fold_primes(items : Array[String]) -> Array[String] {
+  let mut i = 0
+  while i < items.length() {
+    if items[i] == "′" {
+      let mut count = 0
+      while i < items.length() && items[i] == "′" {
+        count = count + 1
+        items[i] = ""
+        i = i + 1
+      }
+      items[i - count] = "′".repeat(count)
+    } else {
+      i = i + 1
+    }
+  }
+  items
+}
+
+///|
+/// Joins rendered items, dropping the space around `(` `)` `[` `]` boundaries
+/// (`f ( x )` reads better as `f(x)`, and Typst absorbs such spaces anyway).
+/// Spaces between letters stay (`a b`), since `ab` would parse as a single
+/// multi-letter variable; code-mode calls (`#h(...)`) keep their spaces.
+/// Empty items (cleared by `fold_primes`/`merge_not`) are skipped.
+fn join_math(items : Array[String]) -> String {
+  let sb = StringBuilder()
+  let mut prev = ""
+  for i in 0..<items.length() {
+    let text = items[i]
+    if text == "" {
+      continue
+    }
+    if prev != "" && !no_space_between(prev, text) {
+      sb.write_string(" ")
+    }
+    sb.write_string(text)
+    prev = text
+  }
+  sb.to_string()
+}
+
+///|
+fn no_space_between(left : String, right : String) -> Bool {
+  !left.has_prefix("#") &&
+  !right.has_prefix("#") &&
+  (is_open_paren(left) || is_open_paren(right) || is_close_paren(right))
+}
+
+///|
+/// Spaces are dropped around bare bracket items in `(` content `)` positions:
+/// `f` + `(` + `x` + `)` -> `f(x)`. A close bracket followed by an operator
+/// (`)` + `+`) keeps the space, and a complete expression such as `norm(b)`
+/// is not a bracket item at all (`a norm(b) c`).
+fn is_open_paren(text : String) -> Bool {
+  text == "(" || text == "["
+}
+
+///|
+fn is_close_paren(text : String) -> Bool {
+  text == ")" || text == "]"
+}
+
+///|
+/// `\Vert x \Vert` (and the `\lVert`/`\rVert` spellings) render as a bare `‖`
+/// on each side; folds the pair into Typst's `norm(...)`.
+fn fold_norm(items : Array[String]) -> Array[String] {
+  for i in 0..<(items.length() - 1) {
+    if items[i] == "‖" {
+      for j in (i + 1)..<items.length() {
+        if items[j] == "‖" && j > i + 1 {
+          let body = items.view(start=i + 1, end=j).join(" ")
+          items[i] = "norm(\{body})"
+          for k in (i + 1)..<=j {
+            items[k] = ""
+          }
+          break
+        }
+      }
+    }
+  }
+  items
 }
 
 ///|
@@ -28,7 +115,7 @@ fn render_nodes(
 /// its MathML branch. Mirroring the Unicode backend, the mark is folded into
 /// the following single symbol as `cancel(...)` so the slash overlays it.
 fn merge_not(items : Array[String]) -> Array[String] {
-  for i in 0 ..< (items.length() - 1) {
+  for i in 0..<(items.length() - 1) {
     let next = items[i + 1]
     if items[i] == "\u{0338}" && is_single_symbol(next) {
       items[i] = "cancel(\{next})"
@@ -58,8 +145,7 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
     Size(value~, ..) => render_measurement(value)
     Url(url~, ..) => url
     Styling(body~, style~, ..) => render_styling(body, style)
-    Sqrt(body~, index=None, ..) =>
-      "sqrt(\{wrap_arg(render_node(body, state))})"
+    Sqrt(body~, index=None, ..) => "sqrt(\{wrap_arg(render_node(body, state))})"
     Sqrt(body~, index=Some(index), ..) =>
       "root(\{wrap_arg(render_node(index, state))}, \{wrap_arg(render_node(body, state))})"
     Infix(..) => unsupported_comment("\\over/\\atop infix")
@@ -69,11 +155,9 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
     Font(font~, body~, ..) => render_font(font, body, state)
     MClass(body~, ..) => render_nodes(body, state)
     Op(content~, ..) => render_op(content, state)
-    OperatorName(body~, limits~, ..) =>
-      render_operatorname(body, limits, state)
+    OperatorName(body~, limits~, ..) => render_operatorname(body, limits, state)
     Overline(body~, ..) => "overline(\{wrap_arg(render_node(body, state))})"
-    Underline(body~, ..) =>
-      "underline(\{wrap_arg(render_node(body, state))})"
+    Underline(body~, ..) => "underline(\{wrap_arg(render_node(body, state))})"
     Smash(body~, ..) => render_node(body, state)
     Phantom(..) | VPhantom(..) => "#box(height: 0.5em)"
     Pmb(body~, ..) => render_nodes(body, state)
@@ -109,8 +193,7 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
       "#image(\"\{escape_string(src)}\", width: \{render_measurement(width)}, height: \{render_measurement(height)})"
     Tag(..) => unsupported_comment("\\tag")
     Array(..) => render_array(node, state)
-    CdLabel(..) | CdParent(..) | Cr(..) =>
-      unsupported_comment("cd environment")
+    CdLabel(..) | CdParent(..) | Cr(..) => unsupported_comment("cd environment")
     HtmlMathML(mathml~, ..) => render_nodes(mathml, state)
     OrdGroup(body~, ..) => render_nodes(body, state)
     SupSub(base~, sup~, sub~, ..) => render_sup_sub(base, sup, sub, state)
@@ -142,20 +225,18 @@ fn math_choice_variant(
 /// a bare `$` would terminate the surrounding equation.
 fn escape_math(text : String) -> String {
   text
-    .replace(old="\\", new="\\u{5c}")
-    .replace(old="/", new="\\/")
-    .replace(old="#", new="\\#")
-    .replace(old="&", new="\\&")
-    .replace(old="%", new="\\%")
-    .replace(old="$", new="\\$")
+  .replace(old="\\", new="\\u{5c}")
+  .replace(old="/", new="\\/")
+  .replace(old="#", new="\\#")
+  .replace(old="&", new="\\&")
+  .replace(old="%", new="\\%")
+  .replace(old="$", new="\\$")
 }
 
 ///|
 /// Escapes a double-quoted Typst string literal.
 fn escape_string(text : String) -> String {
-  text
-    .replace(old="\\", new="\\\\")
-    .replace(old="\"", new="\\\"")
+  text.replace(old="\\", new="\\\\").replace(old="\"", new="\\\"")
 }
 
 ///|

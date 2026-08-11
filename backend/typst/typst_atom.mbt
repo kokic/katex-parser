@@ -21,28 +21,55 @@ fn render_op(
 ///|
 /// Typst predefines these operator names; emitting the bare name gives proper
 /// limit placement in display mode. Others fall back to `op("...")`.
-let typst_operator_names : Map[String, Bool] = Map::from_array(
-  [
-    ("arccos", true), ("arcsin", true), ("arctan", true), ("arg", true),
-    ("cos", true), ("cosh", true), ("cot", true), ("coth", true),
-    ("csc", true), ("csch", true), ("ctg", true), ("deg", true),
-    ("det", true), ("dim", true), ("exp", true), ("gcd", true),
-    ("hom", true), ("id", true), ("im", true), ("inf", true),
-    ("ker", true), ("lg", true), ("lim", true), ("liminf", true),
-    ("limsup", true), ("ln", true), ("log", true), ("max", true),
-    ("min", true), ("mod", true), ("Pr", true), ("sec", true),
-    ("sech", true), ("sin", true), ("sinc", true), ("sinh", true),
-    ("sup", true), ("tan", true), ("tanh", true), ("tg", true),
-    ("tr", true), ("lcm", true), ("Pr", true),
-  ],
-)
+let typst_operator_names : Map[String, Bool] = Map::from_array([
+  ("arccos", true),
+  ("arcsin", true),
+  ("arctan", true),
+  ("arg", true),
+  ("cos", true),
+  ("cosh", true),
+  ("cot", true),
+  ("coth", true),
+  ("csc", true),
+  ("csch", true),
+  ("ctg", true),
+  ("deg", true),
+  ("det", true),
+  ("dim", true),
+  ("exp", true),
+  ("gcd", true),
+  ("hom", true),
+  ("id", true),
+  ("im", true),
+  ("inf", true),
+  ("ker", true),
+  ("lg", true),
+  ("lim", true),
+  ("liminf", true),
+  ("limsup", true),
+  ("ln", true),
+  ("log", true),
+  ("max", true),
+  ("min", true),
+  ("mod", true),
+  ("Pr", true),
+  ("sec", true),
+  ("sech", true),
+  ("sin", true),
+  ("sinc", true),
+  ("sinh", true),
+  ("sup", true),
+  ("tan", true),
+  ("tanh", true),
+  ("tg", true),
+  ("tr", true),
+  ("lcm", true),
+  ("Pr", true),
+])
 
 ///|
 fn render_named_operator(text : String) -> String {
-  let name = text
-    .strip_prefix("\\")
-    .map(StringView::to_owned)
-    .unwrap_or(text)
+  let name = text.strip_prefix("\\").map(StringView::to_owned).unwrap_or(text)
   if typst_operator_names.contains(name) {
     name
   } else {
@@ -57,10 +84,7 @@ fn render_operatorname(
   state : RenderState,
 ) -> String {
   let text = plain_text_of(body)
-  let content = text.map_or(
-    wrap_arg(render_nodes(body, state)),
-    quote_string,
-  )
+  let content = text.map_or(wrap_arg(render_nodes(body, state)), quote_string)
   let limits_arg = if limits { ", limits: #true" } else { "" }
   "op(\{content}\{limits_arg})"
 }
