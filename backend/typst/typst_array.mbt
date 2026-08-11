@@ -6,7 +6,7 @@ fn render_array(
   match node {
     Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) => {
       if hlines_before_row.any(row => row.length() > 0) {
-        unsupported_comment("array with horizontal lines")
+        render_array_table(body, columns, hlines_before_row, state)
       } else {
         match column_separation_type {
           None => render_mat_body(body, columns, None, state)
@@ -45,23 +45,29 @@ fn render_leftright_array(
       ..
     ) =>
       if hlines_before_row.any(row => row.length() > 0) {
-        unsupported_comment("array with horizontal lines")
+        let content = render_array_table(body, columns, hlines_before_row, state)
+        wrap_lr(content, left, right)
       } else if column_separation_type is None &&
         is_left_brace(left) &&
         columns.map_or(false, all_l) {
         render_cases(body, state)
       } else if column_separation_type is None {
-        let delim = match (left, right) {
-          ("(", ")") => Some("\"(\"")
-          ("[", "]") => Some("\"[\"")
-          ("\\{", "\\}") | ("{", "}") => Some("\"{\"")
-          ("|", "|") => Some("\"|\"")
-          ("\\|", "\\|") | ("‖", "‖") => Some("\"‖\"")
-          _ =>
-            // Mismatched or uncommon delimiter pairs: pass an explicit pair.
-            Some("#(\"{left}\", \"{right}\")")
+        if columns.map_or(false, contains_separator) {
+          let content = render_array_table(body, columns, hlines_before_row, state)
+          wrap_lr(content, left, right)
+        } else {
+          let delim = match (left, right) {
+            ("(", ")") => Some("\"(\"")
+            ("[", "]") => Some("\"[\"")
+            ("\\{", "\\}") | ("{", "}") => Some("\"{\"")
+            ("|", "|") => Some("\"|\"")
+            ("\\|", "\\|") | ("‖", "‖") => Some("\"‖\"")
+            _ =>
+              // Mismatched or uncommon delimiter pairs: pass an explicit pair.
+              Some("#(\"{left}\", \"{right}\")")
+          }
+          render_mat_body(body, columns, delim, state)
         }
-        render_mat_body(body, columns, delim, state)
       } else {
         match column_separation_type {
           Some(@katex_parser.ColumnSeparationType::SmallSeparation) => {
@@ -100,7 +106,7 @@ fn render_mat_body(
   state : RenderState,
 ) -> String {
   if columns.map_or(false, contains_separator) {
-    unsupported_comment("array with column separators")
+    render_array_table(body, columns, [], state)
   } else {
     let rows = body.map(row => render_mat_row(row, state)).join("; ")
     let delim_arg = delim.map_or("", d => ", delim: \{d}")
@@ -186,6 +192,121 @@ fn column_align_args(
 ///|
 fn contains_separator(columns : Array[@katex_parser.ArrayColumn]) -> Bool {
   columns.any(column => column is SeparatorColumn(..))
+}
+
+///|
+/// Emits an array with horizontal lines or `|` column separators as a Typst
+/// `#table(...)`: cells are `[$...$]` content, `table.hline()` draws the
+/// `\hline`/`\hdashline` marks (dashed for the latter), and `table.vline()`
+/// draws the separator columns. Vertical lines are emitted once per row band
+/// (a band starts at row 0 or after any hline), spanning the rows between
+/// hlines.
+fn render_array_table(
+  body : Array[Array[@katex_parser.ParseNode]],
+  columns : Array[@katex_parser.ArrayColumn]?,
+  hlines_before_row : Array[Array[Bool]],
+  state : RenderState,
+) -> String {
+  let ncols = match columns {
+    Some(cols) =>
+      cols.filter_map(col =>
+        match col {
+          AlignColumn(..) => Some(1)
+          _ => None
+        }
+      ).length()
+    None =>
+      if body.length() > 0 { body[0].length() } else { 0 }
+  }
+  let vline_boundaries : Set[Int] = Set([])
+  let aligns : Array[String] = []
+  match columns {
+    Some(cols) =>
+      for col in cols {
+        match col {
+          AlignColumn(alignment~, ..) =>
+            aligns.push(align_name(alignment))
+          SeparatorColumn(..) => vline_boundaries.add(aligns.length())
+        }
+      }
+    None => ()
+  }
+  let lines : Array[String] = [
+    "#table(",
+    "  columns: \{ncols},",
+    "  align: \{render_table_align(aligns)},",
+    "  stroke: none,",
+  ]
+  for i in 0 ..< body.length() {
+    match hlines_before_row.get(i) {
+      Some(row_lines) if row_lines.length() > 0 =>
+        lines.push("  \{render_table_hline(row_lines)},")
+      _ => ()
+    }
+    let new_band = i == 0 || hlines_before_row.get(i).map_or(
+      false,
+      row => row.length() > 0,
+    )
+    if new_band {
+      let row = body[i]
+      let cells : Array[String] = []
+      for j in 0 ..< row.length() {
+        if vline_boundaries.contains(j) {
+          cells.push("table.vline(), [$\{render_cell(row[j], state)}$]")
+        } else {
+          cells.push("[$\{render_cell(row[j], state)}$]")
+        }
+      }
+      if vline_boundaries.contains(ncols) {
+        cells.push("table.vline()")
+      }
+      lines.push("  \{cells.join(", ")},")
+    } else {
+      lines.push("  \{row_cells(body[i], state).join(", ")},")
+    }
+  }
+  match hlines_before_row.get(body.length()) {
+    Some(row_lines) if row_lines.length() > 0 =>
+      lines.push("  \{render_table_hline(row_lines)},")
+    _ => ()
+  }
+  lines.push(")")
+  lines.join("\n")
+}
+
+///|
+fn row_cells(
+  row : Array[@katex_parser.ParseNode],
+  state : RenderState,
+) -> Array[String] {
+  row.map(cell => "[$\{render_cell(cell, state)}$]")
+}
+
+///|
+fn align_name(alignment : String) -> String {
+  match alignment {
+    "l" => "left"
+    "r" => "right"
+    _ => "center"
+  }
+}
+
+///|
+fn render_table_align(aligns : Array[String]) -> String {
+  if aligns.all(a => a == "center") {
+    "center"
+  } else {
+    "(\{aligns.join(", ")})"
+  }
+}
+
+///|
+fn render_table_hline(row_lines : Array[Bool]) -> String {
+  if row_lines.any(line => line) {
+    "table.hline(stroke: (thickness: 0.5pt, dash: (2pt, 1pt)))"
+  } else {
+    "table.hline()"
+  }
 }
 
 ///|
