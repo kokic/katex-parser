@@ -198,8 +198,9 @@ fn contains_separator(columns : Array[@katex_parser.ArrayColumn]) -> Bool {
 /// Emits an array with horizontal lines or `|` column separators as a Typst
 /// `#table(...)`: cells are `[$...$]` content, `table.hline()` draws the
 /// `\hline`/`\hdashline` marks (dashed for the latter), and `table.vline()`
-/// draws the separator columns. Vlines are written in every row — Typst
-/// merges coincident segments, so they render as one full-height line.
+/// draws the separator columns. Vlines are written once, with the first row:
+/// a flow-placed `table.vline()` spans the whole table column (v0.15.0
+/// source: `start` defaults to 0, `end` to the last row).
 fn render_array_table(
   body : Array[Array[@katex_parser.ParseNode]],
   columns : Array[@katex_parser.ArrayColumn]?,
@@ -242,9 +243,13 @@ fn render_array_table(
         lines.push("  \{render_table_hline(row_lines)},")
       _ => ()
     }
-    lines.push(
-      "  \{table_row(body[i], vline_boundaries, ncols, state).join(", ")},",
-    )
+    if i == 0 {
+      lines.push(
+        "  \{table_row(body[0], vline_boundaries, ncols, state).join(", ")},",
+      )
+    } else {
+      lines.push("  \{row_cells(body[i], state).join(", ")},")
+    }
   }
   match hlines_before_row.get(body.length()) {
     Some(row_lines) if row_lines.length() > 0 =>
@@ -253,6 +258,14 @@ fn render_array_table(
   }
   lines.push(")")
   lines.join("\n")
+}
+
+///|
+fn row_cells(
+  row : Array[@katex_parser.ParseNode],
+  state : RenderState,
+) -> Array[String] {
+  row.map(cell => "[$\{render_cell(cell, state)}$]")
 }
 
 ///|
