@@ -138,7 +138,8 @@ fn math_choice_variant(
 
 ///|
 /// Escapes characters that have special meaning in Typst math mode. Always
-/// applied to symbol text; a bare `/` would otherwise parse as a fraction.
+/// applied to symbol text; a bare `/` would otherwise parse as a fraction and
+/// a bare `$` would terminate the surrounding equation.
 fn escape_math(text : String) -> String {
   text
     .replace(old="\\", new="\\u{5c}")
@@ -146,6 +147,7 @@ fn escape_math(text : String) -> String {
     .replace(old="#", new="\\#")
     .replace(old="&", new="\\&")
     .replace(old="%", new="\\%")
+    .replace(old="$", new="\\$")
 }
 
 ///|
