@@ -33,8 +33,7 @@ fn wrap_lr(content : String, left : String, right : String) -> String {
 fn render_delim_sizing(size : Int, delim : String) -> String {
   // KaTeX `\big`..`\Bigg` carry sizes 1..4, indexing the em table 0-based.
   let sizes = [1.2, 1.8, 2.4, 3.0]
-  let index = size - 1
-  let em = if index >= 0 && index < sizes.length() { sizes[index] } else { 1.2 }
+  let em = sizes.get(size - 1).unwrap_or(1.2)
   "lr(size: #\{em}em, \{render_lr_delim(delim)})"
 }
 

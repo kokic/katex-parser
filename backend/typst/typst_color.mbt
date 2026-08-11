@@ -144,13 +144,10 @@ fn render_color(
 
 ///|
 fn color_fill(color : String) -> String {
-  if color.length() > 0 && color[0] == '#' {
+  if color.has_prefix("#") {
     "rgb(\"\{color}\")"
   } else {
-    match named_colors.get(color) {
-      Some(hex) => "rgb(\"\{hex}\")"
-      None => color
-    }
+    named_colors.get(color).map_or(color, hex => "rgb(\"\{hex}\")")
   }
 }
 

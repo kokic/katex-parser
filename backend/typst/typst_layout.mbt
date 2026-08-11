@@ -6,25 +6,19 @@ fn render_styling(
   style : @katex_parser.StyleLevel,
 ) -> String {
   match style {
-    TextStyle =>
-      // Text style is the default; only a `\tfrac`-style fraction needs an
-      // explicit `inline(...)`.
-      match body {
-        [genfrac] if genfrac is @katex_parser.ParseNode::GenFrac(..) =>
-          "inline(\{wrap_arg(render_nodes(body, { style: TextStyle, }))})"
-        _ => render_nodes(body, { style: TextStyle })
-      }
+    // Text style is the default; only a `\tfrac`-style fraction needs an
+    // explicit `inline(...)`.
+    TextStyle if body is [GenFrac(..)] =>
+      "inline(\{wrap_arg(render_nodes(body, { style: TextStyle, }))})"
+    TextStyle => render_nodes(body, { style: TextStyle })
     _ => {
       let content = wrap_arg(render_nodes(body, { style, }))
-      if content == "" {
-        ""
-      } else {
-        match style {
-          DisplayStyle => "display(\{content})"
-          ScriptStyle => "script(\{content})"
-          ScriptScriptStyle => "sscript(\{content})"
-          TextStyle => content
-        }
+      guard content != "" else { "" }
+      match style {
+        DisplayStyle => "display(\{content})"
+        ScriptStyle => "script(\{content})"
+        ScriptScriptStyle => "sscript(\{content})"
+        TextStyle => content
       }
     }
   }
@@ -44,12 +38,7 @@ fn render_sizing(
   body : Array[@katex_parser.ParseNode],
   state : RenderState,
 ) -> String {
-  let index = size - 1
-  let em = if index >= 0 && index < sizing_sizes.length() {
-    sizing_sizes[index]
-  } else {
-    1.0
-  }
+  let em = sizing_sizes.get(size - 1).unwrap_or(1.0)
   "text(size: #\{em}em, \{render_nodes(body, state)})"
 }
 
@@ -61,48 +50,28 @@ fn render_sup_sub(
   state : RenderState,
 ) -> String {
   match base {
-    None => {
-      let sup_str = sup.map_or("", node => {
-        "^\{wrap_script(render_node(node, state))}"
-      })
-      let sub_str = sub.map_or("", node => {
-        "_\{wrap_script(render_node(node, state))}"
-      })
-      "zws\{sup_str}\{sub_str}"
-    }
+    None =>
+      "zws\{script_marks('^', sup, state)}\{script_marks('_', sub, state)}"
     Some(node) =>
       match node {
         @katex_parser.ParseNode::HorizBrace(label~, base=brace_base, ..) =>
           render_folded_brace(label, brace_base, sup, sub, state)
         @katex_parser.ParseNode::XArrow(label~, body~, below~, ..) =>
           render_folded_arrow(label, body, below, sup, sub, state)
-        @katex_parser.ParseNode::Op(content=BodyOperator(body), limits=true, ..) => {
+        @katex_parser.ParseNode::Op(content=BodyOperator(body), limits=true, ..) =>
           // `\dddot`/`\ddddot` expand to
           // `\overset{\raisebox{-0.1ex}{\normalsize ...}}{x}`; recognize that
           // shape and emit the native dot accents instead of the generic
           // `attach` fallback.
-          let dots = match sup {
-            Some(sup_node) => dddot_dots(sup_node)
-            None => None
-          }
-          match dots {
+          match sup.map_or(None, dddot_dots) {
             Some(count) =>
               "accent(\{wrap_arg(render_nodes(body, state))}, \{dddot_symbol(count)})"
             None => render_sup_attach(node, sup, sub, state)
           }
-        }
         @katex_parser.ParseNode::OperatorName(limits=true, ..) =>
           render_sup_attach(node, sup, sub, state)
-        _ => {
-          let base_str = render_node(node, state)
-          let sup_str = sup.map_or("", node => {
-            "^\{wrap_script(render_node(node, state))}"
-          })
-          let sub_str = sub.map_or("", node => {
-            "_\{wrap_script(render_node(node, state))}"
-          })
-          "\{base_str}\{sup_str}\{sub_str}"
-        }
+        _ =>
+          "\{render_node(node, state)}\{script_marks('^', sup, state)}\{script_marks('_', sub, state)}"
       }
   }
 }
@@ -117,14 +86,18 @@ fn render_sup_attach(
   sub : @katex_parser.ParseNode?,
   state : RenderState,
 ) -> String {
-  let base_str = render_node(base, state)
-  let sup_str = sup.map_or("", node => {
-    "^\{wrap_script(render_node(node, state))}"
-  })
-  let sub_str = sub.map_or("", node => {
-    "_\{wrap_script(render_node(node, state))}"
-  })
-  "limits(\{base_str})\{sup_str}\{sub_str}"
+  "limits(\{render_node(base, state)})\{script_marks('^', sup, state)}\{script_marks('_', sub, state)}"
+}
+
+///|
+/// Renders a `^`/`_` script marker with its content, wrapping the content in
+/// parentheses when it needs grouping (see `wrap_script`).
+fn script_marks(
+  mark : Char,
+  node : @katex_parser.ParseNode?,
+  state : RenderState,
+) -> String {
+  node.map_or("", node => "\{mark}\{wrap_script(render_node(node, state))}")
 }
 
 ///|
@@ -142,30 +115,18 @@ fn wrap_script(content : String) -> String {
 
 ///|
 fn contains_script_separator(text : String) -> Bool {
-  let mut depth = 0
-  let mut in_string = false
-  for c in text {
-    if c == '"' {
-      in_string = !in_string
-    } else if !in_string {
-      if c == '(' || c == '[' || c == '{' {
-        depth = depth + 1
-      } else if c == ')' || c == ']' || c == '}' {
-        depth = depth - 1
-      } else if depth == 0 {
-        if c == ' ' ||
-          c == '=' ||
-          c == ',' ||
-          c == ';' ||
-          c == ':' ||
-          c == '^' ||
-          c == '_' {
-          return true
-        }
-      }
-    }
-  }
-  false
+  contains_top_level_char(text, is_script_separator)
+}
+
+///|
+fn is_script_separator(c : Char) -> Bool {
+  c == ' ' ||
+  c == '=' ||
+  c == ',' ||
+  c == ';' ||
+  c == ':' ||
+  c == '^' ||
+  c == '_'
 }
 
 ///|
@@ -179,14 +140,18 @@ fn render_folded_brace(
   state : RenderState,
 ) -> String {
   let brace = horiz_brace_name(label)
-  let body_str = wrap_arg(render_node(body, state))
-  let t_str = sup.map_or("", node => {
-    ", t: \{wrap_arg(render_node(node, state))}"
-  })
-  let b_str = sub.map_or("", node => {
-    ", b: \{wrap_arg(render_node(node, state))}"
-  })
-  "attach(\{brace}(\{body_str})\{t_str}\{b_str})"
+  "attach(\{brace}(\{wrap_arg(render_node(body, state))})\{attach_arg("t", sup, state)}\{attach_arg("b", sub, state)})"
+}
+
+///|
+/// Renders an `attach(...)` named argument (`, t: ...` / `, b: ...`) when the
+/// node is present, or nothing.
+fn attach_arg(
+  name : String,
+  node : @katex_parser.ParseNode?,
+  state : RenderState,
+) -> String {
+  node.map_or("", node => ", \{name}: \{wrap_arg(render_node(node, state))}")
 }
 
 ///|
@@ -204,8 +169,8 @@ fn render_folded_arrow(
     "\{wrap_arg(render_node(node, state))}, t: \{wrap_arg(render_node(body, state))}"
   })
   let b_str = match below {
-    Some(node) => ", b: \{wrap_arg(render_node(node, state))}"
-    None => sub.map_or("", node => ", b: \{wrap_arg(render_node(node, state))}")
+    Some(_) => attach_arg("b", below, state)
+    None => attach_arg("b", sub, state)
   }
   "attach(\{arrow}, t: \{t_str}\{b_str})"
 }
@@ -245,24 +210,12 @@ fn wrap_frac(content : String) -> String {
 
 ///|
 fn contains_top_level_frac_op(text : String) -> Bool {
-  let mut depth = 0
-  let mut in_string = false
-  for c in text {
-    if c == '"' {
-      in_string = !in_string
-    } else if !in_string {
-      if c == '(' || c == '[' || c == '{' {
-        depth = depth + 1
-      } else if c == ')' || c == ']' || c == '}' {
-        depth = depth - 1
-      } else if depth == 0 {
-        if c == ' ' || c == '+' || c == '-' || c == '=' {
-          return true
-        }
-      }
-    }
-  }
-  false
+  contains_top_level_char(text, is_frac_separator)
+}
+
+///|
+fn is_frac_separator(c : Char) -> Bool {
+  c == ' ' || c == '+' || c == '-' || c == '='
 }
 
 ///|
@@ -275,11 +228,8 @@ fn render_delimited(
 ) -> String {
   let l = left_delim.map_or("", render_lr_delim)
   let r = right_delim.map_or("", render_lr_delim)
-  if l == "" && r == "" {
-    content
-  } else {
-    "\{content} lr(size: #2em, \{if l == "" { r } else { l }})"
-  }
+  guard l != "" || r != "" else { content }
+  "\{content} lr(size: #2em, \{if l == "" { r } else { l }})"
 }
 
 ///|

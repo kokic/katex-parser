@@ -44,13 +44,14 @@ fn render_accent(
   base : @katex_parser.ParseNode,
   state : RenderState,
 ) -> String {
-  match label {
-    "\\textcircled" => "#circle[$\{render_node(base, state)}$]"
-    _ =>
-      match accent_names.get(label) {
-        Some(name) => "\{name}(\{wrap_arg(render_node(base, state))})"
-        None => unsupported_comment("accent " + label)
-      }
+  if label == "\\textcircled" {
+    "#circle[$\{render_node(base, state)}$]"
+  } else {
+    accent_names
+    .get(label)
+    .map_or(unsupported_comment("accent \{label}"), name => {
+      "\{name}(\{wrap_arg(render_node(base, state))})"
+    })
   }
 }
 
@@ -69,19 +70,9 @@ fn dddot_dots(node : @katex_parser.ParseNode) -> Int? {
         ..,
       ],
       ..
-    ) =>
-      if dots.length() >= 3 &&
-        dots.length() <= 4 &&
-        dots.all(fn(n) {
-          match n {
-            TextOrd(text=".", ..) => true
-            _ => false
-          }
-        }) {
-        Some(dots.length())
-      } else {
-        None
-      }
+    ) if dots.length() >= 3 &&
+      dots.length() <= 4 &&
+      dots.all(n => n is TextOrd(text=".", ..)) => Some(dots.length())
     _ => None
   }
 }

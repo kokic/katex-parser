@@ -21,55 +21,16 @@ fn render_op(
 ///|
 /// Typst predefines these operator names; emitting the bare name gives proper
 /// limit placement in display mode. Others fall back to `op("...")`.
-let typst_operator_names : Map[String, Bool] = Map::from_array([
-  ("arccos", true),
-  ("arcsin", true),
-  ("arctan", true),
-  ("arg", true),
-  ("cos", true),
-  ("cosh", true),
-  ("cot", true),
-  ("coth", true),
-  ("csc", true),
-  ("csch", true),
-  ("ctg", true),
-  ("deg", true),
-  ("det", true),
-  ("dim", true),
-  ("exp", true),
-  ("gcd", true),
-  ("hom", true),
-  ("id", true),
-  ("im", true),
-  ("inf", true),
-  ("ker", true),
-  ("lg", true),
-  ("lim", true),
-  ("liminf", true),
-  ("limsup", true),
-  ("ln", true),
-  ("log", true),
-  ("max", true),
-  ("min", true),
-  ("mod", true),
-  ("Pr", true),
-  ("sec", true),
-  ("sech", true),
-  ("sin", true),
-  ("sinc", true),
-  ("sinh", true),
-  ("sup", true),
-  ("tan", true),
-  ("tanh", true),
-  ("tg", true),
-  ("tr", true),
-  ("lcm", true),
-  ("Pr", true),
+let typst_operator_names : Set[String] = Set([
+  "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc", "csch",
+  "ctg", "deg", "det", "dim", "exp", "gcd", "hom", "id", "im", "inf", "ker", "lg",
+  "lim", "liminf", "limsup", "ln", "log", "max", "min", "mod", "Pr", "sec", "sech",
+  "sin", "sinc", "sinh", "sup", "tan", "tanh", "tg", "tr", "lcm",
 ])
 
 ///|
 fn render_named_operator(text : String) -> String {
-  let name = text.strip_prefix("\\").map(StringView::to_owned).unwrap_or(text)
+  let name = text.strip_prefix("\\").map_or(text, StringView::to_owned)
   if typst_operator_names.contains(name) {
     name
   } else {
@@ -102,9 +63,6 @@ fn plain_text_of(nodes : Array[@katex_parser.ParseNode]) -> String? {
       _ => None
     }
   })
-  if parts.length() == nodes.length() {
-    Some(parts.join(""))
-  } else {
-    None
-  }
+  guard parts.length() == nodes.length() else { None }
+  Some(parts.join(""))
 }

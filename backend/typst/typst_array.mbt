@@ -1,26 +1,51 @@
 ///|
 fn render_array(node : @katex_parser.ParseNode, state : RenderState) -> String {
   match node {
-    Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) =>
-      if hlines_before_row.any(row => row.length() > 0) {
-        render_array_table(body, columns, hlines_before_row, state)
-      } else {
-        match column_separation_type {
-          None => render_mat_body(body, columns, None, state)
-          Some(@katex_parser.ColumnSeparationType::AlignSeparation) =>
-            render_aligned(body, state)
-          Some(@katex_parser.ColumnSeparationType::AlignAtSeparation) =>
-            unsupported_comment("alignat")
-          Some(@katex_parser.ColumnSeparationType::GatherSeparation) =>
-            unsupported_comment("gathered")
-          Some(@katex_parser.ColumnSeparationType::SmallSeparation) =>
-            render_substack(body, columns, state)
-          Some(@katex_parser.ColumnSeparationType::CdSeparation) =>
-            unsupported_comment("cd")
-        }
-      }
+    Array(body~, columns~, hlines_before_row~, ..) if has_hlines(
+        hlines_before_row,
+      ) => render_array_table(body, columns, hlines_before_row, state)
+    Array(body~, columns~, column_separation_type=None, ..) =>
+      render_mat_body(body, columns, None, state)
+    Array(
+      body~,
+      column_separation_type=Some(
+        @katex_parser.ColumnSeparationType::AlignSeparation
+      ),
+      ..
+    ) => render_aligned(body, state)
+    Array(
+      column_separation_type=Some(
+        @katex_parser.ColumnSeparationType::AlignAtSeparation
+      ),
+      ..
+    ) => unsupported_comment("alignat")
+    Array(
+      column_separation_type=Some(
+        @katex_parser.ColumnSeparationType::GatherSeparation
+      ),
+      ..
+    ) => unsupported_comment("gathered")
+    Array(
+      body~,
+      columns~,
+      column_separation_type=Some(
+        @katex_parser.ColumnSeparationType::SmallSeparation
+      ),
+      ..
+    ) => render_substack(body, columns, state)
+    Array(
+      column_separation_type=Some(
+        @katex_parser.ColumnSeparationType::CdSeparation
+      ),
+      ..
+    ) => unsupported_comment("cd")
     _ => ""
   }
+}
+
+///|
+fn has_hlines(hlines_before_row : Array[Array[Bool]]) -> Bool {
+  hlines_before_row.any(row => row.length() > 0)
 }
 
 ///|
@@ -31,47 +56,53 @@ fn render_leftright_array(
   state : RenderState,
 ) -> String {
   match array {
-    Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) =>
-      if hlines_before_row.any(row => row.length() > 0) {
-        let content = render_array_table(
-          body, columns, hlines_before_row, state,
-        )
-        wrap_lr(content, left, right)
-      } else if column_separation_type is None &&
-        is_left_brace(left) &&
-        columns.map_or(false, all_l) {
-        render_cases(body, state)
-      } else if column_separation_type is None {
-        if columns.map_or(false, contains_separator) {
-          let content = render_array_table(
-            body, columns, hlines_before_row, state,
-          )
-          wrap_lr(content, left, right)
-        } else {
-          let delim = match (left, right) {
-            ("(", ")") => Some("\"(\"")
-            ("[", "]") => Some("\"[\"")
-            ("\\{", "\\}") | ("{", "}") => Some("\"{\"")
-            ("|", "|") => Some("\"|\"")
-            ("\\|", "\\|") | ("‖", "‖") => Some("\"‖\"")
-            _ =>
-              // Mismatched or uncommon delimiter pairs: pass an explicit pair.
-              Some("#(\"{left}\", \"{right}\")")
-          }
-          render_mat_body(body, columns, delim, state)
-        }
-      } else {
-        match column_separation_type {
-          Some(@katex_parser.ColumnSeparationType::SmallSeparation) => {
-            // `\left( \substack{...} \right)`: the stack has no delimiter of
-            // its own, so the surrounding `lr` is preserved.
-            let content = render_substack(body, columns, state)
-            wrap_lr(content, left, right)
-          }
-          _ => render_array(array, state)
-        }
+    Array(body~, columns~, hlines_before_row~, ..) if has_hlines(
+        hlines_before_row,
+      ) =>
+      wrap_lr(
+        render_array_table(body, columns, hlines_before_row, state),
+        left,
+        right,
+      )
+    Array(body~, columns~, column_separation_type=None, ..) if is_left_brace(
+        left,
+      ) &&
+      columns.map_or(false, all_l) => render_cases(body, state)
+    Array(body~, columns~, hlines_before_row~, column_separation_type=None, ..) if columns.map_or(
+        false, contains_separator,
+      ) =>
+      wrap_lr(
+        render_array_table(body, columns, hlines_before_row, state),
+        left,
+        right,
+      )
+    Array(body~, columns~, column_separation_type=None, ..) => {
+      let delim = match (left, right) {
+        ("(", ")") => Some("\"(\"")
+        ("[", "]") => Some("\"[\"")
+        ("\\{", "\\}") | ("{", "}") => Some("\"{\"")
+        ("|", "|") => Some("\"|\"")
+        ("\\|", "\\|") | ("‖", "‖") => Some("\"‖\"")
+        _ =>
+          // Mismatched or uncommon delimiter pairs: pass an explicit pair.
+          Some("#(\"{left}\", \"{right}\")")
       }
-    _ => ""
+      render_mat_body(body, columns, delim, state)
+    }
+    Array(
+      body~,
+      columns~,
+      column_separation_type=Some(
+        @katex_parser.ColumnSeparationType::SmallSeparation
+      ),
+      ..
+    ) => {
+      // `\left( \substack{...} \right)`: the stack has no delimiter of
+      // its own, so the surrounding `lr` is preserved.
+      let content = render_substack(body, columns, state)
+      wrap_lr(content, left, right)
+    }
+    _ => render_array(array, state)
   }
 }
 
@@ -101,13 +132,10 @@ fn render_mat_body(
     render_array_table(body, columns, [], state)
   } else {
     let rows = body.map(row => render_mat_row(row, state)).join("; ")
+    guard rows != "" else { unsupported_comment("empty array") }
     let delim_arg = delim.map_or("", d => ", delim: \{d}")
-    let align_arg = columns.map(column_align_args).bind(x => x).unwrap_or("")
-    if rows == "" {
-      unsupported_comment("empty array")
-    } else {
-      "mat(\{rows}\{delim_arg}\{align_arg})"
-    }
+    let align_arg = columns.bind(column_align_args).unwrap_or("")
+    "mat(\{rows}\{delim_arg}\{align_arg})"
   }
 }
 
@@ -141,38 +169,29 @@ fn render_stack_rows(
   let rows = body
     .map(row => row.map(cell => render_cell(cell, state)).join(", "))
     .join("; ")
-  if rows == "" {
-    unsupported_comment("empty array")
-  } else {
-    "mat(\{rows})"
-  }
+  guard rows != "" else { unsupported_comment("empty array") }
+  "mat(\{rows})"
 }
 
 ///|
 /// Typst `mat` only supports a single uniform alignment, so per-column specs
 /// are emitted only when every column agrees.
 fn column_align_args(columns : Array[@katex_parser.ArrayColumn]) -> String? {
-  let aligns : Array[String] = columns.map(column => {
-    match column {
-      AlignColumn(alignment~, ..) =>
-        match alignment {
-          "l" => "left"
-          "r" => "right"
-          _ => "center"
-        }
-      _ => "center"
-    }
-  })
-  let mut uniform = true
-  for i in 1..<aligns.length() {
-    if aligns[i] != aligns[0] {
-      uniform = false
-    }
-  }
-  if uniform && aligns[0] != "center" {
-    Some(", align: #\{aligns[0]}")
+  let aligns = columns.map(column_align)
+  guard !aligns.is_empty() else { return None }
+  let first = aligns[0]
+  if aligns.all(align => align == first) && first != "center" {
+    Some(", align: #\{first}")
   } else {
     None
+  }
+}
+
+///|
+fn column_align(column : @katex_parser.ArrayColumn) -> String {
+  match column {
+    AlignColumn(alignment~, ..) => align_name(alignment)
+    _ => "center"
   }
 }
 
@@ -225,10 +244,8 @@ fn render_array_table(
     "  stroke: none,",
   ]
   for i in 0..<body.length() {
-    match hlines_before_row.get(i) {
-      Some(row_lines) if row_lines.length() > 0 =>
-        lines.push("  \{render_table_hline(row_lines)},")
-      _ => ()
+    if hlines_before_row.get(i) is Some(row_lines) && row_lines.length() > 0 {
+      lines.push("  \{render_table_hline(row_lines)},")
     }
     if i == 0 {
       lines.push(
@@ -238,10 +255,9 @@ fn render_array_table(
       lines.push("  \{row_cells(body[i], state).join(", ")},")
     }
   }
-  match hlines_before_row.get(body.length()) {
-    Some(row_lines) if row_lines.length() > 0 =>
-      lines.push("  \{render_table_hline(row_lines)},")
-    _ => ()
+  if hlines_before_row.get(body.length()) is Some(row_lines) &&
+    row_lines.length() > 0 {
+    lines.push("  \{render_table_hline(row_lines)},")
   }
   lines.push(")")
   lines.join("\n")

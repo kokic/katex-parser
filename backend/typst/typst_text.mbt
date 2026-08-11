@@ -50,11 +50,8 @@ fn render_font(
   // (`\rm mod` -> `mod`) emits the bare name: it is already upright and
   // carries operator semantics.
   match body {
-    OrdGroup(body=nodes, ..) =>
-      match plain_text_of(nodes) {
-        Some(text) if typst_operator_names.contains(text) => text
-        _ => render_font_wrapped(font, body, state)
-      }
+    OrdGroup(body=nodes, ..) if plain_text_of(nodes) is Some(text) &&
+      typst_operator_names.contains(text) => text
     _ => render_font_wrapped(font, body, state)
   }
 }

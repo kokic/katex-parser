@@ -30,17 +30,20 @@ fn render_nodes(
 fn fold_primes(items : Array[String]) -> Array[String] {
   let mut i = 0
   while i < items.length() {
-    if items[i] == "′" {
-      let mut count = 0
-      while i < items.length() && items[i] == "′" {
-        count = count + 1
-        items[i] = ""
-        i = i + 1
-      }
-      items[i - count] = "′".repeat(count)
-    } else {
+    guard items[i] == "′" else {
       i = i + 1
+      continue
     }
+    let mut j = i
+    while j < items.length() && items[j] == "′" {
+      j = j + 1
+    }
+    let count = j - i
+    for k in i..<j {
+      items[k] = ""
+    }
+    items[i] = "′".repeat(count)
+    i = j
   }
   items
 }
@@ -54,8 +57,7 @@ fn fold_primes(items : Array[String]) -> Array[String] {
 fn join_math(items : Array[String]) -> String {
   let sb = StringBuilder()
   let mut prev = ""
-  for i in 0..<items.length() {
-    let text = items[i]
+  for text in items {
     if text == "" {
       continue
     }
@@ -94,20 +96,27 @@ fn is_close_paren(text : String) -> Bool {
 /// on each side; folds the pair into Typst's `norm(...)`.
 fn fold_norm(items : Array[String]) -> Array[String] {
   for i in 0..<(items.length() - 1) {
-    if items[i] == "‖" {
-      for j in (i + 1)..<items.length() {
-        if items[j] == "‖" && j > i + 1 {
-          let body = items.view(start=i + 1, end=j).join(" ")
-          items[i] = "norm(\{body})"
-          for k in (i + 1)..<=j {
-            items[k] = ""
-          }
-          break
-        }
-      }
+    guard items[i] == "‖" else { continue }
+    guard next_norm_match(items, i) is Some(j) else { continue }
+    let body = items.view(start=i + 1, end=j).join(" ")
+    items[i] = "norm(\{body})"
+    for k in (i + 1)..<=j {
+      items[k] = ""
     }
   }
   items
+}
+
+///|
+/// The index of the next `‖` after position `i`, requiring at least one item
+/// in between (adjacent `‖‖` is a double-bar symbol, not an empty `norm()`).
+fn next_norm_match(items : Array[String], i : Int) -> Int? {
+  for j in (i + 1)..<items.length() {
+    if items[j] == "‖" && j > i + 1 {
+      return Some(j)
+    }
+  }
+  None
 }
 
 ///|
@@ -116,11 +125,11 @@ fn fold_norm(items : Array[String]) -> Array[String] {
 /// the following single symbol as `cancel(...)` so the slash overlays it.
 fn merge_not(items : Array[String]) -> Array[String] {
   for i in 0..<(items.length() - 1) {
+    guard items[i] == "\u{0338}" else { continue }
     let next = items[i + 1]
-    if items[i] == "\u{0338}" && is_single_symbol(next) {
-      items[i] = "cancel(\{next})"
-      items[i + 1] = ""
-    }
+    guard is_single_symbol(next) else { continue }
+    items[i] = "cancel(\{next})"
+    items[i + 1] = ""
   }
   items
 }
@@ -272,6 +281,22 @@ fn wrap_arg(content : String) -> String {
 
 ///|
 fn contains_top_level_separator(text : String) -> Bool {
+  contains_top_level_char(text, is_arg_separator)
+}
+
+///|
+fn is_arg_separator(c : Char) -> Bool {
+  c == ',' || c == ';' || c == ':'
+}
+
+///|
+/// Scans `text` for a character satisfying `is_separator` outside of bracket
+/// groups and quoted strings. Shared by the wrappers that decide whether an
+/// argument needs visible grouping parentheses in Typst.
+fn contains_top_level_char(
+  text : String,
+  is_separator : (Char) -> Bool,
+) -> Bool {
   let mut depth = 0
   let mut in_string = false
   for c in text {
@@ -282,10 +307,8 @@ fn contains_top_level_separator(text : String) -> Bool {
         depth = depth + 1
       } else if c == ')' || c == ']' || c == '}' {
         depth = depth - 1
-      } else if depth == 0 {
-        if c == ',' || c == ';' || c == ':' {
-          return true
-        }
+      } else if depth == 0 && is_separator(c) {
+        return true
       }
     }
   }
