@@ -77,26 +77,14 @@ fn graphics_option_items(value : String) -> Array[String] {
 
 ///|
 fn graphics_option_pair(item : String) -> (String, String)? {
-  let mut equals = -1
-  let mut count = 0
-  for index = 0; index < item.length(); index = index + 1 {
-    if item[index] == '=' {
-      equals = index
-      count = count + 1
-    }
-  }
-  if count != 1 {
-    None
-  } else {
-    Some(
-      (
-        trim_ascii_spaces(item.unsafe_substring(start=0, end=equals)),
-        trim_ascii_spaces(
-          item.unsafe_substring(start=equals + 1, end=item.length()),
-        ),
-      ),
-    )
-  }
+  let parts = item.split("=").to_array()
+  guard parts.length() == 2 else { None }
+  Some(
+    (
+      trim_ascii_spaces(parts[0].to_owned()),
+      trim_ascii_spaces(parts[1].to_owned()),
+    ),
+  )
 }
 
 ///|
@@ -119,43 +107,50 @@ fn graphics_default_alt(src : String) -> String {
 }
 
 ///|
+/// Parses the `[alt=..., width=..., ...]` option list into the concrete
+/// graphics sizes (in em units by default) and the alt text.
+fn parse_graphics_options(
+  value : String,
+) -> (Measurement, Measurement, Measurement, String) raise ParseFailure {
+  let mut width = { number: 0.0, unit: "em" }
+  let mut height = { number: 0.9, unit: "em" }
+  let mut totalheight = { number: 0.0, unit: "em" }
+  let mut alt = ""
+  for item in graphics_option_items(value) {
+    guard graphics_option_pair(item) is Some((key, value)) else { continue }
+    match key {
+      "alt" => alt = value
+      "width" => width = graphics_size(value)
+      "height" => height = graphics_size(value)
+      "totalheight" => totalheight = graphics_size(value)
+      _ =>
+        raise InvalidArgument(
+          message="Invalid key: '" + key + "' in \\includegraphics.",
+          loc=None,
+        )
+    }
+  }
+  (width, height, totalheight, alt)
+}
+
+///|
 fn includegraphics_handler(
   context : FunctionContext,
   args : Array[ParseNode],
   opt_args : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
-  let mut width = { number: 0.0, unit: "em" }
-  let mut height = { number: 0.9, unit: "em" }
-  let mut totalheight = { number: 0.0, unit: "em" }
-  let mut alt = ""
-  match opt_args.get(0) {
-    Some(Some(Raw(string=value, ..))) =>
-      for item in graphics_option_items(value) {
-        guard graphics_option_pair(item) is Some((key, value)) else { continue }
-        match key {
-          "alt" => alt = value
-          "width" => width = graphics_size(value)
-          "height" => height = graphics_size(value)
-          "totalheight" => totalheight = graphics_size(value)
-          _ =>
-            raise InvalidArgument(
-              message="Invalid key: '" + key + "' in \\includegraphics.",
-              loc=None,
-            )
-        }
-      }
+  let (width, height, totalheight, alt) = match opt_args.get(0) {
+    Some(Some(Raw(string=value, ..))) => parse_graphics_options(value)
     Some(Some(_)) =>
       raise InternalInvariant(message="Expected raw graphics options")
-    Some(None) | None => ()
+    Some(None) | None => parse_graphics_options("")
   }
   guard require_function_arg(args, 0, context.func_name) is Url(url=src, ..) else {
     raise InternalInvariant(
       message="Expected URL argument for \\includegraphics",
     )
   }
-  if alt == "" {
-    alt = graphics_default_alt(src)
-  }
+  let alt = if alt == "" { graphics_default_alt(src) } else { alt }
   if (context.is_trusted)(
       UrlTrust(command="\\includegraphics", url=src, protocol=None),
     ) {

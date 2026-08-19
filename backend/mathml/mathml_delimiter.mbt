@@ -14,7 +14,11 @@ fn render_sized_delim(
     3 => "2.4em"
     _ => "3em"
   }
-  let children = if delim == "." { [] } else { [text_node(symbol(delim))] }
+  let children = if @backend.is_null_delimiter(delim) {
+    []
+  } else {
+    [text_node(@backend.resolve_symbol(delim))]
+  }
   element("mo", children~, attributes=[
     ("fence", fence),
     ("stretchy", "true"),
@@ -29,7 +33,11 @@ fn render_fence(delim : String, color : String?) -> MathMlNode {
     ("fence", "true"),
     ..color.map_or([], value => [("mathcolor", value)]),
   ]
-  element("mo", children=[text_node(symbol(delim))], attributes=attrs)
+  element(
+    "mo",
+    children=[text_node(@backend.resolve_symbol(delim))],
+    attributes=attrs,
+  )
 }
 
 ///|
@@ -37,7 +45,7 @@ fn render_middle(delim : String) -> MathMlNode {
   let value = if delim == "\\vert" || delim == "|" {
     "|"
   } else {
-    symbol(delim)
+    @backend.resolve_symbol(delim)
   }
   element("mo", children=[text_node(value)], attributes=[
     ("fence", "true"),
@@ -54,8 +62,16 @@ fn render_left_right(
   right_color : String?,
   state : RenderState,
 ) -> MathMlNode {
-  let children = (if left == "." { [] } else { [render_fence(left, None)] }) +
+  let children = (if @backend.is_null_delimiter(left) {
+      []
+    } else {
+      [render_fence(left, None)]
+    }) +
     render_expression(body, state) +
-    (if right == "." { [] } else { [render_fence(right, right_color)] })
+    (if @backend.is_null_delimiter(right) {
+      []
+    } else {
+      [render_fence(right, right_color)]
+    })
   make_row(children)
 }

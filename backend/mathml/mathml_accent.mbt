@@ -28,7 +28,7 @@ fn render_accent(
   let mark = if is_stretchy {
     stretchy(label)
   } else {
-    element("mo", children=[text_node(symbol(label))])
+    element("mo", children=[text_node(@backend.resolve_symbol(label))])
   }
   element("mover", children=[render_group(base, state), mark], attributes=[
     ("accent", "true"),

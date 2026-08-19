@@ -20,6 +20,10 @@ fn render_tag(
 }
 
 ///|
+/// Renders an array as an `mtable`: one `mtr` per row with `mtd` cells,
+/// tagged rows padded with glue and an equation-number cell (mirroring
+/// KaTeX's MathML array builder), plus the row/column spacing attributes
+/// derived from the column spec and the `\hline`/`\hdashline` rules.
 fn render_array(
   body : Array[Array[@katex_parser.ParseNode]],
   columns : Array[@katex_parser.ArrayColumn]?,
@@ -37,14 +41,8 @@ fn render_array(
     let row = body[i].map(cell => {
       element("mtd", children=[render_group(cell, state)])
     })
-    let manual_tag = match tags {
-      Some(all_tags) => all_tags[i] is Some(_)
-      None => false
-    }
-    let automatic_tag = match auto_tags {
-      Some(all_tags) => all_tags[i]
-      None => false
-    }
+    let manual_tag = tags.map_or(false, all_tags => all_tags[i] is Some(_))
+    let automatic_tag = auto_tags.map_or(false, all_tags => all_tags[i])
     if manual_tag || automatic_tag {
       // Mirror KaTeX's array mathml builder: a tagged row is padded with empty
       // glue cells and an equation-number cell (the tag text itself is only

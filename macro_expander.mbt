@@ -210,6 +210,10 @@ fn MacroExpander::push_argument_job(
 }
 
 ///|
+/// True when `token` completes the current delimiter in a multi-token
+/// delimiter sequence. A `{` delimiter matches at depth 1 (the level just
+/// inside the macro call); every other delimiter only matches at depth 0, so
+/// a delimiter inside a braced argument never closes the argument early.
 fn delimiter_is_active(
   delimiters : Array[String],
   match_index : Int,
@@ -247,6 +251,16 @@ fn normalize_consumed_argument(
 }
 
 ///|
+/// Consumes one macro argument from the token stack.
+///
+/// Tokens are popped until the argument closes: an undelimited argument ends
+/// when the brace depth returns to 0 (spaces are skipped first), a delimited
+/// argument ends when the delimiter sequence in `delimiters` has been matched
+/// in order at the top level. `{`/`}` are balanced throughout, a `}` at depth
+/// 0 is an "Extra }" error, and an unterminated argument reports the expected
+/// closing delimiter. The consumed tokens are normalized (the surrounding
+/// braces of a braced argument are stripped, see `normalize_consumed_argument`)
+/// and the end token is the one that closed the argument.
 fn MacroExpander::consume_arg(
   self : MacroExpander,
   delimiters : Array[String]?,
@@ -350,6 +364,10 @@ fn placeholder_number(text : String) -> Int? {
 }
 
 ///|
+/// Substitutes `#1`..`#9` placeholders in a macro body with the consumed
+/// arguments. Tokens are processed in reverse (the body was built on the
+/// stack backwards); `##` is an escaped placeholder. Raises when a placeholder
+/// is incomplete, unnumbered, or references a missing argument.
 fn substitute_macro_arguments(
   tokens : Array[Token],
   args : Array[Array[Token]],
@@ -358,42 +376,28 @@ fn substitute_macro_arguments(
   let output : Array[Token] = []
   for index = 0; index < forward.length(); {
     let token = forward[index]
-    if token.text != "#" {
+    guard token.text == "#" else {
       output.push(token)
       continue index + 1
     }
-    match forward.get(index + 1) {
-      None =>
-        raise InvalidArgument(
-          message="Incomplete placeholder at end of macro body",
-          loc=token.loc,
-        )
-      Some(next) =>
-        if next.text == "#" {
-          output.push(next)
-          continue index + 2
-        } else {
-          match placeholder_number(next.text) {
-            Some(number) =>
-              match args.get(number - 1) {
-                Some(argument) => {
-                  output.append(argument.rev())
-                  continue index + 2
-                }
-                None =>
-                  raise InvalidArgument(
-                    message="Not a valid argument number",
-                    loc=next.loc,
-                  )
-              }
-            None =>
-              raise InvalidArgument(
-                message="Not a valid argument number",
-                loc=next.loc,
-              )
-          }
-        }
+    guard forward.get(index + 1) is Some(next) else {
+      raise InvalidArgument(
+        message="Incomplete placeholder at end of macro body",
+        loc=token.loc,
+      )
     }
+    if next.text == "#" {
+      output.push(next)
+      continue index + 2
+    }
+    guard placeholder_number(next.text) is Some(number) else {
+      raise InvalidArgument(message="Not a valid argument number", loc=next.loc)
+    }
+    guard args.get(number - 1) is Some(argument) else {
+      raise InvalidArgument(message="Not a valid argument number", loc=next.loc)
+    }
+    output.append(argument.rev())
+    continue index + 2
   } nobreak {
     output.rev_in_place()
     output
@@ -631,10 +635,8 @@ fn MacroExpander::is_defined(self : MacroExpander, name : String) -> Bool {
 ///|
 #warnings("-unused_value")
 fn MacroExpander::is_expandable(self : MacroExpander, name : String) -> Bool {
-  match self.dynamic_macros.get_current(name) {
-    Some(_) => true
-    None => self.is_static_or_builtin_dynamic_expandable(name)
-  }
+  self.dynamic_macros.get_current(name) is Some(_) ||
+  self.is_static_or_builtin_dynamic_expandable(name)
 }
 
 ///|

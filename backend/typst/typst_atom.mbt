@@ -1,9 +1,8 @@
 ///|
 /// Resolves a TeX symbol name (or a raw Unicode string) to its Unicode
 /// rendering via the parser's public registry, then applies math escaping.
-/// Mirrors the Unicode backend's `render_symbol`.
 fn render_symbol(text : String) -> String {
-  escape_math(@katex_parser.unicode_symbol(text).unwrap_or(text))
+  escape_math(@backend.resolve_symbol(text))
 }
 
 ///|
@@ -30,7 +29,7 @@ let typst_operator_names : Set[String] = Set([
 
 ///|
 fn render_named_operator(text : String) -> String {
-  let name = text.strip_prefix("\\").map_or(text, StringView::to_owned)
+  let name = @backend.command_name(text)
   if typst_operator_names.contains(name) {
     name
   } else {
@@ -59,7 +58,7 @@ fn plain_text_of(nodes : Array[@katex_parser.ParseNode]) -> String? {
   let parts : Array[String] = nodes.filter_map(node => {
     match node {
       TextOrd(text~, ..) | MathOrd(text~, ..) | Spacing(text~, ..) =>
-        Some(@katex_parser.unicode_symbol(text).unwrap_or(text))
+        Some(@backend.resolve_symbol(text))
       _ => None
     }
   })

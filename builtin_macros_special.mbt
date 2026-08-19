@@ -89,6 +89,14 @@ fn braket_separator_handler(
 }
 
 ///|
+/// Shared implementation of the `\Braket`-style macros (`\braket`, `\Braket`,
+/// `\set`, `\Set`): consumes the four parts (left, middle, middle-double,
+/// right) of the dynamic `|`/`\|` separator definitions, installs handlers
+/// that expand `|` inside the argument to the appropriate middle part (or to
+/// the enclosing delimiter when the braces are doubled), then expands the
+/// actual argument — wrapped by the right and left parts — and restores the
+/// previous separator handlers afterwards. `one` selects the single-bar
+/// (`\braket`/`\set`) vs double-bar (`\Braket`/`\Set`) middle.
 fn braket_helper(
   context : MacroExpander,
   one : Bool,

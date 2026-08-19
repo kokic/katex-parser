@@ -76,19 +76,8 @@ fn render_leftright_array(
         left,
         right,
       )
-    Array(body~, columns~, column_separation_type=None, ..) => {
-      let delim = match (left, right) {
-        ("(", ")") => Some("\"(\"")
-        ("[", "]") => Some("\"[\"")
-        ("\\{", "\\}") | ("{", "}") => Some("\"{\"")
-        ("|", "|") => Some("\"|\"")
-        ("\\|", "\\|") | ("‖", "‖") => Some("\"‖\"")
-        _ =>
-          // Mismatched or uncommon delimiter pairs: pass an explicit pair.
-          Some("#(\"{left}\", \"{right}\")")
-      }
-      render_mat_body(body, columns, delim, state)
-    }
+    Array(body~, columns~, column_separation_type=None, ..) =>
+      render_mat_body(body, columns, Some(mat_delim(left, right)), state)
     Array(
       body~,
       columns~,
@@ -107,18 +96,28 @@ fn render_leftright_array(
 }
 
 ///|
+/// The `mat` `delim:` argument for a `\left...\right` array: the standard
+/// pairs map to a quoted symbol; mismatched or uncommon pairs pass an
+/// explicit `("left", "right")` pair.
+fn mat_delim(left : String, right : String) -> String {
+  match (left, right) {
+    ("(", ")") => "\"(\""
+    ("[", "]") => "\"[\""
+    ("\\{", "\\}") | ("{", "}") => "\"{\""
+    ("|", "|") => "\"|\""
+    ("\\|", "\\|") | ("‖", "‖") => "\"‖\""
+    _ => "#(\"{left}\", \"{right}\")"
+  }
+}
+
+///|
 fn is_left_brace(left : String) -> Bool {
   left == "\\{" || left == "{" || left == "\\lbrace"
 }
 
 ///|
 fn all_l(columns : Array[@katex_parser.ArrayColumn]) -> Bool {
-  columns.all(column => {
-    match column {
-      AlignColumn(alignment~, ..) => alignment == "l"
-      _ => false
-    }
-  })
+  columns.all(column => column is AlignColumn(alignment="l", ..))
 }
 
 ///|
@@ -150,15 +149,20 @@ fn render_substack(
   columns : Array[@katex_parser.ArrayColumn]?,
   state : RenderState,
 ) -> String {
-  match columns {
-    None => render_stack_rows(body, state)
-    Some(cols) =>
-      if cols.length() <= 1 && cols.all(col => col is AlignColumn(..)) {
-        render_stack_rows(body, state)
-      } else {
-        unsupported_comment("smallmatrix")
-      }
+  if is_single_column(columns) {
+    render_stack_rows(body, state)
+  } else {
+    unsupported_comment("smallmatrix")
   }
+}
+
+///|
+/// A `\substack` column spec has no separators and at most one alignment
+/// column; a multi-column `smallmatrix` stays unsupported.
+fn is_single_column(columns : Array[@katex_parser.ArrayColumn]?) -> Bool {
+  columns.map_or(true, cols => {
+    cols.length() <= 1 && cols.all(col => col is AlignColumn(..))
+  })
 }
 
 ///|
@@ -178,8 +182,7 @@ fn render_stack_rows(
 /// are emitted only when every column agrees.
 fn column_align_args(columns : Array[@katex_parser.ArrayColumn]) -> String? {
   let aligns = columns.map(column_align)
-  guard !aligns.is_empty() else { return None }
-  let first = aligns[0]
+  guard aligns is [first, ..] else { return None }
   if aligns.all(align => align == first) && first != "center" {
     Some(", align: #\{first}")
   } else {
@@ -214,28 +217,20 @@ fn render_array_table(
   state : RenderState,
 ) -> String {
   let ncols = match columns {
-    Some(cols) =>
-      cols
-      .filter_map(col => {
-        match col {
-          AlignColumn(..) => Some(1)
-          _ => None
-        }
-      })
-      .length()
-    None => if body.length() > 0 { body[0].length() } else { 0 }
+    Some(cols) => cols.filter(col => col is AlignColumn(..)).length()
+    None =>
+      match body {
+        [row, ..] => row.length()
+        _ => 0
+      }
   }
   let vline_boundaries : Set[Int] = Set([])
   let aligns : Array[String] = []
-  match columns {
-    Some(cols) =>
-      for col in cols {
-        match col {
-          AlignColumn(alignment~, ..) => aligns.push(align_name(alignment))
-          SeparatorColumn(..) => vline_boundaries.add(aligns.length())
-        }
-      }
-    None => ()
+  for col in columns.unwrap_or([]) {
+    match col {
+      AlignColumn(alignment~, ..) => aligns.push(align_name(alignment))
+      SeparatorColumn(..) => vline_boundaries.add(aligns.length())
+    }
   }
   let lines : Array[String] = [
     "#table(",
@@ -244,7 +239,7 @@ fn render_array_table(
     "  stroke: none,",
   ]
   for i in 0..<body.length() {
-    if hlines_before_row.get(i) is Some(row_lines) && row_lines.length() > 0 {
+    if hlines_before_row.get(i) is Some(row_lines) && !row_lines.is_empty() {
       lines.push("  \{render_table_hline(row_lines)},")
     }
     if i == 0 {
@@ -256,7 +251,7 @@ fn render_array_table(
     }
   }
   if hlines_before_row.get(body.length()) is Some(row_lines) &&
-    row_lines.length() > 0 {
+    !row_lines.is_empty() {
     lines.push("  \{render_table_hline(row_lines)},")
   }
   lines.push(")")
@@ -278,14 +273,14 @@ fn table_row(
   ncols : Int,
   state : RenderState,
 ) -> Array[String] {
-  let cells : Array[String] = []
-  for j in 0..<row.length() {
+  let cells = row.mapi((j, cell) => {
+    let content = "[$\{render_cell(cell, state)}$]"
     if vline_boundaries.contains(j) {
-      cells.push("table.vline(), [$\{render_cell(row[j], state)}$]")
+      "table.vline(), \{content}"
     } else {
-      cells.push("[$\{render_cell(row[j], state)}$]")
+      content
     }
-  }
+  })
   if vline_boundaries.contains(ncols) {
     cells.push("table.vline()")
   }

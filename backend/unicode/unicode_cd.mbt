@@ -144,28 +144,55 @@ fn cd_varrow_lines(
 }
 
 ///|
+/// Computes the CD layout geometry: node column widths, arrow column widths,
+/// and the shaft offset of every node column (the max left-label width of its
+/// vertical arrows).
+///
+/// Layout: columns alternate node/arrow (even/odd). A node column's shaft
+/// offset shifts all its content right so v-arrow labels line up, which also
+/// shifts the target node of a left-adjacent arrow; the arrow widths are
+/// therefore extended by the target column's offset at the end.
 fn cd_column_widths(
   grid : Array[Array[CdCell]],
   n_nodes : Int,
   vbar : String,
 ) -> (Array[Int], Array[Int], Array[Int]) {
-  let node_w = Array::make(n_nodes, 0)
-  let arrow_w = Array::make(n_nodes - 1, 4)
-  // Shaft offset per node column: the max left-label width of its v-arrows.
+  let offsets = cd_shaft_offsets(grid, n_nodes)
+  let (node_w, arrow_w) = cd_cell_widths(grid, n_nodes, offsets, vbar)
+  let arrow_w = Array::makei(arrow_w.length(), k => arrow_w[k] + offsets[k + 1])
+  (node_w, arrow_w, offsets)
+}
+
+///|
+/// Pass 1: the shaft offset of each node column, i.e. the widest left label
+/// among the vertical arrows in that column.
+fn cd_shaft_offsets(grid : Array[Array[CdCell]], n_nodes : Int) -> Array[Int] {
   let offsets = Array::make(n_nodes, 0)
   for row_index, row in grid {
-    if row_index % 2 == 1 {
-      for col, cell in row {
-        if col % 2 == 0 {
-          match cell {
-            CdVArrow(_, left, _) =>
-              offsets[col / 2] = offsets[col / 2].max(left.length())
-            _ => ()
-          }
-        }
+    guard row_index % 2 == 1 else { continue }
+    for col, cell in row {
+      guard col % 2 == 0 else { continue }
+      match cell {
+        CdVArrow(_, left, _) =>
+          offsets[col / 2] = offsets[col / 2].max(left.length())
+        _ => ()
       }
     }
   }
+  offsets
+}
+
+///|
+/// Pass 2: node widths from node text (shifted by the shaft offset) and
+/// v-arrow lines; arrow widths from h-arrow labels and cell node text.
+fn cd_cell_widths(
+  grid : Array[Array[CdCell]],
+  n_nodes : Int,
+  offsets : Array[Int],
+  vbar : String,
+) -> (Array[Int], Array[Int]) {
+  let node_w = Array::make(n_nodes, 0)
+  let arrow_w = Array::make(n_nodes - 1, 4)
   for row_index, row in grid {
     if row_index % 2 == 0 {
       for col, cell in row {
@@ -210,15 +237,13 @@ fn cd_column_widths(
       }
     }
   }
-  // The target node of a horizontal arrow is shifted right by its column's
-  // shaft offset, so extend the arrow by that offset to keep the gap even.
-  for k in 0..<arrow_w.length() {
-    arrow_w[k] = arrow_w[k] + offsets[k + 1]
-  }
-  (node_w, arrow_w, offsets)
+  (node_w, arrow_w)
 }
 
 ///|
+/// Renders one node row (even grid rows) as a band: the main line holds the
+/// nodes and horizontal arrow shafts; label lines are prepended/appended when
+/// any arrow carries an upper/lower label.
 fn cd_node_row_block(
   row : Array[CdCell],
   node_w : Array[Int],

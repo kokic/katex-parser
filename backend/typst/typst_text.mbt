@@ -22,7 +22,7 @@ fn render_text_child(
 ) -> String {
   match node {
     TextOrd(text~, ..) | MathOrd(text~, ..) | Spacing(text~, ..) =>
-      quote_string(@katex_parser.unicode_symbol(text).unwrap_or(text))
+      quote_string(@backend.resolve_symbol(text))
     _ => render_node(node, state)
   }
 }

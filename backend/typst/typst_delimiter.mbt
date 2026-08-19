@@ -19,14 +19,20 @@ fn render_left_right(
 fn wrap_lr(content : String, left : String, right : String) -> String {
   let l = render_lr_delim(left)
   let r = render_lr_delim(right)
-  if l == "" && r == "" {
-    content
-  } else if l == "" || r == "" {
-    let visible = if l == "" { r } else { l }
-    "\{content} lr(size: #2em, \{visible})"
-  } else {
+  if l != "" && r != "" {
     "lr(\{l} \{content} \{r})"
+  } else if l != "" || r != "" {
+    lr_single_side(content, l, r)
+  } else {
+    content
   }
+}
+
+///|
+/// A fixed-size `lr` placed after the content for a single visible
+/// delimiter; shared with `render_delimited`.
+fn lr_single_side(content : String, l : String, r : String) -> String {
+  "\{content} lr(size: #2em, \{if l == "" { r } else { l }})"
 }
 
 ///|
@@ -40,28 +46,22 @@ fn render_delim_sizing(size : Int, delim : String) -> String {
 ///|
 /// Renders a delimiter outside of an `lr` wrapper (e.g. `\right` alone).
 fn render_delimiter(delim : String) -> String {
-  if delim == "." {
-    ""
-  } else {
-    render_symbol(delim)
-  }
+  guard !@backend.is_null_delimiter(delim) else { "" }
+  render_symbol(delim)
 }
 
 ///|
 /// Renders a delimiter as `lr(...)` content: `(` `)` `[` `]` and `{` `}` are
 /// escaped with a backslash since a bare one would open a brace group.
 fn render_lr_delim(delim : String) -> String {
-  if delim == "." {
-    ""
-  } else {
-    match delim {
-      "(" => "\\("
-      ")" => "\\)"
-      "[" => "\\["
-      "]" => "\\]"
-      "{" | "\\{" => "\\{"
-      "}" | "\\}" => "\\}"
-      _ => render_symbol(delim)
-    }
+  guard !@backend.is_null_delimiter(delim) else { "" }
+  match delim {
+    "(" => "\\("
+    ")" => "\\)"
+    "[" => "\\["
+    "]" => "\\]"
+    "{" | "\\{" => "\\{"
+    "}" | "\\}" => "\\}"
+    _ => render_symbol(delim)
   }
 }

@@ -135,18 +135,21 @@ pub fn pad_right(s : String, width : Int) -> String {
 ///|
 /// Compute the maximum width per column across all rows of cell strings.
 pub fn column_widths(cells : Array[Array[String]]) -> Array[Int] {
-  let max_cols = cells.fold(init=0, (m, row) => {
-    let len = row.length()
-    if len > m {
-      len
-    } else {
-      m
-    }
-  })
+  column_max_widths(cells, display_width)
+}
+
+///|
+/// Compute the maximum width per column of any row-shaped table, where each
+/// cell's width comes from `width_of`.
+fn[W] column_max_widths(
+  rows : Array[Array[W]],
+  width_of : (W) -> Int,
+) -> Array[Int] {
+  let max_cols = rows.fold(init=0, (m, row) => m.max(row.length()))
   let widths = Array::make(max_cols, 0)
-  for row in cells {
+  for row in rows {
     for j, cell in row {
-      let w = display_width(cell)
+      let w = width_of(cell)
       if w > widths[j] {
         widths[j] = w
       }

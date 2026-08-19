@@ -39,7 +39,7 @@ fn fold_primes(items : Array[String]) -> Array[String] {
       j = j + 1
     }
     let count = j - i
-    for k in i..<j {
+    for k in (i + 1)..<j {
       items[k] = ""
     }
     items[i] = "′".repeat(count)
@@ -58,9 +58,7 @@ fn join_math(items : Array[String]) -> String {
   let sb = StringBuilder()
   let mut prev = ""
   for text in items {
-    if text == "" {
-      continue
-    }
+    guard text != "" else { continue }
     if prev != "" && !no_space_between(prev, text) {
       sb.write_string(" ")
     }
@@ -111,10 +109,9 @@ fn fold_norm(items : Array[String]) -> Array[String] {
 /// The index of the next `‖` after position `i`, requiring at least one item
 /// in between (adjacent `‖‖` is a double-bar symbol, not an empty `norm()`).
 fn next_norm_match(items : Array[String], i : Int) -> Int? {
-  for j in (i + 1)..<items.length() {
-    if items[j] == "‖" && j > i + 1 {
-      return Some(j)
-    }
+  for j in (i + 2)..<items.length() {
+    guard items[j] == "‖" else { continue }
+    return Some(j)
   }
   None
 }
@@ -154,9 +151,7 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
     Size(value~, ..) => render_measurement(value)
     Url(url~, ..) => url
     Styling(body~, style~, ..) => render_styling(body, style)
-    Sqrt(body~, index=None, ..) => "sqrt(\{wrap_arg(render_node(body, state))})"
-    Sqrt(body~, index=Some(index), ..) =>
-      "root(\{wrap_arg(render_node(index, state))}, \{wrap_arg(render_node(body, state))})"
+    Sqrt(body~, index~, ..) => render_sqrt(index, body, state)
     Infix(..) => unsupported_comment("\\over/\\atop infix")
     GenFrac(numer~, denom~, has_bar_line~, left_delim~, right_delim~, ..) =>
       render_genfrac(numer, denom, has_bar_line, left_delim, right_delim, state)
@@ -165,8 +160,8 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
     MClass(body~, ..) => render_nodes(body, state)
     Op(content~, ..) => render_op(content, state)
     OperatorName(body~, limits~, ..) => render_operatorname(body, limits, state)
-    Overline(body~, ..) => "overline(\{wrap_arg(render_node(body, state))})"
-    Underline(body~, ..) => "underline(\{wrap_arg(render_node(body, state))})"
+    Overline(body~, ..) => math_fn("overline", render_node(body, state))
+    Underline(body~, ..) => math_fn("underline", render_node(body, state))
     Smash(body~, ..) => render_node(body, state)
     Phantom(..) | VPhantom(..) => "#box(height: 0.5em)"
     Pmb(body~, ..) => render_nodes(body, state)
@@ -179,7 +174,13 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
     Lap(..) => unsupported_comment("\\llap/\\rlap/\\clap")
     MathChoice(display~, text~, script~, scriptscript~, ..) =>
       render_nodes(
-        math_choice_variant(display, text, script, scriptscript, state.style),
+        @backend.math_choice_variant(
+          display,
+          text,
+          script,
+          scriptscript,
+          state.style,
+        ),
         state,
       )
     Sizing(size~, body~, ..) => render_sizing(size, body, state)
@@ -191,7 +192,7 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
     LeftRightRight(delim~, ..) => render_delimiter(delim)
     LeftRight(body~, left~, right~, ..) =>
       render_left_right(body, left, right, state)
-    Middle(delim~, ..) => "mid(\{wrap_arg(render_delimiter(delim))})"
+    Middle(delim~, ..) => math_fn("mid", render_delimiter(delim))
     Kern(dimension~, ..) => render_kern(dimension)
     Enclose(label~, body~, background_color~, border_color~, ..) =>
       render_enclose(label, body, background_color, border_color, state)
@@ -213,19 +214,26 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
 }
 
 ///|
-fn math_choice_variant(
-  display : Array[@katex_parser.ParseNode],
-  text : Array[@katex_parser.ParseNode],
-  script : Array[@katex_parser.ParseNode],
-  scriptscript : Array[@katex_parser.ParseNode],
-  style : @katex_parser.StyleLevel,
-) -> Array[@katex_parser.ParseNode] {
-  match style {
-    DisplayStyle => display
-    TextStyle => text
-    ScriptStyle => script
-    ScriptScriptStyle => scriptscript
+/// A `\sqrt` node renders as Typst `sqrt(...)`; with an index it becomes a
+/// two-argument `root(index, body)`.
+fn render_sqrt(
+  index : @katex_parser.ParseNode?,
+  body : @katex_parser.ParseNode,
+  state : RenderState,
+) -> String {
+  match index {
+    None => math_fn("sqrt", render_node(body, state))
+    Some(index) =>
+      "root(\{wrap_arg(render_node(index, state))}, \{wrap_arg(render_node(body, state))})"
   }
+}
+
+///|
+/// A single-argument Typst math function call. The argument is wrapped in
+/// grouping parentheses when it contains a top-level separator (see
+/// `wrap_arg`).
+fn math_fn(name : String, content : String) -> String {
+  "\{name}(\{wrap_arg(content)})"
 }
 
 ///|
@@ -258,12 +266,17 @@ fn quote_string(text : String) -> String {
 /// `ex` unit is not lexable (`0.1ex` reads as the float `0.1e`). `ex` is
 /// converted to `em` with the standard x-height ratio of 0.5.
 fn render_measurement(measurement : @katex_parser.Measurement) -> String {
-  if measurement.unit == "ex" {
-    let em = (measurement.number * 0.5 * 1000.0).round() / 1000.0
-    "\{em}em"
-  } else {
-    "\{measurement.number}\{measurement.unit}"
+  match @backend.em_value(measurement) {
+    Some(em) if measurement.unit == "ex" => em_string(em)
+    _ => "\{measurement.number}\{measurement.unit}"
   }
+}
+
+///|
+/// Formats an em-valued length, rounding to three decimals. Shared by the
+/// `ex` and `mu` unit conversions.
+fn em_string(em : Double) -> String {
+  "\{(em * 1000.0).round() / 1000.0}em"
 }
 
 ///|

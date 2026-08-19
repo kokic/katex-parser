@@ -37,12 +37,13 @@ fn render_math_choice(
   scriptscript : Array[@katex_parser.ParseNode],
   state : RenderState,
 ) -> MathMlNode {
-  let selected = match state.style {
-    DisplayStyle => display
-    TextStyle => text
-    ScriptStyle => script
-    ScriptScriptStyle => scriptscript
-  }
+  let selected = @backend.math_choice_variant(
+    display,
+    text,
+    script,
+    scriptscript,
+    state.style,
+  )
   make_row(render_expression(selected, state))
 }
 

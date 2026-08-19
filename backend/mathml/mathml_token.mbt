@@ -4,7 +4,11 @@ fn token(kind : String, value : String, state : RenderState) -> MathMlNode {
     ..state.math_variant.map_or([], variant => [("mathvariant", variant)]),
     ..state.color.map_or([], color => [("mathcolor", color)]),
   ]
-  element(kind, children=[text_node(symbol(value))], attributes=attrs)
+  element(
+    kind,
+    children=[text_node(@backend.resolve_symbol(value))],
+    attributes=attrs,
+  )
 }
 
 ///|
@@ -18,7 +22,11 @@ fn text_token(
     Math => "mi"
   }
   let attrs = text_attributes(kind, state)
-  element(kind, children=[text_node(symbol(value))], attributes=attrs)
+  element(
+    kind,
+    children=[text_node(@backend.resolve_symbol(value))],
+    attributes=attrs,
+  )
 }
 
 ///|
@@ -40,7 +48,7 @@ fn text_ordinary(
   }
   element(
     kind,
-    children=[text_node(symbol(value))],
+    children=[text_node(@backend.resolve_symbol(value))],
     attributes=text_attributes(kind, state),
   )
 }
@@ -78,15 +86,18 @@ fn render_atom(
       _ => []
     },
   ]
-  element("mo", children=[text_node(symbol(text))], attributes=attrs)
+  element(
+    "mo",
+    children=[text_node(@backend.resolve_symbol(text))],
+    attributes=attrs,
+  )
 }
 
 ///|
 fn render_spacing(value : String) -> MathMlNode {
   match value {
     " " | "\\ " | "~" | "\\space" | "\\nobreakspace" =>
-      element("mtext", children=[text_node(" ")])
-    "\\nobreak" | "\\allowbreak" => element("mspace")
+      element("mtext", children=[text_node("\u{00A0}")])
     _ => element("mspace")
   }
 }

@@ -1,36 +1,34 @@
 ///|
-
-///|
 fn render_styling(
   body : Array[@katex_parser.ParseNode],
   style : @katex_parser.StyleLevel,
 ) -> String {
+  let state = { style, }
   match style {
     // Text style is the default; only a `\tfrac`-style fraction needs an
     // explicit `inline(...)`.
     TextStyle if body is [GenFrac(..)] =>
-      "inline(\{wrap_arg(render_nodes(body, { style: TextStyle, }))})"
-    TextStyle => render_nodes(body, { style: TextStyle })
-    _ => {
-      let content = wrap_arg(render_nodes(body, { style, }))
-      guard content != "" else { "" }
-      match style {
-        DisplayStyle => "display(\{content})"
-        ScriptStyle => "script(\{content})"
-        ScriptScriptStyle => "sscript(\{content})"
-        TextStyle => content
-      }
-    }
+      math_fn("inline", render_nodes(body, state))
+    TextStyle => render_nodes(body, state)
+    _ => render_style_wrapper(style, wrap_arg(render_nodes(body, state)))
   }
 }
 
 ///|
-/// KaTeX `\tiny`..`\Huge` sizes, including the 11-entry `\sixptsize` layout.
-/// The `Sizing` node's `size` is 1-based (`sizing_index` returns `index + 1`),
-/// so it indexes this table with `size - 1`.
-let sizing_sizes : Array[Double] = [
-  0.5, 0.5, 0.7, 0.8, 0.9, 1.0, 1.2, 1.44, 1.728, 2.074, 2.488,
-]
+/// Wraps rendered content in the display/script-level Typst function; empty
+/// content renders as nothing rather than an empty call.
+fn render_style_wrapper(
+  style : @katex_parser.StyleLevel,
+  content : String,
+) -> String {
+  guard content != "" else { "" }
+  match style {
+    DisplayStyle => "display(\{content})"
+    ScriptStyle => "script(\{content})"
+    ScriptScriptStyle => "sscript(\{content})"
+    TextStyle => content
+  }
+}
 
 ///|
 fn render_sizing(
@@ -38,7 +36,7 @@ fn render_sizing(
   body : Array[@katex_parser.ParseNode],
   state : RenderState,
 ) -> String {
-  let em = sizing_sizes.get(size - 1).unwrap_or(1.0)
+  let em = @backend.katex_size_multiplier(size)
   "text(size: #\{em}em, \{render_nodes(body, state)})"
 }
 
@@ -49,30 +47,32 @@ fn render_sup_sub(
   sub : @katex_parser.ParseNode?,
   state : RenderState,
 ) -> String {
-  match base {
-    None =>
-      "zws\{script_marks('^', sup, state)}\{script_marks('_', sub, state)}"
-    Some(node) =>
-      match node {
-        @katex_parser.ParseNode::HorizBrace(label~, base=brace_base, ..) =>
-          render_folded_brace(label, brace_base, sup, sub, state)
-        @katex_parser.ParseNode::XArrow(label~, body~, below~, ..) =>
-          render_folded_arrow(label, body, below, sup, sub, state)
-        @katex_parser.ParseNode::Op(content=BodyOperator(body), limits=true, ..) =>
-          // `\dddot`/`\ddddot` expand to
-          // `\overset{\raisebox{-0.1ex}{\normalsize ...}}{x}`; recognize that
-          // shape and emit the native dot accents instead of the generic
-          // `attach` fallback.
-          match sup.map_or(None, dddot_dots) {
-            Some(count) =>
-              "accent(\{wrap_arg(render_nodes(body, state))}, \{dddot_symbol(count)})"
-            None => render_sup_attach(node, sup, sub, state)
-          }
-        @katex_parser.ParseNode::OperatorName(limits=true, ..) =>
-          render_sup_attach(node, sup, sub, state)
-        _ =>
-          "\{render_node(node, state)}\{script_marks('^', sup, state)}\{script_marks('_', sub, state)}"
-      }
+  let sup_mark = script_marks('^', sup, state)
+  let sub_mark = script_marks('_', sub, state)
+  guard base is Some(node) else { return "zws\{sup_mark}\{sub_mark}" }
+  match node {
+    @katex_parser.ParseNode::HorizBrace(label~, base=brace_base, ..) =>
+      render_folded_brace(label, brace_base, sup, sub, state)
+    @katex_parser.ParseNode::XArrow(label~, body~, below~, ..) =>
+      render_folded_arrow(label, body, below, sup, sub, state)
+    // `\dddot`/`\ddddot` expand to
+    // `\overset{\raisebox{-0.1ex}{\normalsize ...}}{x}`; recognize that
+    // shape and emit the native dot accents instead of the generic
+    // `attach` fallback.
+    @katex_parser.ParseNode::Op(
+      content=@katex_parser.OperatorContent::BodyOperator(body),
+      limits=true,
+      ..
+    ) if sup.map_or(None, dddot_dots) is Some(count) =>
+      "accent(\{wrap_arg(render_nodes(body, state))}, \{dddot_symbol(count)})"
+    @katex_parser.ParseNode::Op(
+      content=@katex_parser.OperatorContent::BodyOperator(_),
+      limits=true,
+      ..
+    ) => render_sup_attach(node, sup, sub, state)
+    @katex_parser.ParseNode::OperatorName(limits=true, ..) =>
+      render_sup_attach(node, sup, sub, state)
+    _ => "\{render_node(node, state)}\{sup_mark}\{sub_mark}"
   }
 }
 
@@ -165,8 +165,10 @@ fn render_folded_arrow(
 ) -> String {
   let arrow = xarrow_name(label)
   let body_str = wrap_arg(render_node(body, state))
+  // A present `sup` takes over the top label; the xarrow's own label moves
+  // to `t:`.
   let t_str = sup.map_or(body_str, node => {
-    "\{wrap_arg(render_node(node, state))}, t: \{wrap_arg(render_node(body, state))}"
+    "\{wrap_arg(render_node(node, state))}, t: \{body_str}"
   })
   let b_str = match below {
     Some(_) => attach_arg("b", below, state)
@@ -186,14 +188,36 @@ fn render_genfrac(
 ) -> String {
   let num = wrap_frac(render_node(numer, state))
   let den = wrap_frac(render_node(denom, state))
-  if !has_bar_line && left_delim is Some(_) && right_delim is Some(_) {
+  let frac = "\{num} / \{den}"
+  if is_binomial_genfrac(has_bar_line, left_delim, right_delim) {
     "binom(\{num}, \{den})"
-  } else if (has_bar_line && left_delim is Some(_)) || right_delim is Some(_) {
-    let frac = "\{num} / \{den}"
+  } else if is_delimited_genfrac(has_bar_line, left_delim, right_delim) {
     render_delimited(frac, left_delim, right_delim)
   } else {
-    "\{num} / \{den}"
+    frac
   }
+}
+
+///|
+/// A `\genfrac` without a bar line and with both delimiters renders as
+/// Typst's `binom`.
+fn is_binomial_genfrac(
+  has_bar_line : Bool,
+  left_delim : String?,
+  right_delim : String?,
+) -> Bool {
+  !has_bar_line && left_delim is Some(_) && right_delim is Some(_)
+}
+
+///|
+/// A `\genfrac` whose delimiters cannot fold into `binom` still needs
+/// explicit delimiters around the fraction.
+fn is_delimited_genfrac(
+  has_bar_line : Bool,
+  left_delim : String?,
+  right_delim : String?,
+) -> Bool {
+  (has_bar_line && left_delim is Some(_)) || right_delim is Some(_)
 }
 
 ///|
@@ -229,7 +253,7 @@ fn render_delimited(
   let l = left_delim.map_or("", render_lr_delim)
   let r = right_delim.map_or("", render_lr_delim)
   guard l != "" || r != "" else { content }
-  "\{content} lr(size: #2em, \{if l == "" { r } else { l }})"
+  lr_single_side(content, l, r)
 }
 
 ///|
@@ -242,14 +266,14 @@ fn render_spacing(text : String) -> String {
 
 ///|
 fn render_kern(dimension : @katex_parser.Measurement) -> String {
-  let unit = dimension.unit
-  let amount = if unit == "mu" {
-    let em = (dimension.number / 18.0 * 1000.0).round() / 1000.0
-    "\{em}em"
-  } else if unit == "fill" {
-    "1fr"
-  } else {
-    render_measurement(dimension)
+  let amount = match @backend.em_value(dimension) {
+    Some(em) if dimension.unit == "mu" => em_string(em)
+    _ =>
+      if dimension.unit == "fill" {
+        "1fr"
+      } else {
+        render_measurement(dimension)
+      }
   }
   "#h(\{amount})"
 }

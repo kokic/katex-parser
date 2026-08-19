@@ -44,15 +44,14 @@ fn render_accent(
   base : @katex_parser.ParseNode,
   state : RenderState,
 ) -> String {
-  if label == "\\textcircled" {
-    "#circle[$\{render_node(base, state)}$]"
-  } else {
-    accent_names
-    .get(label)
-    .map_or(unsupported_comment("accent \{label}"), name => {
-      "\{name}(\{wrap_arg(render_node(base, state))})"
-    })
+  guard label != "\\textcircled" else {
+    return "#circle[$\{render_node(base, state)}$]"
   }
+  accent_names
+  .get(label)
+  .map_or(unsupported_comment("accent \{label}"), name => {
+    math_fn(name, render_node(base, state))
+  })
 }
 
 ///|
@@ -91,8 +90,7 @@ fn render_horiz_brace(
   base : @katex_parser.ParseNode,
   state : RenderState,
 ) -> String {
-  let brace = horiz_brace_name(label)
-  "\{brace}(\{wrap_arg(render_node(base, state))})"
+  math_fn(horiz_brace_name(label), render_node(base, state))
 }
 
 ///|

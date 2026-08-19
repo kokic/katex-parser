@@ -132,26 +132,12 @@ fn define_command_macro(
       loc=None,
     )
   }
-  let mut body = context.consume_arg(None).tokens
-  let mut num_args = 0
-  if body.length() == 1 && body[0].text == "[" {
-    let builder = StringBuilder()
-    for ;; {
-      let token = context.expand_next_token()
-      if token.text == "]" || token.text == "EOF" {
-        break
-      }
-      builder.write_string(token.text)
-    }
-    let count_text = builder.to_string()
-    guard parse_argument_count(count_text) is Some(value) else {
-      raise InvalidArgument(
-        message="Invalid number of arguments: \{count_text}",
-        loc=None,
-      )
-    }
-    num_args = value
-    body = context.consume_arg(None).tokens
+  let body = context.consume_arg(None).tokens
+  let (body, num_args) = if body.length() == 1 && body[0].text == "[" {
+    let count = parse_optional_arg_count(context)
+    (context.consume_arg(None).tokens, count)
+  } else {
+    (body, 0)
   }
   if !(exists && skip_if_exists) {
     context.macros.set(
@@ -160,6 +146,28 @@ fn define_command_macro(
     )
   }
   ReplacementText("")
+}
+
+///|
+/// Expands tokens until `]` (or EOF) and parses them as the optional
+/// `[number of arguments]` declaration of `\newcommand`.
+fn parse_optional_arg_count(context : MacroExpander) -> Int raise ParseFailure {
+  let builder = StringBuilder()
+  for ;; {
+    let token = context.expand_next_token()
+    if token.text == "]" || token.text == "EOF" {
+      break
+    }
+    builder.write_string(token.text)
+  }
+  let count_text = builder.to_string()
+  guard parse_argument_count(count_text) is Some(value) else {
+    raise InvalidArgument(
+      message="Invalid number of arguments: \{count_text}",
+      loc=None,
+    )
+  }
+  value
 }
 
 ///|

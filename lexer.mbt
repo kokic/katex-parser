@@ -225,48 +225,7 @@ fn Lexer::match_token(self : Lexer) -> Token raise ParseFailure {
     self.offset = end
     token_at(input, start, end, " ")
   } else if c == '\\' {
-    match control_space_end(input, start) {
-      Some(end) => {
-        self.offset = end
-        token_at(input, start, end, "\\ ")
-      }
-      None =>
-        match verb_end(input, start, true) {
-          Some(end) => {
-            self.offset = end
-            token_at(input, start, end, token_text(input, start, end))
-          }
-          None =>
-            match verb_end(input, start, false) {
-              Some(end) => {
-                self.offset = end
-                token_at(input, start, end, token_text(input, start, end))
-              }
-              None =>
-                match control_word_end(input, start) {
-                  Some((raw_end, end)) => {
-                    self.offset = end
-                    token_at(
-                      input,
-                      start,
-                      end,
-                      token_text(input, start, raw_end),
-                    )
-                  }
-                  None =>
-                    if start + 1 < len &&
-                      !is_high_surrogate(input[start + 1]) &&
-                      !is_low_surrogate(input[start + 1]) {
-                      let end = start + 2
-                      self.offset = end
-                      token_at(input, start, end, token_text(input, start, end))
-                    } else {
-                      raise unexpected_character(input, start)
-                    }
-                }
-            }
-        }
-    }
+    self.match_backslash_token(input, len, start)
   } else if is_regular_code_unit(c) {
     let end = combining_marks_end(input, start + 1)
     self.offset = end
@@ -280,6 +239,43 @@ fn Lexer::match_token(self : Lexer) -> Token raise ParseFailure {
   } else {
     raise unexpected_character(input, start)
   }
+}
+
+///|
+/// Matches a token beginning with `\`: a `\ ` control space, a `\verb`/
+/// `\verb*` verbatim run, a control word, or a single control symbol (the
+/// backslash plus one code unit that is not part of an astral pair). Fails
+/// with `UnexpectedCharacter` when none of these apply.
+fn Lexer::match_backslash_token(
+  self : Lexer,
+  input : String,
+  len : Int,
+  start : Int,
+) -> Token raise ParseFailure {
+  if control_space_end(input, start) is Some(end) {
+    self.offset = end
+    return token_at(input, start, end, "\\ ")
+  }
+  if verb_end(input, start, true) is Some(end) {
+    self.offset = end
+    return token_at(input, start, end, token_text(input, start, end))
+  }
+  if verb_end(input, start, false) is Some(end) {
+    self.offset = end
+    return token_at(input, start, end, token_text(input, start, end))
+  }
+  if control_word_end(input, start) is Some((raw_end, end)) {
+    self.offset = end
+    return token_at(input, start, end, token_text(input, start, raw_end))
+  }
+  if start + 1 < len &&
+    !is_high_surrogate(input[start + 1]) &&
+    !is_low_surrogate(input[start + 1]) {
+    let end = start + 2
+    self.offset = end
+    return token_at(input, start, end, token_text(input, start, end))
+  }
+  raise unexpected_character(input, start)
 }
 
 ///|

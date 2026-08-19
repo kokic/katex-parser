@@ -78,6 +78,30 @@ fn definition_handler(
   _ : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   let name = check_control_sequence((context.pop_token)())
+  let (delimiters, count, insert) = scan_definition_parameters(context)
+  let tokens = expand_definition_body(
+    context,
+    (context.consume_macro_arg)(),
+    insert,
+  )
+  (context.set_macro_definition)(
+    name,
+    MacroDefinition::expansion(
+      MacroExpansion::make(tokens, num_args=count, delimiters~),
+    ),
+    context.func_name == "\\gdef" || context.func_name == "\\xdef",
+  )
+  internal_node(context)
+}
+
+///|
+/// Scans the `#1`/`#2`/... parameter declarations between the macro name and
+/// the opening body brace. Returns the per-parameter delimiter tokens, the
+/// number of parameters, and the `{` token to insert before the body (for
+/// `\def\foo#{...}`).
+fn scan_definition_parameters(
+  context : FunctionContext,
+) -> (Array[Array[String]], Int, Token?) raise ParseFailure {
   let delimiters : Array[Array[String]] = [[]]
   let mut count = 0
   let mut insert : Token? = None
@@ -91,15 +115,13 @@ fn definition_handler(
         break
       }
       let number = (context.pop_token)()
-      if number.text.length() != 1 ||
-        number.text[0] < '1' ||
-        number.text[0] > '9' {
+      guard is_definition_arg_number(number) else {
         raise InvalidArgument(
           message="Invalid argument number \"" + number.text + "\"",
           loc=number.loc,
         )
       }
-      if number.text[0].to_int() - ('0' : UInt16).to_int() != count + 1 {
+      guard number.text[0].to_int() - ('0' : UInt16).to_int() == count + 1 else {
         raise InvalidArgument(
           message="Argument number \"" + number.text + "\" out of order",
           loc=number.loc,
@@ -116,30 +138,33 @@ fn definition_handler(
       delimiters[count].push(token.text)
     }
   }
-  let mut tokens = (context.consume_macro_arg)()
-  match insert {
-    Some(token) => {
-      let prefixed = [token]
-      prefixed.append(tokens)
-      tokens = prefixed
-    }
-    None => ()
+  (delimiters, count, insert)
+}
+
+///|
+fn is_definition_arg_number(token : Token) -> Bool {
+  token.text.length() == 1 && token.text[0] >= '1' && token.text[0] <= '9'
+}
+
+///|
+/// Consumes the macro body, inserting the `{` captured by the parameter scan,
+/// and fully expands the body for `\edef`/`\xdef`.
+fn expand_definition_body(
+  context : FunctionContext,
+  tokens : Array[Token],
+  insert : Token?,
+) -> Array[Token] raise ParseFailure {
+  let tokens = match insert {
+    Some(token) => [token] + tokens
+    None => tokens
   }
-  let tokens = if context.func_name == "\\edef" || context.func_name == "\\xdef" {
+  if context.func_name == "\\edef" || context.func_name == "\\xdef" {
     let expanded = (context.expand_tokens)(tokens)
     expanded.rev_in_place()
     expanded
   } else {
     tokens
   }
-  (context.set_macro_definition)(
-    name,
-    MacroDefinition::expansion(
-      MacroExpansion::make(tokens, num_args=count, delimiters~),
-    ),
-    context.func_name == "\\gdef" || context.func_name == "\\xdef",
-  )
-  internal_node(context)
 }
 
 ///|

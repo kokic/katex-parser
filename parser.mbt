@@ -107,20 +107,23 @@ fn Parser::parse(self : Parser) -> Array[ParseNode] raise ParseFailure {
   })
   self.gullet.end_groups()
   if self.settings.global_group {
-    match self.settings.macro_store {
-      Some(macros) => {
-        let user_entries = self.gullet.macros.get_user_entries()
-        for name, definition in user_entries {
-          macros.0[name] = definition
-        }
-      }
-      None => ()
-    }
+    self.persist_user_macros()
   }
-  match (close_result, result) {
-    (Err(err), _) => raise err
-    (_, Err(err)) => raise err
-    (Ok(_), Ok(body)) => body
+  unwrap_captured(close_result, result)
+}
+
+///|
+/// Copies the macros defined during parsing back into the caller's macro
+/// store, so `\newcommand` in a `global_group` parse survives the parse.
+fn Parser::persist_user_macros(self : Parser) -> Unit {
+  match self.settings.macro_store {
+    Some(macros) => {
+      let user_entries = self.gullet.macros.get_user_entries()
+      for name, definition in user_entries {
+        macros.0[name] = definition
+      }
+    }
+    None => ()
   }
 }
 
@@ -228,28 +231,32 @@ fn Parser::parse_expression(
       self.consume_spaces()
     }
     let token = self.fetch()
-    if is_end_of_expression(token.text) {
+    if should_break_expression(token.text, break_on_infix, break_on_token_text) {
       break self.finish_expression(body)
-    } else if break_on_token_text is Some(stop) && token.text == stop {
-      break self.finish_expression(body)
-    } else if break_on_infix &&
-      lookup_function(token.text) is Some(spec) &&
-      spec.infix {
-      break self.finish_expression(body)
-    } else {
-      match self.parse_atom(break_on_token_text) {
-        None => break self.finish_expression(body)
-        Some(atom) =>
-          match atom {
-            SkipAtom => continue
-            EmitAtom(node) => {
-              body.push(node)
-              continue
-            }
-          }
+    }
+    match self.parse_atom(break_on_token_text) {
+      None => break self.finish_expression(body)
+      Some(SkipAtom) => continue
+      Some(EmitAtom(node)) => {
+        body.push(node)
+        continue
       }
     }
   }
+}
+
+///|
+/// True when the token ends the current expression: a group- or
+/// environment-ending token, the caller's explicit stop token, or an infix
+/// function (`\over`, `\atop`, ...) when the caller breaks on those.
+fn should_break_expression(
+  text : String,
+  break_on_infix : Bool,
+  break_on_token_text : String?,
+) -> Bool {
+  is_end_of_expression(text) ||
+  (break_on_token_text is Some(stop) && text == stop) ||
+  (break_on_infix && lookup_function(text) is Some(spec) && spec.infix)
 }
 
 ///|
@@ -308,37 +315,7 @@ fn Parser::parse_scripts(
     self.consume_spaces()
     let token = self.fetch()
     if token.text == "\\limits" || token.text == "\\nolimits" {
-      let limits = token.text == "\\limits"
-      match base {
-        Op(mode~, parent_is_sup_sub~, suppress_base_shift~, content~, ..) =>
-          base = Op(
-            mode~,
-            limits~,
-            always_handle_sup_sub=true,
-            parent_is_sup_sub~,
-            suppress_base_shift~,
-            content~,
-          )
-        OperatorName(
-          mode~,
-          body~,
-          always_handle_sup_sub=true,
-          parent_is_sup_sub~,
-          ..
-        ) =>
-          base = OperatorName(
-            mode~,
-            body~,
-            always_handle_sup_sub=true,
-            limits~,
-            parent_is_sup_sub~,
-          )
-        _ =>
-          raise InvalidArgument(
-            message="Limit controls must follow a math operator",
-            loc=token.loc,
-          )
-      }
+      base = set_limits(base, token.text == "\\limits", token.loc)
       self.consume()
       continue
     } else if token.text == "^" {
@@ -357,20 +334,7 @@ fn Parser::parse_scripts(
       if sup is Some(_) {
         raise DoubleSuperscript(loc=token.loc)
       }
-      let primes : Array[ParseNode] = []
-      while self.fetch().text == "'" {
-        let prime_token = self.fetch()
-        primes.push(
-          TextOrd(mode=self.mode, loc=prime_token.loc, text="\\prime"),
-        )
-        self.consume()
-      }
-      if self.fetch().text == "^" {
-        primes.push(self.handle_sup_subscript("superscript"))
-      }
-      sup = Some(
-        OrdGroup(mode=self.mode, loc=None, body=primes, semisimple=false),
-      )
+      sup = Some(self.parse_prime_run())
       continue
     } else {
       match lookup_unicode_script(token.text) {
@@ -391,6 +355,62 @@ fn Parser::parse_scripts(
       }
     }
   }
+}
+
+///|
+/// Rewrites an operator node so that its scripts are drawn as limits above
+/// and below. Only `Op` and `\operatorname*` nodes accept limit controls.
+fn set_limits(
+  base : ParseNode,
+  limits : Bool,
+  loc : SourceLocation?,
+) -> ParseNode raise ParseFailure {
+  match base {
+    Op(mode~, parent_is_sup_sub~, suppress_base_shift~, content~, ..) =>
+      Op(
+        mode~,
+        limits~,
+        always_handle_sup_sub=true,
+        parent_is_sup_sub~,
+        suppress_base_shift~,
+        content~,
+      )
+    OperatorName(
+      mode~,
+      body~,
+      always_handle_sup_sub=true,
+      parent_is_sup_sub~,
+      ..
+    ) =>
+      OperatorName(
+        mode~,
+        body~,
+        always_handle_sup_sub=true,
+        limits~,
+        parent_is_sup_sub~,
+      )
+    _ =>
+      raise InvalidArgument(
+        message="Limit controls must follow a math operator",
+        loc~,
+      )
+  }
+}
+
+///|
+/// Consumes a run of consecutive `'` primes (followed by an optional `^`
+/// script) and returns them as a single `OrdGroup` superscript.
+fn Parser::parse_prime_run(self : Parser) -> ParseNode raise ParseFailure {
+  let primes : Array[ParseNode] = []
+  while self.fetch().text == "'" {
+    let prime_token = self.fetch()
+    primes.push(TextOrd(mode=self.mode, loc=prime_token.loc, text="\\prime"))
+    self.consume()
+  }
+  if self.fetch().text == "^" {
+    primes.push(self.handle_sup_subscript("superscript"))
+  }
+  OrdGroup(mode=self.mode, loc=None, body=primes, semisimple=false)
 }
 
 ///|
@@ -456,49 +476,63 @@ fn Parser::parse_group(
   let first_token = self.fetch()
   let text = first_token.text
   if text == "{" || text == "\\begingroup" {
-    self.consume()
-    let group_end = if text == "{" { "}" } else { "\\endgroup" }
-    self.gullet.begin_group()
-    let body = self.parse_expression(false, Some(group_end))
-    let last = self.fetch()
-    self.expect(group_end)
-    self.gullet.end_group()
-    let loc = if first_token.loc is Some(start_loc) && last.loc is Some(end_loc) {
-      Some(SourceLocation::range(start_loc, end_loc))
-    } else {
-      None
-    }
-    Some(
-      EmitAtom(
-        OrdGroup(mode=self.mode, loc~, body~, semisimple=text == "\\begingroup"),
-      ),
-    )
+    Some(EmitAtom(self.parse_group_body(first_token, text)))
   } else {
     match self.parse_function(break_on_token_text, Some(name)) {
       Some(result) => Some(result)
       None =>
         match self.parse_symbol() {
           Some(node) => Some(EmitAtom(node))
-          None =>
-            if text.length() > 0 &&
-              text[0] == '\\' &&
-              !is_implicit_command(text) {
-              if self.settings.throw_on_error {
-                raise UndefinedControlSequence(name=text, loc=first_token.loc)
-              } else {
-                self.consume()
-                Some(
-                  EmitAtom(
-                    format_unsupported_command(self.mode, self.settings, text),
-                  ),
-                )
-              }
-            } else {
-              None
-            }
+          None => self.handle_undefined_control(first_token)
         }
     }
   }
+}
+
+///|
+/// Parses the body of a `{...}` or `\begingroup...\endgroup` group into an
+/// `OrdGroup` node whose source span covers the whole group.
+fn Parser::parse_group_body(
+  self : Parser,
+  first_token : Token,
+  text : String,
+) -> ParseNode raise ParseFailure {
+  self.consume()
+  let group_end = if text == "{" { "}" } else { "\\endgroup" }
+  self.gullet.begin_group()
+  let body = self.parse_expression(false, Some(group_end))
+  let last = self.fetch()
+  self.expect(group_end)
+  self.gullet.end_group()
+  let loc = if first_token.loc is Some(start_loc) && last.loc is Some(end_loc) {
+    Some(SourceLocation::range(start_loc, end_loc))
+  } else {
+    None
+  }
+  OrdGroup(mode=self.mode, loc~, body~, semisimple=text == "\\begingroup")
+}
+
+///|
+/// Reports a token that parsed neither as a function nor as a symbol: a
+/// backslash command that is not implicitly recognized is an undefined
+/// control sequence (raised when `throw_on_error`, otherwise rendered as an
+/// `error_color` span); anything else is not a group at all.
+fn Parser::handle_undefined_control(
+  self : Parser,
+  token : Token,
+) -> AtomResult? raise ParseFailure {
+  let text = token.text
+  guard is_undefined_control_sequence(text) else { None }
+  guard self.settings.throw_on_error else {
+    self.consume()
+    Some(EmitAtom(format_unsupported_command(self.mode, self.settings, text)))
+  }
+  raise UndefinedControlSequence(name=text, loc=token.loc)
+}
+
+///|
+fn is_undefined_control_sequence(text : String) -> Bool {
+  text.length() > 0 && text[0] == '\\' && !is_implicit_command(text)
 }
 
 ///|
@@ -683,6 +717,9 @@ fn Parser::parse_prefixed_function(
 }
 
 ///|
+/// Parses a single token into a symbol node: structural tokens (`^`, `_`,
+/// braces, `&`, EOF) are not symbols, verb tokens are parsed as `Verb` nodes,
+/// and everything else goes through `parse_symbol_text`.
 fn Parser::parse_symbol(self : Parser) -> ParseNode? raise ParseFailure {
   let token = self.fetch()
   let original_text = token.text
@@ -697,70 +734,98 @@ fn Parser::parse_symbol(self : Parser) -> ParseNode? raise ParseFailure {
     self.consume()
     Some(parse_verb_token(original_text))
   } else {
-    let normalized = normalize_unicode_symbol(self.mode, original_text)
-    // KaTeX Parser.ts: accented Unicode text decomposition in math mode
-    if self.mode == Math && normalized != original_text {
-      self.settings.report_nonstrict(
-        "unicodeTextInMathMode",
-        "Accented Unicode text character \"\{original_text[0]}\" used in math mode",
-        Some(token),
-      )
-    }
-    let mark_start = trailing_combining_mark_start(normalized)
-    let text = mark_start.map_or(normalized, start => {
-      normalized.unsafe_substring(start=0, end=start)
-    })
-    let text = match mark_start {
-      Some(_) if text == "i" => "ı"
-      Some(_) if text == "j" => "ȷ"
-      _ => text
-    }
-    match lookup_symbol(self.mode, text) {
-      Some(spec) => {
-        // KaTeX Parser.ts: Latin-1 fallback letters (Ð Þ þ) in math mode
-        if self.mode == Math && is_extra_latin(text) {
-          self.settings.report_nonstrict(
-            "unicodeTextInMathMode",
-            "Latin-1/Unicode text character \"\{text[0]}\" used in math mode",
-            Some(token),
-          )
-        }
-        self.consume()
-        let base = make_symbol_node(self.mode, text, token.loc, spec)
-        match mark_start {
-          None => Some(base)
-          Some(start) =>
-            Some(
-              apply_unicode_accents(
-                self.mode,
-                token.loc,
-                base,
-                normalized.unsafe_substring(start~, end=normalized.length()),
-              ),
-            )
-        }
+    self.parse_symbol_text(
+      token,
+      original_text,
+      normalize_unicode_symbol(self.mode, original_text),
+    )
+  }
+}
+
+///|
+/// Parses a non-verb token as a symbol: normalizes it, splits off trailing
+/// combining marks (with the `i`/`j` -> dotless forms), looks it up in the
+/// symbol registry, and reports strict-mode warnings for text characters in
+/// math mode. Unrecognized non-ASCII text becomes a `TextOrd` node.
+fn Parser::parse_symbol_text(
+  self : Parser,
+  token : Token,
+  original_text : String,
+  normalized : String,
+) -> ParseNode? raise ParseFailure {
+  // KaTeX Parser.ts: accented Unicode text decomposition in math mode
+  if self.mode == Math && normalized != original_text {
+    self.settings.report_nonstrict(
+      "unicodeTextInMathMode",
+      "Accented Unicode text character \"\{original_text[0]}\" used in math mode",
+      Some(token),
+    )
+  }
+  let (text, marks) = split_combining_marks(normalized)
+  match lookup_symbol(self.mode, text) {
+    Some(spec) => {
+      // KaTeX Parser.ts: Latin-1 fallback letters (Ð Þ þ) in math mode
+      if self.mode == Math && is_extra_latin(text) {
+        self.settings.report_nonstrict(
+          "unicodeTextInMathMode",
+          "Latin-1/Unicode text character \"\{text[0]}\" used in math mode",
+          Some(token),
+        )
       }
-      None if text.length() > 0 && text[0] >= 0x80 => {
-        // KaTeX Parser.ts: unrecognized Unicode characters
-        if !supported_codepoint(text[0].to_int()) {
-          self.settings.report_nonstrict(
-            "unknownSymbol",
-            "Unrecognized Unicode character \"\{text[0]}\" (\{text[0].to_int()})",
-            Some(token),
-          )
-        } else if self.mode == Math {
-          self.settings.report_nonstrict(
-            "unicodeTextInMathMode",
-            "Unicode text character \"\{text[0]}\" used in math mode",
-            Some(token),
-          )
-        }
-        self.consume()
-        Some(TextOrd(mode=Text, loc=token.loc, text~))
+      self.consume()
+      let base = make_symbol_node(self.mode, text, token.loc, spec)
+      match marks {
+        None => Some(base)
+        Some(accents) =>
+          Some(apply_unicode_accents(self.mode, token.loc, base, accents))
       }
-      None => None
+    }
+    None if is_non_ascii(text) => {
+      // KaTeX Parser.ts: unrecognized Unicode characters
+      if !supported_codepoint(text[0].to_int()) {
+        self.settings.report_nonstrict(
+          "unknownSymbol",
+          "Unrecognized Unicode character \"\{text[0]}\" (\{text[0].to_int()})",
+          Some(token),
+        )
+      } else if self.mode == Math {
+        self.settings.report_nonstrict(
+          "unicodeTextInMathMode",
+          "Unicode text character \"\{text[0]}\" used in math mode",
+          Some(token),
+        )
+      }
+      self.consume()
+      Some(TextOrd(mode=Text, loc=token.loc, text~))
+    }
+    None => None
+  }
+}
+
+///|
+/// Splits a normalized token text into a base without trailing combining
+/// marks and the marks themselves. A base of `i`/`j` becomes its dotless form
+/// (`ı`/`ȷ`) since the combining mark would otherwise render on the dot.
+fn split_combining_marks(normalized : String) -> (String, String?) {
+  match trailing_combining_mark_start(normalized) {
+    None => (normalized, None)
+    Some(start) => {
+      let base = normalized.unsafe_substring(start=0, end=start)
+      let base = if base == "i" {
+        "ı"
+      } else if base == "j" {
+        "ȷ"
+      } else {
+        base
+      }
+      (base, Some(normalized.unsafe_substring(start~, end=normalized.length())))
     }
   }
+}
+
+///|
+fn is_non_ascii(text : String) -> Bool {
+  text.length() > 0 && text[0] >= 0x80
 }
 
 ///|

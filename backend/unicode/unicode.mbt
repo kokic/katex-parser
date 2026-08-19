@@ -73,6 +73,15 @@ fn item_to_block(item : @backend.SpacableItem) -> Block {
 }
 
 ///|
+/// Renders a single node to an inline string (the default form used in text
+/// style and inside script arguments). Every `ParseNode` variant is handled
+/// here; variants that need vertical alignment in display mode are overridden
+/// by `content_block`, which falls back to this function for the rest.
+///
+/// Convention: node types whose display-mode form differs from the inline
+/// form are dispatched on `state.in_display` inside their arm; block-aware
+/// helpers (`frac_block`, `render_leftright_display_block`, ...) produce the
+/// display-mode output, and the inline form is composed as plain text.
 fn render_node_internal(
   node : @katex_parser.ParseNode,
   state : RenderState,
@@ -80,14 +89,14 @@ fn render_node_internal(
   let slash = state.config.fraction_slash
   match node {
     Internal(..) | EnvironmentEnd(..) => ""
-    Raw(string~, ..) => render_symbol(string)
-    ColorToken(color~, ..) => render_symbol(color)
+    Raw(string~, ..) => @backend.resolve_symbol(string)
+    ColorToken(color~, ..) => @backend.resolve_symbol(color)
     TextOrd(text~, ..)
     | MathOrd(text~, ..)
     | Spacing(text~, ..)
     | AccentToken(text~, ..)
     | OperatorToken(text~, ..)
-    | Atom(text~, ..) => render_symbol(text)
+    | Atom(text~, ..) => @backend.resolve_symbol(text)
     Size(value~, ..) => render_measurement(value)
     Url(url~, ..) => url
     Styling(body~, style~, ..) =>
@@ -119,29 +128,22 @@ fn render_node_internal(
       guard !state.in_display else {
         render_genfrac_block(numer, denom, state, has_bar_line=false)
       }
-      let num_state = { ..state, in_tight: true }
-      let den_state = { ..state, in_tight: true }
-      "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}"
+      inline_atop(numer, denom, state)
     }
     // Binomial: no bar line, delimiters present — stacked block in display
     // mode, (n,k) inline otherwise.
     GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) if state.in_display =>
       barless_delimited_block(numer, denom, left_delim, right_delim, state).render()
-    GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) => {
-      let num_state = { ..state, in_tight: true }
-      let den_state = { ..state, in_tight: true }
+    GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) =>
       render_delimited(
         left_delim,
-        "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}",
+        inline_atop(numer, denom, state),
         right_delim,
       )
-    }
     // Regular fraction: bar line, no delimiters
     GenFrac(numer~, denom~, left_delim=None, right_delim=None, ..) => {
       guard !state.in_display else { render_genfrac_block(numer, denom, state) }
-      let num_state = { ..state, in_tight: true }
-      let den_state = { ..state, in_tight: true }
-      "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
+      inline_fraction(numer, denom, slash, state)
     }
     // Genfrac with a bar line and delimiters
     GenFrac(numer~, denom~, has_bar_line~, left_delim~, right_delim~, ..) =>
@@ -152,11 +154,9 @@ fn render_node_internal(
           right_delim,
         ).render()
       } else {
-        let num_state = { ..state, in_tight: true }
-        let den_state = { ..state, in_tight: true }
         render_delimited(
           left_delim,
-          "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}",
+          inline_fraction(numer, denom, slash, state),
           right_delim,
         )
       }
@@ -177,47 +177,28 @@ fn render_node_internal(
       "rule(\{render_measurement(width)},\{render_measurement(height)})"
     MathChoice(display~, text~, script~, scriptscript~, ..) =>
       render_internal(
-        math_choice_variant(display, text, script, scriptscript, state.style),
+        @backend.math_choice_variant(
+          display,
+          text,
+          script,
+          scriptscript,
+          state.style,
+        ),
         state,
       )
     HorizBrace(label~, base~, ..) =>
-      "\{render_command_name(label)}(\{render_node_internal(base, state)})"
+      "\{@backend.command_name(label)}(\{render_node_internal(base, state)})"
     XArrow(label~, body~, below=None, ..) =>
-      "\{render_command_name(label)}(\{render_node_internal(body, state)})"
+      "\{@backend.command_name(label)}(\{render_node_internal(body, state)})"
     XArrow(label~, body~, below=Some(below), ..) =>
-      "\{render_command_name(label)}(\{render_node_internal(body, state)},\{render_node_internal(below, state)})"
+      "\{@backend.command_name(label)}(\{render_node_internal(body, state)},\{render_node_internal(below, state)})"
     AccentUnder(label~, base~, ..) =>
-      "underaccent(\{render_command_name(label)},\{render_node_internal(base, state)})"
+      "underaccent(\{@backend.command_name(label)},\{render_node_internal(base, state)})"
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
       render_delimiter(delim)
     LeftRight(body~, left~, right~, ..) =>
       if state.in_display {
-        match body {
-          [
-            Array(
-              body~,
-              columns~,
-              hlines_before_row~,
-              column_separation_type~,
-              ..
-            ),
-          ] =>
-            render_leftright_block(
-              render_delimiter(left),
-              render_delimiter(right),
-              body,
-              columns,
-              hlines_before_row,
-              column_separation_type,
-              state,
-            ).render()
-          _ =>
-            wrap_delims(
-              render_internal_block(body, state),
-              Some(left),
-              Some(right),
-            ).render()
-        }
+        render_leftright_display_block(body, left, right, state).render()
       } else {
         "\{render_delimiter(left)}\{render_internal(body, state)}\{render_delimiter(right)}"
       }
@@ -225,7 +206,7 @@ fn render_node_internal(
     Enclose(label~, body~, ..) if label == "\\fbox" =>
       render_enclose_block(body, state).render()
     Enclose(label~, body~, ..) =>
-      "\{render_command_name(label)}(\{render_node_internal(body, state)})"
+      "\{@backend.command_name(label)}(\{render_node_internal(body, state)})"
     IncludeGraphics(alt~, ..) => "image(\{alt})"
     Tag(body~, tag~, ..) =>
       "\{render_internal(body, state)}\t(\{render_internal(tag, state)})"
@@ -320,7 +301,8 @@ fn collect_spacable_items(
 
       // --- Space nodes: rendered text with no atom type ---
       Spacing(text~, ..) =>
-        acc + [{ atom_type: None, text: render_symbol(text), baseline: 0 }]
+        acc +
+        [{ atom_type: None, text: @backend.resolve_symbol(text), baseline: 0 }]
 
       // --- Everything else: render as a single atom with its baseline ---
       _ => {
@@ -413,59 +395,23 @@ fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
 }
 
 ///|
-fn math_choice_variant(
-  display : Array[@katex_parser.ParseNode],
-  text : Array[@katex_parser.ParseNode],
-  script : Array[@katex_parser.ParseNode],
-  scriptscript : Array[@katex_parser.ParseNode],
-  style : @katex_parser.StyleLevel,
-) -> Array[@katex_parser.ParseNode] {
-  match style {
-    @katex_parser.StyleLevel::DisplayStyle => display
-    @katex_parser.StyleLevel::TextStyle => text
-    @katex_parser.StyleLevel::ScriptStyle => script
-    @katex_parser.StyleLevel::ScriptScriptStyle => scriptscript
-  }
-}
-
-///|
 fn render_operator_content(
   content : @katex_parser.OperatorContent,
   state : RenderState,
 ) -> String {
   match content {
-    SymbolOperator(text) => render_symbol(text)
-    NamedOperator(text) => render_command_name(text)
+    SymbolOperator(text) => @backend.resolve_symbol(text)
+    NamedOperator(text) => @backend.command_name(text)
     BodyOperator(body) => render_internal(body, state)
   }
-}
-
-///|
-let render_symbol : (String) -> String = text => {
-  @katex_parser.unicode_symbol(text).unwrap_or(text)
 }
 
 ///|
 /// Renders a delimiter. The null delimiter `.` (used by `\left.`/`\right.`)
 /// renders as nothing.
 fn render_delimiter(text : String) -> String {
-  if text == "." {
-    ""
-  } else {
-    render_symbol(text)
-  }
-}
-
-///|
-/// Strips the leading `\` from a control-sequence label so that fallback
-/// notation renders as `name(...)` instead of `\name(...)`. Each fallback site
-/// applies this to its own label, so nested fallbacks are handled level by level.
-fn render_command_name(label : String) -> String {
-  if label.length() > 0 && label[0] == '\\' {
-    label.unsafe_substring(start=1, end=label.length())
-  } else {
-    label
-  }
+  guard !@backend.is_null_delimiter(text) else { "" }
+  @backend.resolve_symbol(text)
 }
 
 ///|
@@ -503,7 +449,7 @@ fn collect_font_chars(
     @katex_parser.ParseNode::MathOrd(text~, ..)
     | @katex_parser.ParseNode::TextOrd(text~, ..)
     | @katex_parser.ParseNode::Atom(text~, ..) => {
-      let rendered = render_symbol(text)
+      let rendered = @backend.resolve_symbol(text)
       for ch in rendered {
         chars.push(String::from_array([ch]))
       }
@@ -566,6 +512,69 @@ fn is_font_letter(s : String) -> Bool {
 fn font_fallback(font : String, chars : Array[String]) -> String {
   let text = chars.fold(init="", (acc, s) => acc + s)
   "\{font}(\{text})"
+}
+
+///|
+/// The inline (non-display) form of a bar-less stacked fraction
+/// (`\atop`/`\atopfrac`): numerator and denominator joined by a comma, both
+/// rendered in tight style.
+fn inline_atop(
+  numer : @katex_parser.ParseNode,
+  denom : @katex_parser.ParseNode,
+  state : RenderState,
+) -> String {
+  let num_state = { ..state, in_tight: true }
+  let den_state = { ..state, in_tight: true }
+  "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}"
+}
+
+///|
+/// The inline (non-display) form of a fraction with a bar: numerator and
+/// denominator joined by the configured fraction slash, each operand
+/// parenthesized when it is not atomic.
+fn inline_fraction(
+  numer : @katex_parser.ParseNode,
+  denom : @katex_parser.ParseNode,
+  slash : String,
+  state : RenderState,
+) -> String {
+  let num_state = { ..state, in_tight: true }
+  let den_state = { ..state, in_tight: true }
+  "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
+}
+
+///|
+/// Renders the display-mode form of `\left..\right`: a body consisting of a
+/// single array becomes a bordered block; any other body is wrapped with the
+/// delimiters.
+fn render_leftright_display_block(
+  body : Array[@katex_parser.ParseNode],
+  left : String,
+  right : String,
+  state : RenderState,
+) -> Block {
+  match body {
+    [
+      @katex_parser.ParseNode::Array(
+        body~,
+        columns~,
+        hlines_before_row~,
+        column_separation_type~,
+        ..
+      ),
+    ] =>
+      render_leftright_block(
+        render_delimiter(left),
+        render_delimiter(right),
+        body,
+        columns,
+        hlines_before_row,
+        column_separation_type,
+        state,
+      )
+    _ =>
+      wrap_delims(render_internal_block(body, state), Some(left), Some(right))
+  }
 }
 
 ///|
@@ -645,11 +654,10 @@ fn render_measurement(measurement : @katex_parser.Measurement) -> String {
 /// zero spaces have no plain-text representation and render as nothing. Other
 /// units fall back to `kern(...)`.
 fn render_kern(dimension : @katex_parser.Measurement) -> String {
-  let em = match dimension.unit {
-    "em" => dimension.number
-    "mu" => dimension.number / 18.0
-    _ => return "kern(\{render_measurement(dimension)})"
+  guard dimension.unit == "em" || dimension.unit == "mu" else {
+    return "kern(\{render_measurement(dimension)})"
   }
+  let em = @backend.em_value(dimension).unwrap_or_default()
   if em <= 0.0 {
     return ""
   }
@@ -877,8 +885,8 @@ fn render_operator_content_block(
   state : RenderState,
 ) -> Block {
   match content {
-    SymbolOperator(text) => Block::from(render_symbol(text))
-    NamedOperator(text) => Block::from(render_command_name(text))
+    SymbolOperator(text) => Block::from(@backend.resolve_symbol(text))
+    NamedOperator(text) => Block::from(@backend.command_name(text))
     BodyOperator(body) => content_body_block(body, state)
   }
 }
@@ -886,6 +894,13 @@ fn render_operator_content_block(
 ///|
 /// Renders a single node into a `Block`, preserving baseline information so
 /// that multi-line display-mode content stays vertically aligned.
+///
+/// This is the display-mode counterpart of `render_node_internal`: it
+/// overrides the arms that produce multi-line output (fractions, arrays,
+/// `\left..\right`, roots, ...) and falls back to `render_node_internal`
+/// (rendered into a single-line block) for everything else, including the
+/// inline-mode forms of the overridden node types. Keeping the two tiers in
+/// sync is intentional: adding a node type only requires a fallback arm here.
 fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
   match node {
     // --- Transparent wrappers: expose children ---
@@ -955,32 +970,7 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
         right_delim,
       )
     @katex_parser.ParseNode::LeftRight(body~, left~, right~, ..) if state.in_display =>
-      match body {
-        [
-          @katex_parser.ParseNode::Array(
-            body~,
-            columns~,
-            hlines_before_row~,
-            column_separation_type~,
-            ..
-          ),
-        ] =>
-          render_leftright_block(
-            render_delimiter(left),
-            render_delimiter(right),
-            body,
-            columns,
-            hlines_before_row,
-            column_separation_type,
-            state,
-          )
-        _ =>
-          wrap_delims(
-            render_internal_block(body, state),
-            Some(left),
-            Some(right),
-          )
-      }
+      render_leftright_display_block(body, left, right, state)
     @katex_parser.ParseNode::Array(
       body~,
       column_separation_type=Some(
@@ -1021,28 +1011,28 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       render_function_block("bold", content_body_block(body, state))
     @katex_parser.ParseNode::Enclose(label~, body~, ..) =>
       render_function_block(
-        render_command_name(label),
+        @backend.command_name(label),
         content_block(body, state),
       )
     @katex_parser.ParseNode::HorizBrace(label~, base~, ..) =>
       render_function_block(
-        render_command_name(label),
+        @backend.command_name(label),
         content_block(base, state),
       )
     @katex_parser.ParseNode::XArrow(label~, body~, below=None, ..) =>
       render_function_block(
-        render_command_name(label),
+        @backend.command_name(label),
         content_block(body, state),
       )
     @katex_parser.ParseNode::XArrow(label~, body~, below=Some(below), ..) =>
       render_function_block(
-        render_command_name(label),
+        @backend.command_name(label),
         content_block(body, state)
         .beside(Block::from(","))
         .beside(content_block(below, state)),
       )
     @katex_parser.ParseNode::AccentUnder(label~, base~, ..) =>
-      Block::from("underaccent(\{render_command_name(label)},")
+      Block::from("underaccent(\{@backend.command_name(label)},")
       .beside(content_block(base, state))
       .beside(Block::from(")"))
     @katex_parser.ParseNode::Accent(label~, base~, ..) =>
@@ -1061,7 +1051,13 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       ..
     ) =>
       content_body_block(
-        math_choice_variant(display, text, script, scriptscript, state.style),
+        @backend.math_choice_variant(
+          display,
+          text,
+          script,
+          scriptscript,
+          state.style,
+        ),
         state,
       )
     @katex_parser.ParseNode::Tag(body~, tag~, ..) =>
@@ -1146,7 +1142,7 @@ fn render_accent_block(
       Block::from("\{rendered_base}\{mark}")
     _ =>
       render_function_block(
-        render_command_name(label),
+        @backend.command_name(label),
         content_block(base, state),
       )
   }

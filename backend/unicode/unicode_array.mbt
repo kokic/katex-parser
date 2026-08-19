@@ -108,24 +108,7 @@ fn pad_gather(
 /// Computes the display width of every column from the maximum block width in
 /// that column across all rows.
 fn column_block_widths(rows : Array[Array[Block]]) -> Array[Int] {
-  let max_cols = rows.fold(init=0, (m, row) => {
-    let len = row.length()
-    if len > m {
-      len
-    } else {
-      m
-    }
-  })
-  let widths = Array::make(max_cols, 0)
-  for row in rows {
-    for j, cell in row {
-      let w = cell.width()
-      if w > widths[j] {
-        widths[j] = w
-      }
-    }
-  }
-  widths
+  column_max_widths(rows, b => b.width())
 }
 
 ///|
@@ -237,11 +220,7 @@ fn pad_cell(b : Block, width : Int, align : String) -> Block {
       }
     "c" =>
       {
-        lines: b.lines.map(l => {
-          let need = width - display_width(l)
-          let left = need / 2
-          " ".repeat(left) + l + " ".repeat(need - left)
-        }),
+        lines: b.lines.map(l => center_text(l, width)),
         width,
         baseline: b.baseline,
       }

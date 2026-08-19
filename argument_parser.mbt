@@ -6,6 +6,28 @@ fn Parser::switch_mode(self : Parser, mode : Mode) -> Unit {
 }
 
 ///|
+/// Unwraps a captured parse result together with its group-close step. The
+/// close is checked first: when the parse already unbalanced the group, the
+/// close error is the one that surfaces.
+fn[V] unwrap_captured(
+  close : Result[Unit, ParseFailure],
+  value : Result[V, ParseFailure],
+) -> V raise ParseFailure {
+  match (close, value) {
+    (Err(err), _) => raise err
+    (_, Err(err)) => raise err
+    (Ok(_), Ok(value)) => value
+  }
+}
+
+///|
+/// Parses the arguments of a function. Optional arguments come first; a
+/// missing optional argument contributes `None` to `opt_args`. The argument
+/// type of each position comes from the function spec; when the spec does not
+/// declare one, an untyped argument parses as an `OriginalArg` group — except
+/// for primitive functions, and for the first mandatory argument when an
+/// earlier optional argument was omitted (`primitive_after_missing_optional`),
+/// which parse directly.
 fn Parser::parse_arguments(
   self : Parser,
   func : String,
@@ -123,11 +145,7 @@ fn Parser::parse_argument_group(
         self.gullet.end_group()
       })
       self.switch_mode(outer_mode)
-      match (close_result, result) {
-        (Err(err), _) => raise err
-        (_, Err(err)) => raise err
-        (Ok(_), Ok(node)) => Some(node)
-      }
+      Some(unwrap_captured(close_result, result))
     }
   }
 }

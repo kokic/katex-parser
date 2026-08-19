@@ -69,6 +69,42 @@ fn cd_arrow(
 }
 
 ///|
+/// Scans the label above/below a CD arrow: all nodes until the arrow
+/// character (exclusive). Raises when the arrow character never appears or an
+/// `@` interrupts the label.
+fn scan_cd_label(
+  nodes : Array[ParseNode],
+  index : Int,
+  arrow : String,
+) -> (Array[ParseNode], Int) raise ParseFailure {
+  let label : Array[ParseNode] = []
+  let mut index = index
+  while index < nodes.length() {
+    let current = nodes[index]
+    if cd_label_end(current, arrow) {
+      return (label, index + 1)
+    }
+    if current is TextOrd(text="@", ..) {
+      raise InvalidArgument(
+        message="Missing a " + arrow + " character to complete a CD arrow.",
+        loc=None,
+      )
+    }
+    label.push(current)
+    index = index + 1
+  }
+  raise InvalidArgument(
+    message="Missing a " + arrow + " character to complete a CD arrow.",
+    loc=None,
+  )
+}
+
+///|
+/// Splits one parsed CD row into cells: `@` starts an arrow cell (arrow
+/// character, optional labels above/below), everything else accumulates into
+/// the current node cell. On even rows the leading blank cell (the empty
+/// corner before the first arrow) is dropped; on odd rows the trailing cell
+/// is kept to preserve the column grid.
 fn cd_row(
   nodes : Array[ParseNode],
   even : Bool,
@@ -95,42 +131,13 @@ fn cd_row(
         )
       }
       index = index + 1
-      let labels : Array[ParseNode] = [cd_empty_label(), cd_empty_label()]
+      let labels : Array[ParseNode] = []
       if arrow == ">" || arrow == "<" || arrow == "A" || arrow == "V" {
-        for label_index in 0..<2 {
-          let label_body : Array[ParseNode] = []
-          let mut complete = false
-          while index < nodes.length() {
-            let current = nodes[index]
-            if cd_label_end(current, arrow) {
-              complete = true
-              index = index + 1
-              break
-            }
-            if current is TextOrd(text="@", ..) {
-              raise InvalidArgument(
-                message="Missing a " +
-                  arrow +
-                  " character to complete a CD arrow.",
-                loc=None,
-              )
-            }
-            label_body.push(current)
-            index = index + 1
-          }
-          guard complete else {
-            raise InvalidArgument(
-              message="Missing a " +
-                arrow +
-                " character to complete a CD arrow.",
-              loc=None,
-            )
-          }
-          labels[label_index] = OrdGroup(
-            mode=Math,
-            loc=None,
-            body=label_body,
-            semisimple=false,
+        for _ in 0..<2 {
+          let (label_body, next_index) = scan_cd_label(nodes, index, arrow)
+          index = next_index
+          labels.push(
+            OrdGroup(mode=Math, loc=None, body=label_body, semisimple=false),
           )
         }
       } else if arrow != "=" && arrow != "|" && arrow != "." {
@@ -138,6 +145,9 @@ fn cd_row(
           message="Expected one of \"<>AV=|.\" after @",
           loc=None,
         )
+      } else {
+        labels.push(cd_empty_label())
+        labels.push(cd_empty_label())
       }
       row.push(cd_cell([cd_arrow(arrow, labels[0], labels[1])]))
     } else {
@@ -215,12 +225,7 @@ fn Parser::parse_cd_environment(self : Parser) -> ParseNode raise ParseFailure {
   let close_array : Result[Unit, ParseFailure] = capture_parse_result(() => {
     self.gullet.end_group()
   })
-  match (result, close_cell, close_array) {
-    (Err(err), _, _) => raise err
-    (_, Err(err), _) => raise err
-    (_, _, Err(err)) => raise err
-    (Ok(node), Ok(_), Ok(_)) => node
-  }
+  unwrap_array_parse_result(result, close_cell, close_array)
 }
 
 ///|

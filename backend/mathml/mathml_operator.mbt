@@ -4,11 +4,12 @@ fn render_operator(
   state : RenderState,
 ) -> MathMlNode {
   match content {
-    SymbolOperator(value) => element("mo", children=[text_node(symbol(value))])
+    SymbolOperator(value) =>
+      element("mo", children=[text_node(@backend.resolve_symbol(value))])
     BodyOperator(body) => element("mo", children=render_expression(body, state))
     NamedOperator(value) =>
       element("mrow", children=[
-        element("mi", children=[text_node(strip_command(value))], attributes=[
+        element("mi", children=[text_node(@backend.command_name(value))], attributes=[
           ("mathvariant", "normal"),
         ]),
         element("mo", children=[text_node("⁡")]),
