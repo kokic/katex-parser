@@ -136,21 +136,12 @@ fn Parser::subparse(
   self.consume()
   self.gullet.push_token(Token::make("}"))
   self.gullet.push_tokens(tokens)
-  try {
-    let body = self.parse_expression(false, Some("}"))
-    self.expect("}")
-    body
-  } catch {
-    err => {
-      self.next_token = old_token
-      raise err
-    }
-  } noraise {
-    body => {
-      self.next_token = old_token
-      body
-    }
+  defer {
+    self.next_token = old_token
   }
+  let body = self.parse_expression(false, Some("}"))
+  self.expect("}")
+  body
 }
 
 ///|
@@ -160,21 +151,10 @@ fn Parser::parse_math_mode(
 ) -> Array[ParseNode] raise ParseFailure {
   let outer_mode = self.mode
   self.switch_mode(Math)
-  try {
-    let body = self.parse_expression(false, Some(close))
-    self.expect(close)
-    body
-  } catch {
-    err => {
-      self.switch_mode(outer_mode)
-      raise err
-    }
-  } noraise {
-    body => {
-      self.switch_mode(outer_mode)
-      body
-    }
-  }
+  defer self.switch_mode(outer_mode)
+  let body = self.parse_expression(false, Some(close))
+  self.expect(close)
+  body
 }
 
 ///|
@@ -196,27 +176,18 @@ fn Parser::parse_left_right(
   left : String,
 ) -> ParseNode raise ParseFailure {
   self.leftright_depth = self.leftright_depth + 1
-  try {
-    let body = self.parse_expression(false, None)
-    self.expect("\\right", consume=false)
-    guard self.parse_function(None, None)
-      is Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) else {
-      raise InternalInvariant(
-        message="\\right did not produce a closing delimiter",
-      )
-    }
-    LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
-  } catch {
-    err => {
-      self.leftright_depth = self.leftright_depth - 1
-      raise err
-    }
-  } noraise {
-    node => {
-      self.leftright_depth = self.leftright_depth - 1
-      node
-    }
+  defer {
+    self.leftright_depth = self.leftright_depth - 1
   }
+  let body = self.parse_expression(false, None)
+  self.expect("\\right", consume=false)
+  guard self.parse_function(None, None)
+    is Some(EmitAtom(LeftRightRight(delim=right, color~, ..))) else {
+    raise InternalInvariant(
+      message="\\right did not produce a closing delimiter",
+    )
+  }
+  LeftRight(mode=self.mode, body~, left~, right~, right_color=color)
 }
 
 ///|
