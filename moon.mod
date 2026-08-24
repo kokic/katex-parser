@@ -1,6 +1,6 @@
 name = "kokic/katex-parser"
 
-version = "0.2.7"
+version = "0.3.0"
 
 readme = "README.mbt.md"
 
@@ -12,4 +12,4 @@ keywords = [ "katex", "latex", "math", "parser", "tex" ]
 
 description = "A MoonBit parser for KaTeX, lexing and parsing LaTeX math expressions with macro expansion"
 
-preferred_target = "wasm-gc"
+preferred_target = "wasm"
