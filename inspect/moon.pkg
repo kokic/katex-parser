@@ -1,6 +1,6 @@
 import {
   "moonbitlang/core/test",
-  "kokic/katex-parser" @katex_parser,
+  "kokic/katex-parser/parser" @katex_parser,
   "kokic/katex-parser/backend/unicode",
   "kokic/katex-parser/backend/mathml",
 } for "test"
