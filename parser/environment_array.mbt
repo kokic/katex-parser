@@ -146,7 +146,7 @@ fn Parser::parse_array_environment(
         }
         token =>
           raise InvalidArgument(
-            message="Expected & or \\\\ or \\end, got " + token,
+            message="Expected & or \\\\ or \\end, got \{token}",
             loc=None,
           )
       }

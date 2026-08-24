@@ -53,7 +53,7 @@ fn normalized_color(text : String) -> String? {
       None
     }
   } else if text.length() == 6 && all_code_units(text, is_ascii_hex_digit) {
-    Some("#" + text)
+    Some("#\{text}")
   } else if all_code_units(text, is_ascii_alphabetic) {
     Some(text)
   } else {
@@ -71,7 +71,7 @@ fn Parser::parse_color_group(
   .map(token => {
     guard normalized_color(token.text) is Some(color) else {
       raise InvalidArgument(
-        message="Invalid color: '" + token.text + "'",
+        message="Invalid color: '\{token.text}'",
         loc=token.loc,
       )
     }

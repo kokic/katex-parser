@@ -36,12 +36,12 @@ fn alignat_environment_handler(
 ) -> ParseNode raise ParseFailure {
   if context.env_name != "alignedat" && !context.display_mode {
     raise InvalidArgument(
-      message="{" + context.env_name + "} can be used only in display mode.",
+      message="{\{context.env_name}} can be used only in display mode.",
       loc=None,
     )
   }
   let pairs = alignat_pair_count(
-    require_function_arg(args, 0, "\\begin{" + context.env_name + "}"),
+    require_function_arg(args, 0, "\\begin{\{context.env_name}}"),
   )
   let auto_tag = match context.env_name {
     "alignat" => Some(true)

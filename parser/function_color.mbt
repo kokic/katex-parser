@@ -13,7 +13,7 @@ fn require_color_argument_at(
   func_name : String,
 ) -> String raise ParseFailure {
   guard require_function_arg(args, index, func_name) is ColorToken(color~, ..) else {
-    raise InternalInvariant(message="Expected color argument for " + func_name)
+    raise InternalInvariant(message="Expected color argument for \{func_name}")
   }
   color
 }

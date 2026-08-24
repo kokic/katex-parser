@@ -101,7 +101,7 @@ fn standard_genfrac_config(
       }
     _ =>
       raise InternalInvariant(
-        message="Unrecognized standard genfrac command: " + func_name,
+        message="Unrecognized standard genfrac command: \{func_name}",
       )
   }
 }
@@ -149,7 +149,7 @@ fn infix_replacement(func_name : String) -> String raise ParseFailure {
     "\\brack" => "\\\\brackfrac"
     _ =>
       raise InternalInvariant(
-        message="Unrecognized infix genfrac command: " + func_name,
+        message="Unrecognized infix genfrac command: \{func_name}",
       )
   }
 }

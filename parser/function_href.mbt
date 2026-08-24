@@ -27,7 +27,7 @@ fn href_argument(
   func_name : String,
 ) -> String raise ParseFailure {
   guard require_function_arg(args, index, func_name) is Url(url~, ..) else {
-    raise InternalInvariant(message="Expected URL argument for " + func_name)
+    raise InternalInvariant(message="Expected URL argument for \{func_name}")
   }
   url
 }

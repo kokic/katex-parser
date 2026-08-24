@@ -16,7 +16,7 @@ fn kern_dimension(
   func_name : String,
 ) -> Measurement raise ParseFailure {
   guard require_function_arg(args, 0, func_name) is Size(value~, ..) else {
-    raise InternalInvariant(message="Expected size argument for " + func_name)
+    raise InternalInvariant(message="Expected size argument for \{func_name}")
   }
   value
 }
@@ -38,23 +38,19 @@ fn kern_handler(
     if !uses_mu {
       (context.report_nonstrict)(
         "mathVsTextUnits",
-        "LaTeX's " +
-        context.func_name +
-        " supports only mu units, not " +
-        dimension.unit +
-        " units",
+        "LaTeX's \{context.func_name} supports only mu units, not \{dimension.unit} units",
       )
     }
     if context.mode != Math {
       (context.report_nonstrict)(
         "mathVsTextUnits",
-        "LaTeX's " + context.func_name + " works only in math mode",
+        "LaTeX's \{context.func_name} works only in math mode",
       )
     }
   } else if uses_mu {
     (context.report_nonstrict)(
       "mathVsTextUnits",
-      "LaTeX's " + context.func_name + " doesn't support mu units",
+      "LaTeX's \{context.func_name} doesn't support mu units",
     )
   }
   Kern(mode=context.mode, dimension~)

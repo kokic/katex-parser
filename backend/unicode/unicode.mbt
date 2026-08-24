@@ -262,7 +262,7 @@ fn merge_not_overlay(
         next_text.length() > 0 &&
         is_single_character_output(next_text) &&
         !is_zero_width_mark(next_text[0].to_int()) {
-        result.push({ ..next, text: next_text + "\u0338" })
+        result.push({ ..next, text: "\{next_text}\u0338" })
         skip_next = true
         continue
       }
@@ -627,9 +627,9 @@ fn box_border(style : LineStyle, w : Int, is_top : Bool) -> String {
     Ascii => "-".repeat(w + 2)
     Unicode =>
       if is_top {
-        "┌" + "─".repeat(w) + "┐"
+        "┌\{"─".repeat(w)}┐"
       } else {
-        "└" + "─".repeat(w) + "┘"
+        "└\{"─".repeat(w)}┘"
       }
   }
 }

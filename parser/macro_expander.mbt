@@ -285,9 +285,7 @@ fn MacroExpander::consume_arg(
       }
     } else if token.text == "EOF" {
       raise InvalidArgument(
-        message="Unexpected end of input in a macro argument, expected '" +
-          expected_argument_delimiter(delimiters, delimiter_match) +
-          "'",
+        message="Unexpected end of input in a macro argument, expected '\{expected_argument_delimiter(delimiters, delimiter_match)}'",
         loc=token.loc,
       )
     }

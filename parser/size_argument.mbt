@@ -69,7 +69,7 @@ fn Parser::parse_size_regex_group(self : Parser) -> Token raise ParseFailure {
   let text = builder.to_string()
   guard !text.is_empty() else {
     raise InvalidArgument(
-      message="Invalid size: '" + first_token.text + "'",
+      message="Invalid size: '\{first_token.text}'",
       loc=first_token.loc,
     )
   }
@@ -81,7 +81,7 @@ fn parse_decimal(text : String) -> Double raise ParseFailure {
   @string.from_str(text) catch {
     _ =>
       raise InternalInvariant(
-        message="Validated size number failed Double conversion: " + text,
+        message="Validated size number failed Double conversion: \{text}",
       )
   }
 }
@@ -177,14 +177,11 @@ fn Parser::parse_size_group(
         text = "0pt"
       }
       guard parse_size_measurement(text) is Some(value) else {
-        raise InvalidArgument(
-          message="Invalid size: '" + text + "'",
-          loc=token.loc,
-        )
+        raise InvalidArgument(message="Invalid size: '\{text}'", loc=token.loc)
       }
       guard valid_size_unit(value.unit) else {
         raise InvalidArgument(
-          message="Invalid unit: '" + value.unit + "'",
+          message="Invalid unit: '\{value.unit}'",
           loc=token.loc,
         )
       }

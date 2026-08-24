@@ -129,7 +129,7 @@ pub fn Block::row(
 pub fn pad_right(s : String, width : Int) -> String {
   let need = width - display_width(s)
   guard need > 0 else { s }
-  s + " ".repeat(need)
+  "\{s}\{" ".repeat(need)}"
 }
 
 ///|
@@ -164,7 +164,7 @@ fn center_text(s : String, width : Int) -> String {
   guard need > 0 else { s }
   let left = need / 2
   let right = need - left
-  " ".repeat(left) + s + " ".repeat(right)
+  "\{" ".repeat(left)}\{s}\{" ".repeat(right)}"
 }
 
 // ---------------------------------------------------------------------------

@@ -23,13 +23,13 @@ fn char_argument_text(
   func_name : String,
 ) -> String raise ParseFailure {
   guard arg is OrdGroup(body~, ..) else {
-    raise InternalInvariant(message="Expected group argument for " + func_name)
+    raise InternalInvariant(message="Expected group argument for \{func_name}")
   }
   let builder = StringBuilder()
   for node in body {
     guard node is TextOrd(text~, ..) else {
       raise InternalInvariant(
-        message="Expected text character for " + func_name,
+        message="Expected text character for \{func_name}",
       )
     }
     builder.write_string(text)
@@ -54,13 +54,13 @@ fn char_handler(
   )
   guard decimal_char_code(number) is Some(code) else {
     raise InvalidArgument(
-      message="\\@char has non-numeric argument " + number,
+      message="\\@char has non-numeric argument \{number}",
       loc=None,
     )
   }
   guard code >= 0 && code < 0x10ffff else {
     raise InvalidArgument(
-      message="\\@char with invalid code point " + number,
+      message="\\@char with invalid code point \{number}",
       loc=None,
     )
   }

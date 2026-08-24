@@ -40,7 +40,7 @@ fn html_data_attributes(
       }
       guard equals >= 0 else {
         raise InvalidArgument(
-          message="\\htmlData key/value '" + item + "' missing equals sign",
+          message="\\htmlData key/value '\{item}' missing equals sign",
           loc=None,
         )
       }
@@ -49,7 +49,7 @@ fn html_data_attributes(
         start=equals + 1,
         end=item.length(),
       )
-      attributes["data-" + key] = data_value
+      attributes["data-\{key}"] = data_value
       start = index + 1
     }
   }
@@ -76,7 +76,7 @@ fn html_handler(
   guard require_function_arg(args, 0, context.func_name)
     is Raw(string=value, ..) else {
     raise InternalInvariant(
-      message="Expected raw argument for " + context.func_name,
+      message="Expected raw argument for \{context.func_name}",
     )
   }
   (context.report_nonstrict)(

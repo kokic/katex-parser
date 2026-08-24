@@ -4,7 +4,7 @@ fn lap_alignment(func_name : String) -> LapAlignment raise ParseFailure {
     "\\mathllap" => LLap
     "\\mathrlap" => RLap
     "\\mathclap" => CLap
-    _ => raise InternalInvariant(message="Unknown lap command: " + func_name)
+    _ => raise InternalInvariant(message="Unknown lap command: \{func_name}")
   }
 }
 

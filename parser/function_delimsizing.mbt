@@ -7,7 +7,7 @@ fn delimiter_size(func_name : String) -> Int raise ParseFailure {
     "\\Biggl" | "\\Biggr" | "\\Biggm" | "\\Bigg" => 4
     _ =>
       raise InternalInvariant(
-        message="Unknown delimiter sizing function " + func_name,
+        message="Unknown delimiter sizing function \{func_name}",
       )
   }
 }
@@ -21,7 +21,7 @@ fn delimiter_mclass(func_name : String) -> AtomFamily raise ParseFailure {
     "\\big" | "\\Big" | "\\bigg" | "\\Bigg" => Mord
     _ =>
       raise InternalInvariant(
-        message="Unknown delimiter sizing function " + func_name,
+        message="Unknown delimiter sizing function \{func_name}",
       )
   }
 }
@@ -108,12 +108,12 @@ fn checked_delimiter(
     Some(text) if is_delimiter(text) => text
     Some(text) =>
       raise InvalidArgument(
-        message="Invalid delimiter '" + text + "' after '" + func_name + "'",
+        message="Invalid delimiter '\{text}' after '\{func_name}'",
         loc=None,
       )
     None =>
       raise InvalidArgument(
-        message="Invalid delimiter type after '" + func_name + "'",
+        message="Invalid delimiter type after '\{func_name}'",
         loc=None,
       )
   }

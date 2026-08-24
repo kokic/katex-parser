@@ -3,6 +3,7 @@ priv struct Parser {
   mut mode : Mode
   gullet : MacroExpander
   settings : Settings
+  function_registry : FunctionRegistry
   mut next_token : Token?
   mut leftright_depth : Int
 }
@@ -14,14 +15,39 @@ priv enum AtomResult {
 }
 
 ///|
-fn Parser::make(input : String, settings : Settings) -> Parser {
+fn Parser::make(
+  input : String,
+  settings : Settings,
+  extra_specs? : Array[FunctionSpec] = [],
+) -> Parser {
+  let registry = build_function_registry(extra_specs)
   {
     mode: Math,
-    gullet: MacroExpander::make(input, settings, report_nonstrict=(
-      error_code,
-      error_message,
-    ) => settings.report_nonstrict(error_code, error_message, None)),
+    gullet: MacroExpander::make(
+      input,
+      settings,
+      report_nonstrict=(error_code, error_message) => {
+        settings.report_nonstrict(error_code, error_message, None)
+      },
+      command_status=name => {
+        match registry.get(name) {
+          Some(spec) =>
+            if spec.is_expandable() {
+              ExternalExpandable
+            } else {
+              ExternalUnexpandable
+            }
+          None =>
+            if is_registered_symbol(name) {
+              ExternalUnexpandable
+            } else {
+              ExternalUndefined
+            }
+        }
+      },
+    ),
     settings,
+    function_registry: registry,
     next_token: None,
     leftright_depth: 0,
   }
@@ -31,8 +57,9 @@ fn Parser::make(input : String, settings : Settings) -> Parser {
 pub fn parse(
   input : String,
   settings? : Settings = Default::default(),
+  extra_specs? : Array[FunctionSpec] = [],
 ) -> Array[ParseNode] raise ParseFailure {
-  let parser = Parser::make(input, settings)
+  let parser = Parser::make(input, settings, extra_specs~)
   parser.gullet.macros.set("\\df@tag", None)
   let body = parser.parse()
   let body = if parser.gullet.macros.get("\\df@tag") is Some(_) {
@@ -202,7 +229,11 @@ fn Parser::parse_expression(
       self.consume_spaces()
     }
     let token = self.fetch()
-    if should_break_expression(token.text, break_on_infix, break_on_token_text) {
+    if self.should_break_expression(
+        token.text,
+        break_on_infix,
+        break_on_token_text,
+      ) {
       break self.finish_expression(body)
     }
     match self.parse_atom(break_on_token_text) {
@@ -220,14 +251,19 @@ fn Parser::parse_expression(
 /// True when the token ends the current expression: a group- or
 /// environment-ending token, the caller's explicit stop token, or an infix
 /// function (`\over`, `\atop`, ...) when the caller breaks on those.
-fn should_break_expression(
+fn Parser::should_break_expression(
+  self : Parser,
   text : String,
   break_on_infix : Bool,
   break_on_token_text : String?,
 ) -> Bool {
   is_end_of_expression(text) ||
   (break_on_token_text is Some(stop) && text == stop) ||
-  (break_on_infix && lookup_function(text) is Some(spec) && spec.infix)
+  (
+    break_on_infix &&
+    self.function_registry.get(text) is Some(spec) &&
+    spec.infix
+  )
 }
 
 ///|
@@ -513,7 +549,7 @@ fn Parser::parse_function(
   name : String?,
 ) -> AtomResult? raise ParseFailure {
   let token = self.fetch()
-  match lookup_function(token.text) {
+  match self.function_registry.get(token.text) {
     None => None
     Some(func_data) => {
       self.consume()
@@ -609,7 +645,7 @@ fn Parser::call_function(
     parse_prefixed_function: name => self.parse_prefixed_function(name),
     parse_environment: name => self.parse_environment(name),
   }
-  guard lookup_function(func_name) is Some(spec) else {
+  guard self.function_registry.get(func_name) is Some(spec) else {
     raise MissingFunctionHandler(func_name~, loc=None)
   }
   guard spec.handler is Some(handler) else {
@@ -624,7 +660,7 @@ fn Parser::parse_environment(
   name : String,
 ) -> ParseNode raise ParseFailure {
   guard lookup_environment(name) is Some(spec) else {
-    raise InvalidArgument(message="No such environment: " + name, loc=None)
+    raise InvalidArgument(message="No such environment: \{name}", loc=None)
   }
   let arguments = FunctionSpec::make(
     [],
@@ -632,10 +668,7 @@ fn Parser::parse_environment(
     num_optional_args=spec.num_optional_args,
     arg_types=spec.arg_types,
   )
-  let (args, opt_args) = self.parse_arguments(
-    "\\begin{" + name + "}",
-    arguments,
-  )
+  let (args, opt_args) = self.parse_arguments("\\begin{\{name}}", arguments)
   let context : EnvironmentContext = {
     mode: self.mode,
     display_mode: self.settings.display_mode,

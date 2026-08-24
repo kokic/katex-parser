@@ -117,13 +117,13 @@ fn scan_definition_parameters(
       let number = (context.pop_token)()
       guard is_definition_arg_number(number) else {
         raise InvalidArgument(
-          message="Invalid argument number \"" + number.text + "\"",
+          message="Invalid argument number \"\{number.text}\"",
           loc=number.loc,
         )
       }
       guard number.text[0].to_int() - ('0' : UInt16).to_int() == count + 1 else {
         raise InvalidArgument(
-          message="Argument number \"" + number.text + "\" out of order",
+          message="Argument number \"\{number.text}\" out of order",
           loc=number.loc,
         )
       }

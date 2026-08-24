@@ -73,7 +73,7 @@ fn text_accent_handler(
   let mode = if context.mode == Math {
     (context.report_nonstrict)(
       "mathVsTextAccents",
-      "LaTeX's accent " + context.func_name + " works only in text mode",
+      "LaTeX's accent \{context.func_name} works only in text mode",
     )
     Mode::Text
   } else {

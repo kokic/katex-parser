@@ -1,6 +1,6 @@
 ///|
 #warnings("-unused_constructor")
-priv enum ArgType {
+pub(all) enum ArgType {
   ColorArg
   SizeArg
   UrlArg
@@ -13,7 +13,7 @@ priv enum ArgType {
 }
 
 ///|
-priv struct FunctionContext {
+pub(all) struct FunctionContext {
   func_name : String
   mode : Mode
   token : Token?
@@ -43,11 +43,15 @@ priv struct FunctionContext {
 }
 
 ///|
-type FunctionHandler = (FunctionContext, Array[ParseNode], Array[ParseNode?]) -> ParseNode raise ParseFailure
+pub type FunctionHandler = (
+  FunctionContext,
+  Array[ParseNode],
+  Array[ParseNode?],
+) -> ParseNode raise ParseFailure
 
 ///|
 #warnings("-unused_field")
-priv struct FunctionSpec {
+pub(all) struct FunctionSpec {
   names : Array[String]
   num_args : Int
   num_optional_args : Int
@@ -62,7 +66,7 @@ priv struct FunctionSpec {
 }
 
 ///|
-fn FunctionSpec::make(
+pub fn FunctionSpec::make(
   names : Array[String],
   num_args : Int,
   num_optional_args? : Int = 0,
@@ -96,17 +100,17 @@ fn FunctionSpec::is_expandable(self : FunctionSpec) -> Bool {
 }
 
 ///|
-priv struct FunctionRegistry {
+pub(all) struct FunctionRegistry {
   entries : Map[String, FunctionSpec]
 }
 
 ///|
-fn FunctionRegistry::make() -> FunctionRegistry {
+pub fn FunctionRegistry::make() -> FunctionRegistry {
   { entries: Map([]) }
 }
 
 ///|
-fn FunctionRegistry::register(
+pub fn FunctionRegistry::register(
   self : FunctionRegistry,
   spec : FunctionSpec,
 ) -> Unit {
@@ -116,7 +120,7 @@ fn FunctionRegistry::register(
 }
 
 ///|
-fn FunctionRegistry::get(
+pub fn FunctionRegistry::get(
   self : FunctionRegistry,
   name : String,
 ) -> FunctionSpec? {
@@ -237,12 +241,24 @@ let builtin_function_specs : Array[FunctionSpec] = [
 ]
 
 ///|
-fn build_builtin_function_registry() -> FunctionRegistry {
+/// Builds a function registry from the builtin specs plus caller-provided
+/// extension specs (e.g. `\eval` registered by the `eval` package).
+pub fn build_function_registry(
+  extra_specs : Array[FunctionSpec],
+) -> FunctionRegistry {
   let registry = FunctionRegistry::make()
   for spec in builtin_function_specs {
     registry.register(spec)
   }
+  for spec in extra_specs {
+    registry.register(spec)
+  }
   registry
+}
+
+///|
+fn build_builtin_function_registry() -> FunctionRegistry {
+  build_function_registry([])
 }
 
 ///|

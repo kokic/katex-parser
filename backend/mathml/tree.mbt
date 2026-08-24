@@ -133,7 +133,5 @@ fn combine_expression(nodes : Array[MathMlNode]) -> Array[MathMlNode] {
 
 ///|
 fn overlay_not(text : String) -> String {
-  text.unsafe_substring(start=0, end=1) +
-  "\u0338" +
-  text.unsafe_substring(start=1, end=text.length())
+  "\{text.unsafe_substring(start=0, end=1)}\u0338\{text.unsafe_substring(start=1, end=text.length())}"
 }

@@ -21,7 +21,7 @@ fn command_mclass(func_name : String) -> AtomFamily raise ParseFailure {
     guard command.name == func_name else { continue }
     return command.mclass
   }
-  raise InternalInvariant(message="Unknown math class command: " + func_name)
+  raise InternalInvariant(message="Unknown math class command: \{func_name}")
 }
 
 ///|

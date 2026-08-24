@@ -14,7 +14,7 @@ fn is_over_brace(func_name : String) -> Bool raise ParseFailure {
     "\\underbrace" | "\\underbracket" => false
     _ =>
       raise InternalInvariant(
-        message="Unknown horizontal brace command: " + func_name,
+        message="Unknown horizontal brace command: \{func_name}",
       )
   }
 }

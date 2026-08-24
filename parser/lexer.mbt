@@ -209,7 +209,7 @@ fn next_line_start(input : String, offset : Int) -> Int? {
 fn unexpected_character(input : String, offset : Int) -> ParseFailure {
   let text = token_text(input, offset, offset + 1)
   UnexpectedCharacter(
-    message="Unexpected character: '" + text + "'",
+    message="Unexpected character: '\{text}'",
     loc=Some(SourceLocation::make(input, start=offset, end=offset + 1)),
   )
 }

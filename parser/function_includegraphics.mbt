@@ -51,12 +51,12 @@ fn graphics_size(text : String) -> Measurement raise ParseFailure {
     Some(size) if valid_size_unit(size.unit) => size
     Some(size) =>
       raise InvalidArgument(
-        message="Invalid unit: '" + size.unit + "' in \\includegraphics.",
+        message="Invalid unit: '\{size.unit}' in \\includegraphics.",
         loc=None,
       )
     None =>
       raise InvalidArgument(
-        message="Invalid size: '" + text + "' in \\includegraphics",
+        message="Invalid size: '\{text}' in \\includegraphics",
         loc=None,
       )
   }
@@ -125,7 +125,7 @@ fn parse_graphics_options(
       "totalheight" => totalheight = graphics_size(value)
       _ =>
         raise InvalidArgument(
-          message="Invalid key: '" + key + "' in \\includegraphics.",
+          message="Invalid key: '\{key}' in \\includegraphics.",
           loc=None,
         )
     }

@@ -6,7 +6,7 @@ fn style_level(func_name : String) -> StyleLevel raise ParseFailure {
     "\\scriptstyle" => ScriptStyle
     "\\scriptscriptstyle" => ScriptScriptStyle
     _ =>
-      raise InternalInvariant(message="Unknown styling command: " + func_name)
+      raise InternalInvariant(message="Unknown styling command: \{func_name}")
   }
 }
 

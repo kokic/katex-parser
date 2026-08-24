@@ -4,7 +4,7 @@ fn require_size_argument(
   func_name : String,
 ) -> Measurement raise ParseFailure {
   guard arg is Size(value~, ..) else {
-    raise InternalInvariant(message="Expected size argument for " + func_name)
+    raise InternalInvariant(message="Expected size argument for \{func_name}")
   }
   value
 }

@@ -42,5 +42,5 @@ fn math_closing_handler(
   _opt_args : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   let loc = token_location(context.token)
-  raise InvalidArgument(message="Mismatched " + context.func_name, loc~)
+  raise InvalidArgument(message="Mismatched \{context.func_name}", loc~)
 }

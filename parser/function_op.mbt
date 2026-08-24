@@ -77,7 +77,7 @@ fn canonical_operator_name(
     guard command.name == func_name else { continue }
     return command.canonical_name
   }
-  raise InternalInvariant(message="Unknown operator command: " + func_name)
+  raise InternalInvariant(message="Unknown operator command: \{func_name}")
 }
 
 ///|

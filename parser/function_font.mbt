@@ -41,7 +41,7 @@ fn command_font(
     guard command.name == func_name else { continue }
     return command.font
   }
-  raise InternalInvariant(message="Unknown font command: " + func_name)
+  raise InternalInvariant(message="Unknown font command: \{func_name}")
 }
 
 ///|

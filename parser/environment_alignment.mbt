@@ -70,7 +70,7 @@ fn alignment_display_mode(
 ) -> Unit raise ParseFailure {
   if context.env_name != "aligned" && !context.display_mode {
     raise InvalidArgument(
-      message="{" + context.env_name + "} can be used only in display mode.",
+      message="{\{context.env_name}} can be used only in display mode.",
       loc=None,
     )
   }
@@ -126,7 +126,7 @@ fn gather_environment_handler(
 ) -> ParseNode raise ParseFailure {
   if context.env_name != "gathered" && !context.display_mode {
     raise InvalidArgument(
-      message="{" + context.env_name + "} can be used only in display mode.",
+      message="{\{context.env_name}} can be used only in display mode.",
       loc=None,
     )
   }

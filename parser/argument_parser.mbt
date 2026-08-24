@@ -47,7 +47,7 @@ fn Parser::parse_arguments(
       None => OriginalArg
     }
     match
-      self.parse_group_of_type("argument to '" + func + "'", arg_type, optional) {
+      self.parse_group_of_type("argument to '\{func}'", arg_type, optional) {
       None if optional => {
         opt_args.push(None)
         continue
@@ -117,7 +117,7 @@ fn Parser::parse_primitive_group(
   }
   guard self.parse_group(name, None) is Some(EmitAtom(group)) else {
     let token = self.fetch()
-    raise InvalidArgument(message="Expected group as " + name, loc=token.loc)
+    raise InvalidArgument(message="Expected group as \{name}", loc=token.loc)
   }
   Some(group)
 }

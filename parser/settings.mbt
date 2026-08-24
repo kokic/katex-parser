@@ -262,22 +262,14 @@ fn Settings::report_nonstrict(
     ) {
     Ignore => ()
     Warn => {
-      let warning = "LaTeX-incompatible input and strict mode is set to 'warn': " +
-        error_message +
-        " [" +
-        error_code +
-        "]"
+      let warning = "LaTeX-incompatible input and strict mode is set to 'warn': \{error_message} [\{error_code}]"
       if self.strict_warning_handler is Some(handler) {
         handler(warning)
       }
     }
     Error =>
       raise InvalidArgument(
-        message="LaTeX-incompatible input and strict mode is set to 'error': " +
-          error_message +
-          " [" +
-          error_code +
-          "]",
+        message="LaTeX-incompatible input and strict mode is set to 'error': \{error_message} [\{error_code}]",
         loc=token_location(token),
       )
   }

@@ -10,7 +10,7 @@ fn sizing_index(func_name : String) -> Int raise ParseFailure {
     guard command == func_name else { continue }
     return index + 1
   }
-  raise InternalInvariant(message="Unknown sizing command: " + func_name)
+  raise InternalInvariant(message="Unknown sizing command: \{func_name}")
 }
 
 ///|

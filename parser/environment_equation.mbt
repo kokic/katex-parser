@@ -6,7 +6,7 @@ fn equation_environment_handler(
 ) -> ParseNode raise ParseFailure {
   guard context.display_mode else {
     raise InvalidArgument(
-      message="{" + context.env_name + "} can be used only in display mode.",
+      message="{\{context.env_name}} can be used only in display mode.",
       loc=None,
     )
   }

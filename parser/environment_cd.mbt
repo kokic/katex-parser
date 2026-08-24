@@ -86,7 +86,7 @@ fn scan_cd_label(
     }
     if current is TextOrd(text="@", ..) {
       raise InvalidArgument(
-        message="Missing a " + arrow + " character to complete a CD arrow.",
+        message="Missing a \{arrow} character to complete a CD arrow.",
         loc=None,
       )
     }
@@ -94,7 +94,7 @@ fn scan_cd_label(
     index = index + 1
   }
   raise InvalidArgument(
-    message="Missing a " + arrow + " character to complete a CD arrow.",
+    message="Missing a \{arrow} character to complete a CD arrow.",
     loc=None,
   )
 }
@@ -185,7 +185,7 @@ fn Parser::parse_cd_environment(self : Parser) -> ParseNode raise ParseFailure {
         "\\end" => break
         token =>
           raise InvalidArgument(
-            message="Expected \\ or \\end, got " + token,
+            message="Expected \\ or \\end, got \{token}",
             loc=None,
           )
       }

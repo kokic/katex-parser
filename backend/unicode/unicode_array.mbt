@@ -100,7 +100,7 @@ fn pad_gather(
   guard separation is Some(@katex_parser.ColumnSeparationType::GatherSeparation) else {
     block
   }
-  let lines = block.lines.map(l => "    " + l + "    ")
+  let lines = block.lines.map(l => "    \{l}    ")
   { lines, width: block.width + 8, baseline: block.baseline }
 }
 
@@ -274,7 +274,7 @@ fn boundary_gap(
   separation : @katex_parser.ColumnSeparationType?,
 ) -> String {
   match vlines[boundary] {
-    Some(v) => " " + v + " "
+    Some(v) => " \{v} "
     None => column_gap(separation, boundary)
   }
 }

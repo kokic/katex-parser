@@ -54,7 +54,7 @@ fn hline_handler(
   _ : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   raise InvalidArgument(
-    message=context.func_name + " valid only within array environment",
+    message="\{context.func_name} valid only within array environment",
     loc=None,
   )
 }

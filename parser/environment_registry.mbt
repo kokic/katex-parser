@@ -65,7 +65,7 @@ fn array_columns(
       | Spacing(text~, ..) => text
       _ =>
         raise InvalidArgument(
-          message="Unknown column alignment in " + name,
+          message="Unknown column alignment in \{name}",
           loc=None,
         )
     }
@@ -74,7 +74,7 @@ fn array_columns(
       "|" | ":" => SeparatorColumn(separator=text)
       _ =>
         raise InvalidArgument(
-          message="Unknown column alignment: " + text,
+          message="Unknown column alignment: \{text}",
           loc=None,
         )
     }
@@ -88,7 +88,7 @@ fn array_environment_handler(
   _ : Array[ParseNode?],
 ) -> ParseNode raise ParseFailure {
   let columns = array_columns(
-    require_function_arg(args, 0, "\\begin{" + context.env_name + "}"),
+    require_function_arg(args, 0, "\\begin{\{context.env_name}}"),
     context.env_name,
   )
   (context.parse_array)({

@@ -127,7 +127,7 @@ fn array_column_attributes(
 
 ///|
 fn em(value : Double) -> String {
-  ((value * 100.0).round() / 100.0).to_string() + "em"
+  "\{((value * 100.0).round() / 100.0).to_string()}em"
 }
 
 ///|

@@ -120,8 +120,8 @@ fn cd_vbar(style : LineStyle) -> String {
 ///|
 fn cd_harrow_line(dir : String, w : Int, hbar : String) -> String {
   match dir {
-    ">" => hbar.repeat(w - 1) + "→"
-    "<" => "←" + hbar.repeat(w - 1)
+    ">" => "\{hbar.repeat(w - 1)}→"
+    "<" => "←\{hbar.repeat(w - 1)}"
     _ => "=".repeat(w)
   }
 }
@@ -137,8 +137,8 @@ fn cd_varrow_lines(
   let pad = " ".repeat(offset)
   let labels = pad_right(left, offset) + vbar + right
   match dir {
-    "V" => [pad + vbar, labels, pad + "↓"]
-    "A" => [pad + "↑", labels, pad + vbar]
+    "V" => [pad + vbar, labels, "\{pad}↓"]
+    "A" => ["\{pad}↑", labels, pad + vbar]
     _ => [pad + vbar, labels, pad + vbar]
   }
 }

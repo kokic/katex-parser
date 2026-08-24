@@ -6,7 +6,7 @@ fn require_function_arg(
 ) -> ParseNode raise ParseFailure {
   guard args.get(index) is Some(arg) else {
     raise InternalInvariant(
-      message="Missing argument \{index} for " + func_name,
+      message="Missing argument \{index} for \{func_name}",
     )
   }
   arg
