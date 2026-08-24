@@ -1,7 +1,7 @@
 ///|
 fn accent_over(
   kind : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   mark : String,
   attribute : String,
   state : RenderState,
@@ -22,7 +22,7 @@ fn accent_over(
 fn render_accent(
   label : String,
   is_stretchy : Bool,
-  base : @katex_parser.ParseNode,
+  base : @katex.ParseNode,
   state : RenderState,
 ) -> MathMlNode {
   let mark = if is_stretchy {

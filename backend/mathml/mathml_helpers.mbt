@@ -27,7 +27,7 @@ fn stretchy(label : String) -> MathMlNode {
 }
 
 ///|
-fn measurement(value : @katex_parser.Measurement) -> String {
+fn measurement(value : @katex.Measurement) -> String {
   match @backend.em_value(value) {
     Some(em) if value.unit == "mu" => "\{em}em"
     _ => "\{value.number}\{value.unit}"

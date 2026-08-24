@@ -135,7 +135,7 @@ let named_colors : Map[String, String] = Map::from_array([
 ///|
 fn render_color(
   color : String,
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   state : RenderState,
 ) -> String {
   let fill = color_fill(color)
@@ -154,7 +154,7 @@ fn color_fill(color : String) -> String {
 ///|
 fn render_enclose(
   label : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   background_color : String?,
   border_color : String?,
   state : RenderState,

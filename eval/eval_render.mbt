@@ -1,10 +1,8 @@
 ///|
-/// Renders a computed expression back into a `@katex_parser.ParseNode`, inserting grouping
+/// Renders a computed expression back into a `@katex.ParseNode`, inserting grouping
 /// and parentheses according to operator precedence
 /// (`Add < Mul < Div < Pow < Atom`).
-pub fn render(
-  expr : EvalExpr,
-) -> Result[@katex_parser.ParseNode, EvalDiagnostic] {
+pub fn render(expr : EvalExpr) -> Result[@katex.ParseNode, EvalDiagnostic] {
   Ok(render_expr(expr, 0))
 }
 
@@ -20,13 +18,13 @@ fn precedence(expr : EvalExpr) -> Int {
 }
 
 ///|
-fn render_expr(expr : EvalExpr, parent_prec : Int) -> @katex_parser.ParseNode {
+fn render_expr(expr : EvalExpr, parent_prec : Int) -> @katex.ParseNode {
   let prec = precedence(expr)
   let node = match expr {
     Number(value) => render_number(value)
     Symbol(symbol) =>
-      @katex_parser.ParseNode::MathOrd(
-        mode=@katex_parser.Mode::Math,
+      @katex.ParseNode::MathOrd(
+        mode=@katex.Mode::Math,
         loc=None,
         text=symbol.text,
       )
@@ -34,8 +32,8 @@ fn render_expr(expr : EvalExpr, parent_prec : Int) -> @katex_parser.ParseNode {
     Mul(children) => render_mul(children)
     Pow(base, exp) => render_pow(base, exp)
     Div(numer, denom) =>
-      @katex_parser.ParseNode::GenFrac(
-        mode=@katex_parser.Mode::Math,
+      @katex.ParseNode::GenFrac(
+        mode=@katex.Mode::Math,
         numer=render_expr(numer, 3),
         denom=render_expr(denom, 3),
         continued=false,
@@ -47,8 +45,8 @@ fn render_expr(expr : EvalExpr, parent_prec : Int) -> @katex_parser.ParseNode {
     Residual(node) => node
   }
   if prec < parent_prec {
-    @katex_parser.ParseNode::OrdGroup(
-      mode=@katex_parser.Mode::Math,
+    @katex.ParseNode::OrdGroup(
+      mode=@katex.Mode::Math,
       loc=None,
       body=[node],
       semisimple=false,
@@ -59,8 +57,8 @@ fn render_expr(expr : EvalExpr, parent_prec : Int) -> @katex_parser.ParseNode {
 }
 
 ///|
-fn render_add(children : Array[EvalExpr]) -> @katex_parser.ParseNode {
-  let body : Array[@katex_parser.ParseNode] = []
+fn render_add(children : Array[EvalExpr]) -> @katex.ParseNode {
+  let body : Array[@katex.ParseNode] = []
   let mut first = true
   for child in children {
     let (sign, magnitude) = split_sign(child)
@@ -77,10 +75,10 @@ fn render_add(children : Array[EvalExpr]) -> @katex_parser.ParseNode {
         if sign < 0 {
           minus_atom()
         } else {
-          @katex_parser.ParseNode::Atom(
-            mode=@katex_parser.Mode::Math,
+          @katex.ParseNode::Atom(
+            mode=@katex.Mode::Math,
             loc=None,
-            family=@katex_parser.AtomFamily::Mbin,
+            family=@katex.AtomFamily::Mbin,
             text="+",
           )
         },
@@ -88,8 +86,8 @@ fn render_add(children : Array[EvalExpr]) -> @katex_parser.ParseNode {
       body.push(render_expr(magnitude, 2))
     }
   }
-  @katex_parser.ParseNode::OrdGroup(
-    mode=@katex_parser.Mode::Math,
+  @katex.ParseNode::OrdGroup(
+    mode=@katex.Mode::Math,
     loc=None,
     body~,
     semisimple=false,
@@ -117,8 +115,8 @@ fn split_sign(expr : EvalExpr) -> (Int, EvalExpr) {
 }
 
 ///|
-fn render_mul(children : Array[EvalExpr]) -> @katex_parser.ParseNode {
-  let body : Array[@katex_parser.ParseNode] = []
+fn render_mul(children : Array[EvalExpr]) -> @katex.ParseNode {
+  let body : Array[@katex.ParseNode] = []
   let mut first = true
   for child in children {
     match child {
@@ -130,8 +128,8 @@ fn render_mul(children : Array[EvalExpr]) -> @katex_parser.ParseNode {
     }
     first = false
   }
-  @katex_parser.ParseNode::OrdGroup(
-    mode=@katex_parser.Mode::Math,
+  @katex.ParseNode::OrdGroup(
+    mode=@katex.Mode::Math,
     loc=None,
     body~,
     semisimple=false,
@@ -139,20 +137,20 @@ fn render_mul(children : Array[EvalExpr]) -> @katex_parser.ParseNode {
 }
 
 ///|
-fn render_pow(base : EvalExpr, exp : Int) -> @katex_parser.ParseNode {
+fn render_pow(base : EvalExpr, exp : Int) -> @katex.ParseNode {
   let base_node = render_expr(base, 4)
   let base_node = match base {
     Number(value) if value < 0 =>
-      @katex_parser.ParseNode::OrdGroup(
-        mode=@katex_parser.Mode::Math,
+      @katex.ParseNode::OrdGroup(
+        mode=@katex.Mode::Math,
         loc=None,
         body=[base_node],
         semisimple=false,
       )
     _ => base_node
   }
-  @katex_parser.ParseNode::SupSub(
-    mode=@katex_parser.Mode::Math,
+  @katex.ParseNode::SupSub(
+    mode=@katex.Mode::Math,
     base=Some(base_node),
     sup=Some(render_exponent(exp)),
     sub=None,
@@ -160,21 +158,21 @@ fn render_pow(base : EvalExpr, exp : Int) -> @katex_parser.ParseNode {
 }
 
 ///|
-fn render_exponent(exp : Int) -> @katex_parser.ParseNode {
+fn render_exponent(exp : Int) -> @katex.ParseNode {
   if exp >= 0 {
-    @katex_parser.ParseNode::MathOrd(
-      mode=@katex_parser.Mode::Math,
+    @katex.ParseNode::MathOrd(
+      mode=@katex.Mode::Math,
       loc=None,
       text=exp.to_string(),
     )
   } else {
-    @katex_parser.ParseNode::OrdGroup(
-      mode=@katex_parser.Mode::Math,
+    @katex.ParseNode::OrdGroup(
+      mode=@katex.Mode::Math,
       loc=None,
       body=[
         minus_atom(),
-        @katex_parser.ParseNode::MathOrd(
-          mode=@katex_parser.Mode::Math,
+        @katex.ParseNode::MathOrd(
+          mode=@katex.Mode::Math,
           loc=None,
           text=(-exp).to_string(),
         ),
@@ -185,28 +183,28 @@ fn render_exponent(exp : Int) -> @katex_parser.ParseNode {
 }
 
 ///|
-fn render_number(value : Int) -> @katex_parser.ParseNode {
+fn render_number(value : Int) -> @katex.ParseNode {
   if value < 0 {
-    return @katex_parser.ParseNode::OrdGroup(
-      mode=@katex_parser.Mode::Math,
+    return @katex.ParseNode::OrdGroup(
+      mode=@katex.Mode::Math,
       loc=None,
       body=[minus_atom(), render_number(-value)],
       semisimple=false,
     )
   }
-  @katex_parser.ParseNode::MathOrd(
-    mode=@katex_parser.Mode::Math,
+  @katex.ParseNode::MathOrd(
+    mode=@katex.Mode::Math,
     loc=None,
     text=value.to_string(),
   )
 }
 
 ///|
-fn minus_atom() -> @katex_parser.ParseNode {
-  @katex_parser.ParseNode::Atom(
-    mode=@katex_parser.Mode::Math,
+fn minus_atom() -> @katex.ParseNode {
+  @katex.ParseNode::Atom(
+    mode=@katex.Mode::Math,
     loc=None,
-    family=@katex_parser.AtomFamily::Mbin,
+    family=@katex.AtomFamily::Mbin,
     text="-",
   )
 }

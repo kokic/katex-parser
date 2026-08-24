@@ -1,25 +1,22 @@
 ///|
 fn render_array_inline(
-  body : Array[Array[@katex_parser.ParseNode]],
+  body : Array[Array[@katex.ParseNode]],
   state : RenderState,
 ) -> String {
   body.map(r => render_row(r, state)).join("; ")
 }
 
 ///|
-fn render_row(
-  row : Array[@katex_parser.ParseNode],
-  state : RenderState,
-) -> String {
+fn render_row(row : Array[@katex.ParseNode], state : RenderState) -> String {
   row.map(c => render_node_internal(c, state)).join(", ")
 }
 
 ///|
 fn render_array_block(
-  body : Array[Array[@katex_parser.ParseNode]],
-  columns : Array[@katex_parser.ArrayColumn]?,
+  body : Array[Array[@katex.ParseNode]],
+  columns : Array[@katex.ArrayColumn]?,
   hlines_before_row : Array[Array[Bool]],
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
   state : RenderState,
 ) -> String {
   cell_block(body, columns, hlines_before_row, separation, state).render()
@@ -29,10 +26,10 @@ fn render_array_block(
 fn render_leftright_block(
   left : String,
   right : String,
-  body : Array[Array[@katex_parser.ParseNode]],
-  columns : Array[@katex_parser.ArrayColumn]?,
+  body : Array[Array[@katex.ParseNode]],
+  columns : Array[@katex.ArrayColumn]?,
   hlines_before_row : Array[Array[Bool]],
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
   state : RenderState,
 ) -> Block {
   cell_block(body, columns, hlines_before_row, separation, state).enclose(
@@ -52,10 +49,10 @@ fn render_leftright_block(
 /// content. Alignment environments (`aligned`/`alignat`/`gather`) honor their
 /// column alignment (`r`/`l`/`c`); plain arrays stay left-aligned.
 fn cell_block(
-  body : Array[Array[@katex_parser.ParseNode]],
-  columns : Array[@katex_parser.ArrayColumn]?,
+  body : Array[Array[@katex.ParseNode]],
+  columns : Array[@katex.ArrayColumn]?,
   hlines_before_row : Array[Array[Bool]],
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
   state : RenderState,
 ) -> Block {
   let cell_blocks = body.map(r => r.map(c => content_block(c, state)))
@@ -95,9 +92,9 @@ fn cell_block(
 /// widest row with four spaces on each side and centering the rows in it.
 fn pad_gather(
   block : Block,
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
 ) -> Block {
-  guard separation is Some(@katex_parser.ColumnSeparationType::GatherSeparation) else {
+  guard separation is Some(@katex.ColumnSeparationType::GatherSeparation) else {
     block
   }
   let lines = block.lines.map(l => "    \{l}    ")
@@ -116,28 +113,28 @@ fn column_block_widths(rows : Array[Array[Block]]) -> Array[Int] {
 /// (`aligned`/`alignat`/`gather`) honor the declared alignment; other arrays
 /// keep their cells left-aligned to preserve the existing plain-text look.
 fn column_alignments(
-  columns : Array[@katex_parser.ArrayColumn]?,
+  columns : Array[@katex.ArrayColumn]?,
   ncols : Int,
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
 ) -> Array[String] {
   let parsed : Array[String] = Array::make(ncols, "l")
   guard columns is Some(cols) else { return parsed }
   let mut col = 0
   for spec in cols {
     match spec {
-      @katex_parser.ArrayColumn::AlignColumn(alignment~, ..) => {
+      @katex.ArrayColumn::AlignColumn(alignment~, ..) => {
         if col < ncols {
           parsed[col] = alignment
         }
         col = col + 1
       }
-      @katex_parser.ArrayColumn::SeparatorColumn(..) => ()
+      @katex.ArrayColumn::SeparatorColumn(..) => ()
     }
   }
   match separation {
-    Some(@katex_parser.ColumnSeparationType::AlignSeparation)
-    | Some(@katex_parser.ColumnSeparationType::AlignAtSeparation)
-    | Some(@katex_parser.ColumnSeparationType::GatherSeparation) => parsed
+    Some(@katex.ColumnSeparationType::AlignSeparation)
+    | Some(@katex.ColumnSeparationType::AlignAtSeparation)
+    | Some(@katex.ColumnSeparationType::GatherSeparation) => parsed
     _ => Array::make(ncols, "l")
   }
 }
@@ -152,7 +149,7 @@ fn row_block(
   widths : Array[Int],
   aligns : Array[String],
   vlines : Array[String?],
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
 ) -> Block {
   let ncols = widths.length()
   let padded = Array::makei(ncols, j => {
@@ -246,20 +243,20 @@ fn vertical_lines(b : Block, top : Int, row_h : Int) -> Array[String] {
 
 ///|
 fn column_gap(
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
   boundary : Int,
 ) -> String {
   match separation {
-    Some(@katex_parser.ColumnSeparationType::AlignSeparation) =>
+    Some(@katex.ColumnSeparationType::AlignSeparation) =>
       if boundary % 2 == 0 {
         "  "
       } else {
         ""
       }
-    Some(@katex_parser.ColumnSeparationType::AlignAtSeparation)
-    | Some(@katex_parser.ColumnSeparationType::GatherSeparation)
-    | Some(@katex_parser.ColumnSeparationType::CdSeparation) => ""
-    Some(@katex_parser.ColumnSeparationType::SmallSeparation) => "  "
+    Some(@katex.ColumnSeparationType::AlignAtSeparation)
+    | Some(@katex.ColumnSeparationType::GatherSeparation)
+    | Some(@katex.ColumnSeparationType::CdSeparation) => ""
+    Some(@katex.ColumnSeparationType::SmallSeparation) => "  "
     None => "  "
   }
 }
@@ -271,7 +268,7 @@ fn column_gap(
 fn boundary_gap(
   vlines : Array[String?],
   boundary : Int,
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
 ) -> String {
   match vlines[boundary] {
     Some(v) => " \{v} "
@@ -354,7 +351,7 @@ fn band_of(kinds : Array[Array[Int]], k : Int, band : Int) -> Int {
 fn row_geometry(
   widths : Array[Int],
   vlines : Array[String?],
-  separation : @katex_parser.ColumnSeparationType?,
+  separation : @katex.ColumnSeparationType?,
 ) -> (Int, Array[Int?]) {
   let n = widths.length()
   let vbar_pos : Array[Int?] = Array::make(n + 1, None)
@@ -394,7 +391,7 @@ fn row_geometry(
 /// Extracts one vertical-separator glyph per boundary (before, between, and
 /// after every column) from the array column spec.
 fn separator_glyphs(
-  columns : Array[@katex_parser.ArrayColumn]?,
+  columns : Array[@katex.ArrayColumn]?,
   ncols : Int,
   style : LineStyle,
 ) -> Array[String?] {
@@ -403,8 +400,8 @@ fn separator_glyphs(
   let mut boundary = 0
   for col in cols {
     match col {
-      @katex_parser.ArrayColumn::AlignColumn(..) => boundary = boundary + 1
-      @katex_parser.ArrayColumn::SeparatorColumn(separator~) =>
+      @katex.ArrayColumn::AlignColumn(..) => boundary = boundary + 1
+      @katex.ArrayColumn::SeparatorColumn(separator~) =>
         if boundary <= ncols {
           result[boundary] = Some(array_vbar(style, separator == ":"))
         }

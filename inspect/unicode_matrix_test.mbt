@@ -2,34 +2,31 @@
 test "render matrix environments inline" {
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}"),
+      @katex.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}"),
     ),
     "(a, b; c, d)",
   )
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse("\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}"),
+      @katex.parse("\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}"),
     ),
     "[a, b; c, d]",
   )
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}")),
+    @unicode.render(@katex.parse("\\begin{matrix}a \\\\ b\\end{matrix}")),
     "a; b",
   )
 }
 
 ///|
 test "render matrix environments in block mode" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   let output =
     #|(a  b)
     #|(c  d)
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}",
-        settings~,
-      ),
+      @katex.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}", settings~),
     ),
     output,
   )
@@ -38,10 +35,7 @@ test "render matrix environments in block mode" {
     #|[c  d]
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}",
-        settings~,
-      ),
+      @katex.parse("\\begin{bmatrix}a & b \\\\ c & d\\end{bmatrix}", settings~),
     ),
     output,
   )
@@ -50,7 +44,7 @@ test "render matrix environments in block mode" {
     #|b
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse("\\begin{matrix}a \\\\ b\\end{matrix}", settings~),
+      @katex.parse("\\begin{matrix}a \\\\ b\\end{matrix}", settings~),
     ),
     output,
   )
@@ -58,13 +52,13 @@ test "render matrix environments in block mode" {
 
 ///|
 test "render matrix with uneven column widths in block mode" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   let output =
     #|(aa  b  )
     #|(c   ddd)
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
+      @katex.parse(
         "\\begin{pmatrix}aa & b \\\\ c & ddd\\end{pmatrix}",
         settings~,
       ),
@@ -76,10 +70,7 @@ test "render matrix with uneven column widths in block mode" {
     #|(c  d)
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}",
-        settings~,
-      ),
+      @katex.parse("\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}", settings~),
     ),
     output,
   )
@@ -87,17 +78,14 @@ test "render matrix with uneven column widths in block mode" {
 
 ///|
 test "render matrix with single column in block mode" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   let output =
     #|(a)
     #|(b)
     #|(c)
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{pmatrix}a \\\\ b \\\\ c\\end{pmatrix}",
-        settings~,
-      ),
+      @katex.parse("\\begin{pmatrix}a \\\\ b \\\\ c\\end{pmatrix}", settings~),
     ),
     output,
   )
@@ -106,7 +94,7 @@ test "render matrix with single column in block mode" {
     #|(b )
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse("\\begin{pmatrix}aa \\\\ b\\end{pmatrix}", settings~),
+      @katex.parse("\\begin{pmatrix}aa \\\\ b\\end{pmatrix}", settings~),
     ),
     output,
   )
@@ -114,16 +102,13 @@ test "render matrix with single column in block mode" {
 
 ///|
 test "trailing backslash in matrix does not add a blank row" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   let output =
     #|a
     #|b
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{matrix} a \\\\ b \\\\ \\end{matrix}",
-        settings~,
-      ),
+      @katex.parse("\\begin{matrix} a \\\\ b \\\\ \\end{matrix}", settings~),
     ),
     output,
   )
@@ -131,17 +116,14 @@ test "trailing backslash in matrix does not add a blank row" {
 
 ///|
 test "render delimited matrix variants in block mode" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   // vmatrix, Vmatrix and Bmatrix use their own delimiter pairs.
   let output =
     #|∣a  b∣
     #|∣c  d∣
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{vmatrix}a & b \\\\ c & d\\end{vmatrix}",
-        settings~,
-      ),
+      @katex.parse("\\begin{vmatrix}a & b \\\\ c & d\\end{vmatrix}", settings~),
     ),
     output,
   )
@@ -150,10 +132,7 @@ test "render delimited matrix variants in block mode" {
     #|‖c  d‖
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{Vmatrix}a & b \\\\ c & d\\end{Vmatrix}",
-        settings~,
-      ),
+      @katex.parse("\\begin{Vmatrix}a & b \\\\ c & d\\end{Vmatrix}", settings~),
     ),
     output,
   )
@@ -162,10 +141,7 @@ test "render delimited matrix variants in block mode" {
     #|{c  d}
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
-        "\\begin{Bmatrix}a & b \\\\ c & d\\end{Bmatrix}",
-        settings~,
-      ),
+      @katex.parse("\\begin{Bmatrix}a & b \\\\ c & d\\end{Bmatrix}", settings~),
     ),
     output,
   )
@@ -173,14 +149,14 @@ test "render delimited matrix variants in block mode" {
 
 ///|
 test "render matrix star environment with explicit alignment" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   // `[r]` right-aligns the first column, `[l]` the default center is unused.
   let output =
     #|a   b
     #|cc  d
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
+      @katex.parse(
         "\\begin{matrix*}[r]a & b \\\\ cc & d\\end{matrix*}",
         settings~,
       ),
@@ -191,13 +167,13 @@ test "render matrix star environment with explicit alignment" {
 
 ///|
 test "render smallmatrix in block mode" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   let output =
     #|a  b
     #|c  d
   @test.assert_eq(
     @unicode.render(
-      @katex_parser.parse(
+      @katex.parse(
         "\\begin{smallmatrix}a & b \\\\ c & d\\end{smallmatrix}",
         settings~,
       ),

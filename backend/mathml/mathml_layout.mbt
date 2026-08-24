@@ -1,7 +1,7 @@
 ///|
 fn render_lap(
-  alignment : @katex_parser.LapAlignment,
-  body : @katex_parser.ParseNode,
+  alignment : @katex.LapAlignment,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> MathMlNode {
   let attrs = match alignment {
@@ -14,9 +14,9 @@ fn render_lap(
 
 ///|
 fn render_rule(
-  width : @katex_parser.Measurement,
-  height : @katex_parser.Measurement,
-  shift : @katex_parser.Measurement?,
+  width : @katex.Measurement,
+  height : @katex.Measurement,
+  shift : @katex.Measurement?,
   state : RenderState,
 ) -> MathMlNode {
   let background = state.color.unwrap_or("black")
@@ -31,10 +31,10 @@ fn render_rule(
 
 ///|
 fn render_math_choice(
-  display : Array[@katex_parser.ParseNode],
-  text : Array[@katex_parser.ParseNode],
-  script : Array[@katex_parser.ParseNode],
-  scriptscript : Array[@katex_parser.ParseNode],
+  display : Array[@katex.ParseNode],
+  text : Array[@katex.ParseNode],
+  script : Array[@katex.ParseNode],
+  scriptscript : Array[@katex.ParseNode],
   state : RenderState,
 ) -> MathMlNode {
   let selected = @backend.math_choice_variant(
@@ -50,8 +50,8 @@ fn render_math_choice(
 ///|
 fn render_xarrow(
   label : String,
-  body : @katex_parser.ParseNode,
-  below : @katex_parser.ParseNode?,
+  body : @katex.ParseNode,
+  below : @katex.ParseNode?,
   state : RenderState,
 ) -> MathMlNode {
   let arrow = stretchy(label).with_attribute(
@@ -88,17 +88,16 @@ fn render_xarrow(
 
 ///|
 fn render_sup_sub(
-  base : @katex_parser.ParseNode?,
-  sup : @katex_parser.ParseNode?,
-  sub : @katex_parser.ParseNode?,
+  base : @katex.ParseNode?,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
   state : RenderState,
 ) -> MathMlNode {
   let limits = operator_uses_limits(base, state)
   let base = base.map_or(element("mrow"), value => render_group(value, state))
   let script_style = match state.style {
-    DisplayStyle | TextStyle => @katex_parser.StyleLevel::ScriptStyle
-    ScriptStyle | ScriptScriptStyle =>
-      @katex_parser.StyleLevel::ScriptScriptStyle
+    DisplayStyle | TextStyle => @katex.StyleLevel::ScriptStyle
+    ScriptStyle | ScriptScriptStyle => @katex.StyleLevel::ScriptScriptStyle
   }
   let script_state = { ..state, style: script_style }
   match (sub, sup) {
@@ -123,10 +122,7 @@ fn render_sup_sub(
 }
 
 ///|
-fn operator_uses_limits(
-  base : @katex_parser.ParseNode?,
-  state : RenderState,
-) -> Bool {
+fn operator_uses_limits(base : @katex.ParseNode?, state : RenderState) -> Bool {
   match base {
     Some(Op(limits=true, always_handle_sup_sub~, ..)) =>
       state.style is DisplayStyle || always_handle_sup_sub

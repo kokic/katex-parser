@@ -1,9 +1,9 @@
 ///|
 fn render_fraction(
-  numer : @katex_parser.ParseNode,
-  denom : @katex_parser.ParseNode,
+  numer : @katex.ParseNode,
+  denom : @katex.ParseNode,
   has_bar_line : Bool,
-  bar_size : @katex_parser.Measurement?,
+  bar_size : @katex.Measurement?,
   left : String?,
   right : String?,
   state : RenderState,

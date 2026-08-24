@@ -14,7 +14,7 @@ fn token(kind : String, value : String, state : RenderState) -> MathMlNode {
 ///|
 fn text_token(
   value : String,
-  mode : @katex_parser.Mode,
+  mode : @katex.Mode,
   state : RenderState,
 ) -> MathMlNode {
   let kind = match mode {
@@ -32,7 +32,7 @@ fn text_token(
 ///|
 fn text_ordinary(
   value : String,
-  mode : @katex_parser.Mode,
+  mode : @katex.Mode,
   state : RenderState,
 ) -> MathMlNode {
   let kind = match mode {
@@ -72,7 +72,7 @@ fn text_attributes(
 ///|
 fn render_atom(
   text : String,
-  family : @katex_parser.AtomFamily,
+  family : @katex.AtomFamily,
   state : RenderState,
 ) -> MathMlNode {
   let attrs = [
@@ -104,8 +104,8 @@ fn render_spacing(value : String) -> MathMlNode {
 
 ///|
 fn render_styling(
-  body : Array[@katex_parser.ParseNode],
-  style : @katex_parser.StyleLevel,
+  body : Array[@katex.ParseNode],
+  style : @katex.StyleLevel,
   reset_font : Bool,
   state : RenderState,
 ) -> MathMlNode {
@@ -128,8 +128,8 @@ fn render_styling(
 
 ///|
 fn render_mclass(
-  body : Array[@katex_parser.ParseNode],
-  mclass : @katex_parser.AtomFamily,
+  body : Array[@katex.ParseNode],
+  mclass : @katex.AtomFamily,
   _is_character_box : Bool,
   state : RenderState,
 ) -> MathMlNode {

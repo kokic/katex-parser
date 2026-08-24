@@ -1,6 +1,6 @@
 ///|
 fn render_operator(
-  content : @katex_parser.OperatorContent,
+  content : @katex.OperatorContent,
   state : RenderState,
 ) -> MathMlNode {
   match content {
@@ -19,7 +19,7 @@ fn render_operator(
 
 ///|
 fn render_operator_name(
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   state : RenderState,
 ) -> MathMlNode {
   let content = render_expression(body, {

@@ -1,12 +1,12 @@
 ///|
 fn render_left_right(
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   left : String,
   right : String,
   state : RenderState,
 ) -> String {
   match body {
-    [array] if array is @katex_parser.ParseNode::Array(..) =>
+    [array] if array is @katex.ParseNode::Array(..) =>
       render_leftright_array(array, left, right, state)
     _ => wrap_lr(render_nodes(body, state), left, right)
   }

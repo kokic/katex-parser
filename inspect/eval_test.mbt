@@ -1,15 +1,15 @@
 ///|
 /// Canonical form of the normalized expression parsed from `source`.
-fn canonical(source : String) -> String raise @katex_parser.ParseFailure {
-  let nodes = @katex_parser.parse(source)
+fn canonical(source : String) -> String raise @katex.ParseFailure {
+  let nodes = @katex.parse(source)
   let expr = @eval.lower_expr(nodes, @eval.EvalOptions::make()).unwrap()
   let expr = @eval.normalize(expr, @eval.EvalOptions::make()).unwrap()
   expr.to_canonical_string()
 }
 
 ///|
-fn eval_render(source : String) -> String raise @katex_parser.ParseFailure {
-  @unicode.render(@katex.parse(source))
+fn eval_render(source : String) -> String raise @katex.ParseFailure {
+  @unicode.render(@facade.parse(source))
 }
 
 ///|
@@ -47,7 +47,7 @@ test "eval canonical forms" {
 ///|
 test "eval decimal literals are rejected" {
   let raised = try {
-    let _ = @katex.parse("\\eval{2.14}")
+    let _ = @facade.parse("\\eval{2.14}")
     false
   } catch {
     _ => true
@@ -58,7 +58,7 @@ test "eval decimal literals are rejected" {
 ///|
 test "eval integer overflow is rejected" {
   let raised = try {
-    let _ = @katex.parse("\\eval{2^{31}}")
+    let _ = @facade.parse("\\eval{2^{31}}")
     false
   } catch {
     _ => true
@@ -77,7 +77,7 @@ test "eval macro scope" {
 ///|
 test "eval group cleanup" {
   let raised = try {
-    let _ = @katex.parse("{\\def\\y{x}}\\eval{\\y}")
+    let _ = @facade.parse("{\\def\\y{x}}\\eval{\\y}")
     false
   } catch {
     _ => true
@@ -88,7 +88,7 @@ test "eval group cleanup" {
 ///|
 test "eval division by zero raises" {
   let raised = try {
-    let _ = @katex.parse("\\eval{\\frac{1}{0}}")
+    let _ = @facade.parse("\\eval{\\frac{1}{0}}")
     false
   } catch {
     _ => true
@@ -98,7 +98,7 @@ test "eval division by zero raises" {
 
 ///|
 test "eval strict mode rejects unsupported nodes" {
-  let nodes = @katex_parser.parse("1+\\sqrt{2}")
+  let nodes = @katex.parse("1+\\sqrt{2}")
   let strict = @eval.EvalOptions::make(mode=Strict)
   let partial = @eval.EvalOptions::make(mode=Partial)
   @test.assert_eq(@eval.lower_expr(nodes, strict) is Err(_), true)
@@ -119,7 +119,7 @@ test "eval strict mode rejects unsupported nodes" {
 ///|
 test "eval normalize is idempotent" {
   for source in ["1+3", "x+x*x", "(x+1)^2", "2x+3x", "x-x"] {
-    let nodes = @katex_parser.parse(source)
+    let nodes = @katex.parse(source)
     let options = @eval.EvalOptions::make()
     let expr = @eval.lower_expr(nodes, options).unwrap()
     let once = @eval.normalize(expr, options).unwrap()
@@ -130,13 +130,16 @@ test "eval normalize is idempotent" {
 
 ///|
 test "eval display mode" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
-  @test.assert_eq(@unicode.render(@katex.parse("\\eval{1+3}", settings~)), "4")
+  let settings = @katex.Settings::make(display_mode=true)
+  @test.assert_eq(
+    @unicode.render(@facade.parse("\\eval{1+3}", settings~)),
+    "4",
+  )
 }
 
 ///|
 test "eval partial mode keeps residuals separate" {
-  let nodes = @katex_parser.parse("1+2+\\sin(y)")
+  let nodes = @katex.parse("1+2+\\sin(y)")
   let options = @eval.EvalOptions::make()
   let expr = @eval.lower_expr(nodes, options).unwrap()
   let normalized = @eval.normalize(expr, options).unwrap()

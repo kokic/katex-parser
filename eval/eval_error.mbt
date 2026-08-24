@@ -12,13 +12,13 @@ pub(all) enum EvalFailureKind {
 ///|
 pub(all) struct EvalDiagnostic {
   kind : EvalFailureKind
-  loc : @katex_parser.SourceLocation?
+  loc : @katex.SourceLocation?
 } derive(Eq, @debug.Debug)
 
 ///|
 pub fn EvalDiagnostic::make(
   kind : EvalFailureKind,
-  loc? : @katex_parser.SourceLocation? = None,
+  loc? : @katex.SourceLocation? = None,
 ) -> EvalDiagnostic {
   { kind, loc }
 }

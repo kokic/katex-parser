@@ -3,7 +3,7 @@
 ///
 /// A node is atomic when its rendered output is either a single token/character
 /// or uses self-delimiting function-application notation.
-fn is_atomic_expression(node : @katex_parser.ParseNode) -> Bool {
+fn is_atomic_expression(node : @katex.ParseNode) -> Bool {
   match node {
     // --- Single-token leaf nodes ---
     Raw(..)

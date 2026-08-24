@@ -1,8 +1,8 @@
 ///|
 /// The `\eval` function spec: evaluates its argument in the current macro
 /// scope and substitutes the computed result as a normal parse node.
-pub fn eval_spec() -> @katex_parser.FunctionSpec {
-  @katex_parser.FunctionSpec::make(
+pub fn eval_spec() -> @katex.FunctionSpec {
+  @katex.FunctionSpec::make(
     ["\\eval"],
     1,
     allowed_in_argument=true,
@@ -12,13 +12,13 @@ pub fn eval_spec() -> @katex_parser.FunctionSpec {
 
 ///|
 fn eval_handler(
-  _context : @katex_parser.FunctionContext,
-  args : Array[@katex_parser.ParseNode],
-  _opt_args : Array[@katex_parser.ParseNode?],
-) -> @katex_parser.ParseNode raise @katex_parser.ParseFailure {
+  _context : @katex.FunctionContext,
+  args : Array[@katex.ParseNode],
+  _opt_args : Array[@katex.ParseNode?],
+) -> @katex.ParseNode raise @katex.ParseFailure {
   let options = EvalOptions::make()
   guard args.length() == 1 else {
-    raise @katex_parser.ParseFailure::InternalInvariant(
+    raise @katex.ParseFailure::InternalInvariant(
       message="\\eval expects exactly one argument",
     )
   }
@@ -38,7 +38,7 @@ fn eval_handler(
 }
 
 ///|
-fn eval_failure(diag : EvalDiagnostic) -> @katex_parser.ParseFailure {
+fn eval_failure(diag : EvalDiagnostic) -> @katex.ParseFailure {
   InvalidArgument(message=diag.message(), loc=diag.loc)
 }
 
@@ -46,17 +46,14 @@ fn eval_failure(diag : EvalDiagnostic) -> @katex_parser.ParseFailure {
 /// Peels off outer layout wrappers (groups, styling, color) so the inner
 /// expression can be computed, and re-applies them to the rendered result.
 fn strip_wrappers(
-  node : @katex_parser.ParseNode,
-) -> (
-  Array[@katex_parser.ParseNode],
-  (@katex_parser.ParseNode) -> @katex_parser.ParseNode,
-) {
+  node : @katex.ParseNode,
+) -> (Array[@katex.ParseNode], (@katex.ParseNode) -> @katex.ParseNode) {
   match node {
-    @katex_parser.ParseNode::OrdGroup(mode~, loc~, body=original_body, ..) =>
+    @katex.ParseNode::OrdGroup(mode~, loc~, body=original_body, ..) =>
       (
         original_body,
         inner => {
-          @katex_parser.ParseNode::OrdGroup(
+          @katex.ParseNode::OrdGroup(
             mode~,
             loc~,
             body=[inner],
@@ -64,14 +61,14 @@ fn strip_wrappers(
           )
         },
       )
-    @katex_parser.ParseNode::Styling(mode~, body~, style~, reset_font~) =>
+    @katex.ParseNode::Styling(mode~, body~, style~, reset_font~) =>
       match body {
         [inner] => {
           let (inner_body, rewrap) = strip_wrappers(inner)
           (
             inner_body,
             result => {
-              @katex_parser.ParseNode::Styling(
+              @katex.ParseNode::Styling(
                 mode~,
                 body=[rewrap(result)],
                 style~,
@@ -82,16 +79,14 @@ fn strip_wrappers(
         }
         _ => ([node], inner => inner)
       }
-    @katex_parser.ParseNode::Color(mode~, color~, body~) =>
+    @katex.ParseNode::Color(mode~, color~, body~) =>
       match body {
         [inner] => {
           let (inner_body, rewrap) = strip_wrappers(inner)
           (
             inner_body,
             result => {
-              @katex_parser.ParseNode::Color(mode~, color~, body=[
-                rewrap(result),
-              ])
+              @katex.ParseNode::Color(mode~, color~, body=[rewrap(result)])
             },
           )
         }

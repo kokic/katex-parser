@@ -1,5 +1,5 @@
 ///|
-fn render_array(node : @katex_parser.ParseNode, state : RenderState) -> String {
+fn render_array(node : @katex.ParseNode, state : RenderState) -> String {
   match node {
     Array(body~, columns~, hlines_before_row~, ..) if has_hlines(
         hlines_before_row,
@@ -8,35 +8,27 @@ fn render_array(node : @katex_parser.ParseNode, state : RenderState) -> String {
       render_mat_body(body, columns, None, state)
     Array(
       body~,
-      column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::AlignSeparation
-      ),
+      column_separation_type=Some(@katex.ColumnSeparationType::AlignSeparation),
       ..
     ) => render_aligned(body, state)
     Array(
       column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::AlignAtSeparation
+        @katex.ColumnSeparationType::AlignAtSeparation
       ),
       ..
     ) => unsupported_comment("alignat")
     Array(
-      column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::GatherSeparation
-      ),
+      column_separation_type=Some(@katex.ColumnSeparationType::GatherSeparation),
       ..
     ) => unsupported_comment("gathered")
     Array(
       body~,
       columns~,
-      column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::SmallSeparation
-      ),
+      column_separation_type=Some(@katex.ColumnSeparationType::SmallSeparation),
       ..
     ) => render_substack(body, columns, state)
     Array(
-      column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::CdSeparation
-      ),
+      column_separation_type=Some(@katex.ColumnSeparationType::CdSeparation),
       ..
     ) => unsupported_comment("cd")
     _ => ""
@@ -50,7 +42,7 @@ fn has_hlines(hlines_before_row : Array[Array[Bool]]) -> Bool {
 
 ///|
 fn render_leftright_array(
-  array : @katex_parser.ParseNode,
+  array : @katex.ParseNode,
   left : String,
   right : String,
   state : RenderState,
@@ -81,9 +73,7 @@ fn render_leftright_array(
     Array(
       body~,
       columns~,
-      column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::SmallSeparation
-      ),
+      column_separation_type=Some(@katex.ColumnSeparationType::SmallSeparation),
       ..
     ) => {
       // `\left( \substack{...} \right)`: the stack has no delimiter of
@@ -116,14 +106,14 @@ fn is_left_brace(left : String) -> Bool {
 }
 
 ///|
-fn all_l(columns : Array[@katex_parser.ArrayColumn]) -> Bool {
+fn all_l(columns : Array[@katex.ArrayColumn]) -> Bool {
   columns.all(column => column is AlignColumn(alignment="l", ..))
 }
 
 ///|
 fn render_mat_body(
-  body : Array[Array[@katex_parser.ParseNode]],
-  columns : Array[@katex_parser.ArrayColumn]?,
+  body : Array[Array[@katex.ParseNode]],
+  columns : Array[@katex.ArrayColumn]?,
   delim : String?,
   state : RenderState,
 ) -> String {
@@ -145,8 +135,8 @@ fn render_mat_body(
 /// `;`-separated rows, which renders as a compact centered stack. A
 /// multi-column `smallmatrix` stays unsupported.
 fn render_substack(
-  body : Array[Array[@katex_parser.ParseNode]],
-  columns : Array[@katex_parser.ArrayColumn]?,
+  body : Array[Array[@katex.ParseNode]],
+  columns : Array[@katex.ArrayColumn]?,
   state : RenderState,
 ) -> String {
   if is_single_column(columns) {
@@ -159,7 +149,7 @@ fn render_substack(
 ///|
 /// A `\substack` column spec has no separators and at most one alignment
 /// column; a multi-column `smallmatrix` stays unsupported.
-fn is_single_column(columns : Array[@katex_parser.ArrayColumn]?) -> Bool {
+fn is_single_column(columns : Array[@katex.ArrayColumn]?) -> Bool {
   columns.map_or(true, cols => {
     cols.length() <= 1 && cols.all(col => col is AlignColumn(..))
   })
@@ -167,7 +157,7 @@ fn is_single_column(columns : Array[@katex_parser.ArrayColumn]?) -> Bool {
 
 ///|
 fn render_stack_rows(
-  body : Array[Array[@katex_parser.ParseNode]],
+  body : Array[Array[@katex.ParseNode]],
   state : RenderState,
 ) -> String {
   let rows = body
@@ -180,7 +170,7 @@ fn render_stack_rows(
 ///|
 /// Typst `mat` only supports a single uniform alignment, so per-column specs
 /// are emitted only when every column agrees.
-fn column_align_args(columns : Array[@katex_parser.ArrayColumn]) -> String? {
+fn column_align_args(columns : Array[@katex.ArrayColumn]) -> String? {
   let aligns = columns.map(column_align)
   guard aligns is [first, ..] else { return None }
   if aligns.all(align => align == first) && first != "center" {
@@ -191,7 +181,7 @@ fn column_align_args(columns : Array[@katex_parser.ArrayColumn]) -> String? {
 }
 
 ///|
-fn column_align(column : @katex_parser.ArrayColumn) -> String {
+fn column_align(column : @katex.ArrayColumn) -> String {
   match column {
     AlignColumn(alignment~, ..) => align_name(alignment)
     _ => "center"
@@ -199,7 +189,7 @@ fn column_align(column : @katex_parser.ArrayColumn) -> String {
 }
 
 ///|
-fn contains_separator(columns : Array[@katex_parser.ArrayColumn]) -> Bool {
+fn contains_separator(columns : Array[@katex.ArrayColumn]) -> Bool {
   columns.any(column => column is SeparatorColumn(..))
 }
 
@@ -211,8 +201,8 @@ fn contains_separator(columns : Array[@katex_parser.ArrayColumn]) -> Bool {
 /// a flow-placed `table.vline()` spans the whole table column (v0.15.0
 /// source: `start` defaults to 0, `end` to the last row).
 fn render_array_table(
-  body : Array[Array[@katex_parser.ParseNode]],
-  columns : Array[@katex_parser.ArrayColumn]?,
+  body : Array[Array[@katex.ParseNode]],
+  columns : Array[@katex.ArrayColumn]?,
   hlines_before_row : Array[Array[Bool]],
   state : RenderState,
 ) -> String {
@@ -260,7 +250,7 @@ fn render_array_table(
 
 ///|
 fn row_cells(
-  row : Array[@katex_parser.ParseNode],
+  row : Array[@katex.ParseNode],
   state : RenderState,
 ) -> Array[String] {
   row.map(cell => "[$\{render_cell(cell, state)}$]")
@@ -268,7 +258,7 @@ fn row_cells(
 
 ///|
 fn table_row(
-  row : Array[@katex_parser.ParseNode],
+  row : Array[@katex.ParseNode],
   vline_boundaries : Set[Int],
   ncols : Int,
   state : RenderState,
@@ -315,15 +305,12 @@ fn render_table_hline(row_lines : Array[Bool]) -> String {
 }
 
 ///|
-fn render_mat_row(
-  row : Array[@katex_parser.ParseNode],
-  state : RenderState,
-) -> String {
+fn render_mat_row(row : Array[@katex.ParseNode], state : RenderState) -> String {
   row.map(cell => render_cell(cell, state)).join(", ")
 }
 
 ///|
-fn render_cell(cell : @katex_parser.ParseNode, state : RenderState) -> String {
+fn render_cell(cell : @katex.ParseNode, state : RenderState) -> String {
   let rendered = render_node(cell, state)
   if rendered == "" {
     "zws"
@@ -336,7 +323,7 @@ fn render_cell(cell : @katex_parser.ParseNode, state : RenderState) -> String {
 /// Typst `cases` takes one variadic argument per branch (row); cells within a
 /// branch are aligned with `&`.
 fn render_cases(
-  body : Array[Array[@katex_parser.ParseNode]],
+  body : Array[Array[@katex.ParseNode]],
   state : RenderState,
 ) -> String {
   let items = body.map(row => {
@@ -349,7 +336,7 @@ fn render_cases(
 /// Aligned rows: cells joined with `&`, rows with `\ `. Empty cells render
 /// as nothing — the alignment point alone suffices (`&  &`).
 fn render_aligned(
-  body : Array[Array[@katex_parser.ParseNode]],
+  body : Array[Array[@katex.ParseNode]],
   state : RenderState,
 ) -> String {
   body

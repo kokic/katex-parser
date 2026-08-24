@@ -17,7 +17,7 @@ priv enum LowerItem {
 /// an expression tree, applying the implicit multiplication rules for
 /// adjacent factors.
 pub fn lower_expr(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   options : EvalOptions,
 ) -> Result[EvalExpr, EvalDiagnostic] {
   let items = match scan_items(nodes, options) {
@@ -50,7 +50,7 @@ pub fn lower_expr(
 /// everything else becomes a `Residual` (in partial mode) or an
 /// `UnsupportedNode` diagnostic (in strict mode).
 pub fn lower_node(
-  node : @katex_parser.ParseNode,
+  node : @katex.ParseNode,
   options : EvalOptions,
 ) -> Result[EvalExpr, EvalDiagnostic] {
   match node {
@@ -94,7 +94,7 @@ pub fn lower_node(
 
 ///|
 fn scan_items(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   options : EvalOptions,
 ) -> Result[Array[LowerItem], EvalDiagnostic] {
   let items : Array[LowerItem] = []
@@ -130,7 +130,7 @@ fn scan_items(
               Ok(_) => ()
             }
           Some(ParenEndNoExp(j)) => {
-            let inner : Array[@katex_parser.ParseNode] = []
+            let inner : Array[@katex.ParseNode] = []
             for k in (i + 1)..<j {
               inner.push(nodes[k])
             }
@@ -142,7 +142,7 @@ fn scan_items(
             i = j + 1
           }
           Some(ParenEndWithExp(j, exponent)) => {
-            let inner : Array[@katex_parser.ParseNode] = []
+            let inner : Array[@katex.ParseNode] = []
             for k in (i + 1)..<j {
               inner.push(nodes[k])
             }
@@ -181,7 +181,7 @@ fn scan_items(
 ///|
 fn push_lowered(
   items : Array[LowerItem],
-  node : @katex_parser.ParseNode,
+  node : @katex.ParseNode,
   options : EvalOptions,
 ) -> Result[Unit, EvalDiagnostic] {
   match lower_node(node, options) {
@@ -198,7 +198,7 @@ fn push_lowered(
 /// decimal point in the run is rejected (`InvalidNumber`): rational/decimal
 /// arithmetic is not supported yet.
 fn scan_number(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   start : Int,
 ) -> Result[(Int, Int), EvalDiagnostic] {
   let first_text = match nodes[start] {
@@ -340,16 +340,13 @@ priv enum ParenEnd {
   ParenEndNoExp(Int)
   /// The group is closed by a superscripted `)` atom (`(x+1)^2` parses as
   /// `SupSub(base=Atom(")"), sup=...)`); the node carries the exponent.
-  ParenEndWithExp(Int, @katex_parser.ParseNode)
+  ParenEndWithExp(Int, @katex.ParseNode)
 }
 
 ///|
 /// Returns the node that closes the paren group opened at `start`, counting
 /// nested parens; `None` when unbalanced.
-fn scan_paren_end(
-  nodes : Array[@katex_parser.ParseNode],
-  start : Int,
-) -> ParenEnd? {
+fn scan_paren_end(nodes : Array[@katex.ParseNode], start : Int) -> ParenEnd? {
   let mut depth = 0
   let mut j = start
   while j < nodes.length() {
@@ -377,7 +374,7 @@ fn scan_paren_end(
 ///|
 /// Accepts a plain integer exponent: digit `MathOrd`/`TextOrd`, optionally
 /// wrapped in an `OrdGroup` and optionally preceded by a unary minus.
-fn parse_integer_exponent(node : @katex_parser.ParseNode) -> Int? {
+fn parse_integer_exponent(node : @katex.ParseNode) -> Int? {
   let (digits, neg) = match node {
     MathOrd(text~, ..) | TextOrd(text~, ..) if is_all_digits(text) =>
       (text, false)
@@ -411,7 +408,7 @@ fn parse_integer_exponent(node : @katex_parser.ParseNode) -> Int? {
 
 ///|
 fn unsupported(
-  node : @katex_parser.ParseNode,
+  node : @katex.ParseNode,
   options : EvalOptions,
 ) -> Result[EvalExpr, EvalDiagnostic] {
   unsupported_with(node, options, UnsupportedNode)
@@ -419,7 +416,7 @@ fn unsupported(
 
 ///|
 fn unsupported_with(
-  node : @katex_parser.ParseNode,
+  node : @katex.ParseNode,
   options : EvalOptions,
   kind : EvalFailureKind,
 ) -> Result[EvalExpr, EvalDiagnostic] {
@@ -443,7 +440,7 @@ fn is_all_digits(text : String) -> Bool {
 }
 
 ///|
-fn node_loc(node : @katex_parser.ParseNode) -> @katex_parser.SourceLocation? {
+fn node_loc(node : @katex.ParseNode) -> @katex.SourceLocation? {
   match node {
     OrdGroup(loc~, ..) => loc
     MathOrd(loc~, ..) => loc

@@ -3,11 +3,11 @@
 /// rendering use UnicodeMath-style function syntax so that their structure is
 /// retained in plain text.
 pub fn render(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   config? : RenderConfig = Default::default(),
 ) -> String {
   render_internal(nodes, {
-    style: @katex_parser.StyleLevel::TextStyle,
+    style: @katex.StyleLevel::TextStyle,
     in_display: false,
     in_tight: false,
     config,
@@ -16,7 +16,7 @@ pub fn render(
 
 ///|
 fn render_internal(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   state : RenderState,
 ) -> String {
   render_internal_block(nodes, state).render()
@@ -27,7 +27,7 @@ fn render_internal(
 /// so that block-level content (e.g. fractions) stays vertically aligned with
 /// its neighbors when composed via `beside`.
 fn render_internal_block(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   state : RenderState,
 ) -> Block {
   let items = merge_not_overlay(collect_spacable_items(nodes, state))
@@ -82,10 +82,7 @@ fn item_to_block(item : @backend.SpacableItem) -> Block {
 /// form are dispatched on `state.in_display` inside their arm; block-aware
 /// helpers (`frac_block`, `render_leftright_display_block`, ...) produce the
 /// display-mode output, and the inline form is composed as plain text.
-fn render_node_internal(
-  node : @katex_parser.ParseNode,
-  state : RenderState,
-) -> String {
+fn render_node_internal(node : @katex.ParseNode, state : RenderState) -> String {
   let slash = state.config.fraction_slash
   match node {
     Internal(..) | EnvironmentEnd(..) => ""
@@ -212,9 +209,7 @@ fn render_node_internal(
       "\{render_internal(body, state)}\t(\{render_internal(tag, state)})"
     Array(
       body~,
-      column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::CdSeparation
-      ),
+      column_separation_type=Some(@katex.ColumnSeparationType::CdSeparation),
       ..
     ) => render_cd_block(body, state).render()
     Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) =>
@@ -277,7 +272,7 @@ fn merge_not_overlay(
 /// wrappers that don't affect math spacing) have their children exposed to
 /// the current level. Real groups are rendered as a single spacable atom.
 fn collect_spacable_items(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   state : RenderState,
 ) -> Array[@backend.SpacableItem] {
   nodes.fold(init=[], (acc, n) => {
@@ -288,15 +283,15 @@ fn collect_spacable_items(
           ..state,
           style,
           in_display: state.in_display ||
-          style == @katex_parser.StyleLevel::DisplayStyle,
+          style == @katex.StyleLevel::DisplayStyle,
         }
         acc + collect_spacable_items(body, child_state)
       }
-      @katex_parser.ParseNode::Color(body~, ..)
-      | @katex_parser.ParseNode::Sizing(body~, ..)
-      | @katex_parser.ParseNode::HBox(body~, ..)
-      | @katex_parser.ParseNode::Href(body~, ..)
-      | @katex_parser.ParseNode::Html(body~, ..) =>
+      @katex.ParseNode::Color(body~, ..)
+      | @katex.ParseNode::Sizing(body~, ..)
+      | @katex.ParseNode::HBox(body~, ..)
+      | @katex.ParseNode::Href(body~, ..)
+      | @katex.ParseNode::Html(body~, ..) =>
         acc + collect_spacable_items(body, state)
 
       // --- Space nodes: rendered text with no atom type ---
@@ -322,7 +317,7 @@ fn collect_spacable_items(
 
 ///|
 /// Determine the outermost atom type of a node for spacing purposes.
-fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
+fn get_outer_atom_type(node : @katex.ParseNode) -> String? {
   match node {
     // --- Leaf atoms ---
     Atom(family~, ..) => Some(@backend.atom_family_name(family))
@@ -333,8 +328,8 @@ fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
     // --- Compound: delegate to base ---
     SupSub(
       base=Some(
-        @katex_parser.ParseNode::Op(
-          content=@katex_parser.OperatorContent::SymbolOperator(_),
+        @katex.ParseNode::Op(
+          content=@katex.OperatorContent::SymbolOperator(_),
           ..
         )
       ),
@@ -396,7 +391,7 @@ fn get_outer_atom_type(node : @katex_parser.ParseNode) -> String? {
 
 ///|
 fn render_operator_content(
-  content : @katex_parser.OperatorContent,
+  content : @katex.OperatorContent,
   state : RenderState,
 ) -> String {
   match content {
@@ -417,7 +412,7 @@ fn render_delimiter(text : String) -> String {
 ///|
 fn render_font(
   font : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   guard font != "mathrm" else { return render_node_internal(body, state) }
@@ -432,7 +427,7 @@ fn render_font(
 /// Characters without a mapping are individually wrapped in `font(...)`
 /// fallbacks rather than falling back on the whole body. Returns `None` when
 /// the body contains non-character structure that cannot be decomposed.
-fn font_char_sequence(font : String, node : @katex_parser.ParseNode) -> String? {
+fn font_char_sequence(font : String, node : @katex.ParseNode) -> String? {
   let chars : Array[String] = []
   guard collect_font_chars(node, chars) else { return None }
   Some(render_font_text(font, chars))
@@ -441,21 +436,18 @@ fn font_char_sequence(font : String, node : @katex_parser.ParseNode) -> String? 
 ///|
 /// Accumulates the rendered characters of a font body. Returns `false` when
 /// the body contains non-character structure that cannot be decomposed.
-fn collect_font_chars(
-  node : @katex_parser.ParseNode,
-  chars : Array[String],
-) -> Bool {
+fn collect_font_chars(node : @katex.ParseNode, chars : Array[String]) -> Bool {
   match node {
-    @katex_parser.ParseNode::MathOrd(text~, ..)
-    | @katex_parser.ParseNode::TextOrd(text~, ..)
-    | @katex_parser.ParseNode::Atom(text~, ..) => {
+    @katex.ParseNode::MathOrd(text~, ..)
+    | @katex.ParseNode::TextOrd(text~, ..)
+    | @katex.ParseNode::Atom(text~, ..) => {
       let rendered = @backend.resolve_symbol(text)
       for ch in rendered {
         chars.push(String::from_array([ch]))
       }
       true
     }
-    @katex_parser.ParseNode::OrdGroup(body~, ..) => {
+    @katex.ParseNode::OrdGroup(body~, ..) => {
       for child in body {
         guard collect_font_chars(child, chars) else { return false }
       }
@@ -473,7 +465,7 @@ fn render_font_text(font : String, chars : Array[String]) -> String {
   let mut result = ""
   let mut failed : Array[String] = []
   for s in chars {
-    match @katex_parser.unicode_font_character(font, s) {
+    match @katex.unicode_font_character(font, s) {
       Some(mapped) => {
         if failed.length() > 0 {
           result = result + font_fallback(font, failed)
@@ -519,8 +511,8 @@ fn font_fallback(font : String, chars : Array[String]) -> String {
 /// (`\atop`/`\atopfrac`): numerator and denominator joined by a comma, both
 /// rendered in tight style.
 fn inline_atop(
-  numer : @katex_parser.ParseNode,
-  denom : @katex_parser.ParseNode,
+  numer : @katex.ParseNode,
+  denom : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   let num_state = { ..state, in_tight: true }
@@ -533,8 +525,8 @@ fn inline_atop(
 /// denominator joined by the configured fraction slash, each operand
 /// parenthesized when it is not atomic.
 fn inline_fraction(
-  numer : @katex_parser.ParseNode,
-  denom : @katex_parser.ParseNode,
+  numer : @katex.ParseNode,
+  denom : @katex.ParseNode,
   slash : String,
   state : RenderState,
 ) -> String {
@@ -548,14 +540,14 @@ fn inline_fraction(
 /// single array becomes a bordered block; any other body is wrapped with the
 /// delimiters.
 fn render_leftright_display_block(
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   left : String,
   right : String,
   state : RenderState,
 ) -> Block {
   match body {
     [
-      @katex_parser.ParseNode::Array(
+      @katex.ParseNode::Array(
         body~,
         columns~,
         hlines_before_row~,
@@ -592,10 +584,7 @@ fn render_delimited(
 /// Renders a `\fbox`/`\boxed` body as a box drawn with the configured line
 /// style: ASCII (`-`/`|`, no corners) or Unicode box drawing (`─`/`│` with
 /// corners).
-fn render_enclose_block(
-  body : @katex_parser.ParseNode,
-  state : RenderState,
-) -> Block {
+fn render_enclose_block(body : @katex.ParseNode, state : RenderState) -> Block {
   enclose_box(render_internal_block([body], state), state.config.line_style)
 }
 
@@ -644,7 +633,7 @@ fn box_side(style : LineStyle) -> String {
 }
 
 ///|
-fn render_measurement(measurement : @katex_parser.Measurement) -> String {
+fn render_measurement(measurement : @katex.Measurement) -> String {
   "\{measurement.number}\{measurement.unit}"
 }
 
@@ -653,7 +642,7 @@ fn render_measurement(measurement : @katex_parser.Measurement) -> String {
 /// spacing unit (`em`/`mu`). Em-sized spaces scale 2 spaces per em; negative or
 /// zero spaces have no plain-text representation and render as nothing. Other
 /// units fall back to `kern(...)`.
-fn render_kern(dimension : @katex_parser.Measurement) -> String {
+fn render_kern(dimension : @katex.Measurement) -> String {
   guard dimension.unit == "em" || dimension.unit == "mu" else {
     return "kern(\{render_measurement(dimension)})"
   }
@@ -668,8 +657,8 @@ fn render_kern(dimension : @katex_parser.Measurement) -> String {
 
 ///|
 fn render_root(
-  index : @katex_parser.ParseNode,
-  body : @katex_parser.ParseNode,
+  index : @katex.ParseNode,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   render_root_block(index, body, state).render()
@@ -677,8 +666,8 @@ fn render_root(
 
 ///|
 fn render_root_block(
-  index : @katex_parser.ParseNode,
-  body : @katex_parser.ParseNode,
+  index : @katex.ParseNode,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> Block {
   let tight_state = { ..state, in_display: false, in_tight: true }
@@ -697,7 +686,7 @@ fn render_root_block(
 /// with the body's baseline (e.g. the fraction bar of a block fraction).
 fn render_radical(
   prefix : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   render_radical_block(prefix, body, state).render()
@@ -706,7 +695,7 @@ fn render_radical(
 ///|
 fn render_radical_block(
   prefix : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> Block {
   Block::from("\{prefix}√").beside(render_operand_block(body, state))
@@ -714,10 +703,7 @@ fn render_radical_block(
 
 ///|
 /// Renders an expression where precedence must remain visible in plain text.
-fn render_operand(
-  node : @katex_parser.ParseNode,
-  state : RenderState,
-) -> String {
+fn render_operand(node : @katex.ParseNode, state : RenderState) -> String {
   render_operand_block(node, state).render()
 }
 
@@ -726,10 +712,7 @@ fn render_operand(
 /// operands are wrapped in parentheses aligned at the baseline so that
 /// multi-line content (e.g. a block fraction) stays vertically aligned with
 /// its delimiters and neighbors.
-fn render_operand_block(
-  node : @katex_parser.ParseNode,
-  state : RenderState,
-) -> Block {
+fn render_operand_block(node : @katex.ParseNode, state : RenderState) -> Block {
   let content = content_block(node, state)
   if is_atomic_expression(node) {
     content
@@ -740,9 +723,9 @@ fn render_operand_block(
 
 ///|
 fn render_sup_sub(
-  base : @katex_parser.ParseNode?,
-  sup : @katex_parser.ParseNode?,
-  sub : @katex_parser.ParseNode?,
+  base : @katex.ParseNode?,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
   render_sup_sub_block(base, sup, sub, state).render()
@@ -750,9 +733,9 @@ fn render_sup_sub(
 
 ///|
 fn render_sup_sub_block(
-  base : @katex_parser.ParseNode?,
-  sup : @katex_parser.ParseNode?,
-  sub : @katex_parser.ParseNode?,
+  base : @katex.ParseNode?,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
   state : RenderState,
 ) -> Block {
   match base {
@@ -771,10 +754,7 @@ fn render_sup_sub_block(
 /// True when a large operator with `limits=true` should draw its scripts as
 /// limits above and below (display mode only; integrals and `\nolimits`
 /// operators stay on the side).
-fn operator_uses_limits(
-  base : @katex_parser.ParseNode,
-  state : RenderState,
-) -> Bool {
+fn operator_uses_limits(base : @katex.ParseNode, state : RenderState) -> Bool {
   match base {
     // \operatorname* draws limits in every style; other large operators with
     // limits=true stack only in display mode. Integrals and \nolimits stay on
@@ -792,9 +772,9 @@ fn operator_uses_limits(
 /// rendered inline (tight state) so block fractions inside limits stay on one
 /// line.
 fn render_limits_block(
-  base : @katex_parser.ParseNode,
-  sup : @katex_parser.ParseNode?,
-  sub : @katex_parser.ParseNode?,
+  base : @katex.ParseNode,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
   state : RenderState,
 ) -> Block {
   let tight_state = { ..state, in_display: false, in_tight: true }
@@ -818,8 +798,8 @@ fn render_limits_block(
 
 ///|
 fn render_script(
-  node : @katex_parser.ParseNode?,
-  kind : @katex_parser.UnicodeScriptKind,
+  node : @katex.ParseNode?,
+  kind : @katex.UnicodeScriptKind,
   fallback_prefix : String,
   state : RenderState,
 ) -> String {
@@ -867,7 +847,7 @@ fn render_function_block(name : String, body : Block) -> Block {
 ///|
 fn render_font_block(
   font : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> Block {
   if font == "mathrm" {
@@ -881,7 +861,7 @@ fn render_font_block(
 
 ///|
 fn render_operator_content_block(
-  content : @katex_parser.OperatorContent,
+  content : @katex.OperatorContent,
   state : RenderState,
 ) -> Block {
   match content {
@@ -901,35 +881,32 @@ fn render_operator_content_block(
 /// (rendered into a single-line block) for everything else, including the
 /// inline-mode forms of the overridden node types. Keeping the two tiers in
 /// sync is intentional: adding a node type only requires a fallback arm here.
-fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
+fn content_block(node : @katex.ParseNode, state : RenderState) -> Block {
   match node {
     // --- Transparent wrappers: expose children ---
-    @katex_parser.ParseNode::Styling(body~, style~, ..) =>
+    @katex.ParseNode::Styling(body~, style~, ..) =>
       content_body_block(body, {
         ..state,
         style,
-        in_display: state.in_display ||
-        style == @katex_parser.StyleLevel::DisplayStyle,
+        in_display: state.in_display || style == @katex.StyleLevel::DisplayStyle,
       })
-    @katex_parser.ParseNode::Text(body~, ..) =>
+    @katex.ParseNode::Text(body~, ..) =>
       content_body_block(body, { ..state, in_tight: true })
-    @katex_parser.ParseNode::OrdGroup(body~, ..)
-    | @katex_parser.ParseNode::MClass(body~, ..)
-    | @katex_parser.ParseNode::HBox(body~, ..)
-    | @katex_parser.ParseNode::Sizing(body~, ..)
-    | @katex_parser.ParseNode::Color(body~, ..)
-    | @katex_parser.ParseNode::Href(body~, ..)
-    | @katex_parser.ParseNode::Html(body~, ..) =>
-      content_body_block(body, state)
-    @katex_parser.ParseNode::Smash(body~, ..)
-    | @katex_parser.ParseNode::VCenter(body~, ..)
-    | @katex_parser.ParseNode::RaiseBox(body~, ..)
-    | @katex_parser.ParseNode::Lap(body~, ..) => content_block(body, state)
-    @katex_parser.ParseNode::CdParent(fragment~, ..) =>
-      content_block(fragment, state)
+    @katex.ParseNode::OrdGroup(body~, ..)
+    | @katex.ParseNode::MClass(body~, ..)
+    | @katex.ParseNode::HBox(body~, ..)
+    | @katex.ParseNode::Sizing(body~, ..)
+    | @katex.ParseNode::Color(body~, ..)
+    | @katex.ParseNode::Href(body~, ..)
+    | @katex.ParseNode::Html(body~, ..) => content_body_block(body, state)
+    @katex.ParseNode::Smash(body~, ..)
+    | @katex.ParseNode::VCenter(body~, ..)
+    | @katex.ParseNode::RaiseBox(body~, ..)
+    | @katex.ParseNode::Lap(body~, ..) => content_block(body, state)
+    @katex.ParseNode::CdParent(fragment~, ..) => content_block(fragment, state)
     // --- Multi-line block producers in display mode ---
     // \atop/\atopfrac: no bar line, no delimiters — stacked without a bar
-    @katex_parser.ParseNode::GenFrac(
+    @katex.ParseNode::GenFrac(
       numer~,
       denom~,
       has_bar_line=false,
@@ -938,7 +915,7 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       ..
     ) if state.in_display => frac_block(numer, denom, state, has_bar_line=false)
     // Binomial: no bar line, delimiters present — stacked block in display
-    @katex_parser.ParseNode::GenFrac(
+    @katex.ParseNode::GenFrac(
       numer~,
       denom~,
       has_bar_line=false,
@@ -948,7 +925,7 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
     ) if state.in_display =>
       barless_delimited_block(numer, denom, left_delim, right_delim, state)
     // Regular fraction: bar line, no delimiters
-    @katex_parser.ParseNode::GenFrac(
+    @katex.ParseNode::GenFrac(
       numer~,
       denom~,
       left_delim=None,
@@ -956,7 +933,7 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       ..
     ) if state.in_display => frac_block(numer, denom, state)
     // Genfrac with a bar line and delimiters
-    @katex_parser.ParseNode::GenFrac(
+    @katex.ParseNode::GenFrac(
       numer~,
       denom~,
       has_bar_line~,
@@ -969,16 +946,14 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
         left_delim,
         right_delim,
       )
-    @katex_parser.ParseNode::LeftRight(body~, left~, right~, ..) if state.in_display =>
+    @katex.ParseNode::LeftRight(body~, left~, right~, ..) if state.in_display =>
       render_leftright_display_block(body, left, right, state)
-    @katex_parser.ParseNode::Array(
+    @katex.ParseNode::Array(
       body~,
-      column_separation_type=Some(
-        @katex_parser.ColumnSeparationType::CdSeparation
-      ),
+      column_separation_type=Some(@katex.ColumnSeparationType::CdSeparation),
       ..
     ) => render_cd_block(body, state)
-    @katex_parser.ParseNode::Array(
+    @katex.ParseNode::Array(
       body~,
       columns~,
       hlines_before_row~,
@@ -988,68 +963,61 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
       cell_block(
         body, columns, hlines_before_row, column_separation_type, state,
       )
-    @katex_parser.ParseNode::Array(..) =>
+    @katex.ParseNode::Array(..) =>
       Block::from(render_node_internal(node, state))
-    @katex_parser.ParseNode::Enclose(label~, body~, ..) if label == "\\fbox" =>
+    @katex.ParseNode::Enclose(label~, body~, ..) if label == "\\fbox" =>
       render_enclose_block(body, state)
-    @katex_parser.ParseNode::Sqrt(body~, index=None, ..) =>
+    @katex.ParseNode::Sqrt(body~, index=None, ..) =>
       render_radical_block("", body, state)
-    @katex_parser.ParseNode::Sqrt(body~, index=Some(index), ..) =>
+    @katex.ParseNode::Sqrt(body~, index=Some(index), ..) =>
       render_root_block(index, body, state)
-    @katex_parser.ParseNode::SupSub(base~, sup~, sub~, ..) =>
+    @katex.ParseNode::SupSub(base~, sup~, sub~, ..) =>
       render_sup_sub_block(base, sup, sub, state)
     // --- Fallback function notation, block-aware ---
-    @katex_parser.ParseNode::Overline(body~, ..) =>
+    @katex.ParseNode::Overline(body~, ..) =>
       render_function_block("overline", content_block(body, state))
-    @katex_parser.ParseNode::Underline(body~, ..) =>
+    @katex.ParseNode::Underline(body~, ..) =>
       render_function_block("underline", content_block(body, state))
-    @katex_parser.ParseNode::VPhantom(body~, ..) =>
+    @katex.ParseNode::VPhantom(body~, ..) =>
       render_function_block("vphantom", content_block(body, state))
-    @katex_parser.ParseNode::Phantom(body~, ..) =>
+    @katex.ParseNode::Phantom(body~, ..) =>
       render_function_block("phantom", content_body_block(body, state))
-    @katex_parser.ParseNode::Pmb(body~, ..) =>
+    @katex.ParseNode::Pmb(body~, ..) =>
       render_function_block("bold", content_body_block(body, state))
-    @katex_parser.ParseNode::Enclose(label~, body~, ..) =>
+    @katex.ParseNode::Enclose(label~, body~, ..) =>
       render_function_block(
         @backend.command_name(label),
         content_block(body, state),
       )
-    @katex_parser.ParseNode::HorizBrace(label~, base~, ..) =>
+    @katex.ParseNode::HorizBrace(label~, base~, ..) =>
       render_function_block(
         @backend.command_name(label),
         content_block(base, state),
       )
-    @katex_parser.ParseNode::XArrow(label~, body~, below=None, ..) =>
+    @katex.ParseNode::XArrow(label~, body~, below=None, ..) =>
       render_function_block(
         @backend.command_name(label),
         content_block(body, state),
       )
-    @katex_parser.ParseNode::XArrow(label~, body~, below=Some(below), ..) =>
+    @katex.ParseNode::XArrow(label~, body~, below=Some(below), ..) =>
       render_function_block(
         @backend.command_name(label),
         content_block(body, state)
         .beside(Block::from(","))
         .beside(content_block(below, state)),
       )
-    @katex_parser.ParseNode::AccentUnder(label~, base~, ..) =>
+    @katex.ParseNode::AccentUnder(label~, base~, ..) =>
       Block::from("underaccent(\{@backend.command_name(label)},")
       .beside(content_block(base, state))
       .beside(Block::from(")"))
-    @katex_parser.ParseNode::Accent(label~, base~, ..) =>
+    @katex.ParseNode::Accent(label~, base~, ..) =>
       render_accent_block(label, base, state)
-    @katex_parser.ParseNode::Font(font~, body~, ..) =>
+    @katex.ParseNode::Font(font~, body~, ..) =>
       render_font_block(font, body, state)
-    @katex_parser.ParseNode::Op(content~, ..) =>
+    @katex.ParseNode::Op(content~, ..) =>
       render_operator_content_block(content, state)
-    @katex_parser.ParseNode::OperatorName(body~, ..) =>
-      content_body_block(body, state)
-    @katex_parser.ParseNode::MathChoice(
-      display~,
-      text~,
-      script~,
-      scriptscript~,
-      ..
-    ) =>
+    @katex.ParseNode::OperatorName(body~, ..) => content_body_block(body, state)
+    @katex.ParseNode::MathChoice(display~, text~, script~, scriptscript~, ..) =>
       content_body_block(
         @backend.math_choice_variant(
           display,
@@ -1060,14 +1028,14 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
         ),
         state,
       )
-    @katex_parser.ParseNode::Tag(body~, tag~, ..) =>
+    @katex.ParseNode::Tag(body~, tag~, ..) =>
       content_body_block(body, state)
       .beside(Block::from("\t"))
       .beside(content_body_block(tag, state))
-    @katex_parser.ParseNode::HtmlMathML(mathml~, ..) =>
+    @katex.ParseNode::HtmlMathML(mathml~, ..) =>
       content_body_block(mathml, state)
-    @katex_parser.ParseNode::Internal(..)
-    | @katex_parser.ParseNode::EnvironmentEnd(..) => Block::empty()
+    @katex.ParseNode::Internal(..) | @katex.ParseNode::EnvironmentEnd(..) =>
+      Block::empty()
     _ => Block::from(render_node_internal(node, state))
   }
 }
@@ -1077,7 +1045,7 @@ fn content_block(node : @katex_parser.ParseNode, state : RenderState) -> Block {
 /// directly, preserving its baseline; mixed content goes through block
 /// composition so inline atoms align with any embedded block fractions.
 fn content_body_block(
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   state : RenderState,
 ) -> Block {
   match body {
@@ -1088,17 +1056,14 @@ fn content_body_block(
 }
 
 ///|
-fn unicode_script(
-  text : String,
-  kind : @katex_parser.UnicodeScriptKind,
-) -> String? {
+fn unicode_script(text : String, kind : @katex.UnicodeScriptKind) -> String? {
   let acc0 : String? = Some("")
   text.fold(init=acc0, (acc, character) => {
     match acc {
       None => None
       Some(s) => {
         let ch = String::from_array([character])
-        match @katex_parser.unicode_script_character(kind, ch) {
+        match @katex.unicode_script_character(kind, ch) {
           Some(script) => Some("\{s}\{script}")
           None => None
         }
@@ -1110,7 +1075,7 @@ fn unicode_script(
 ///|
 fn render_accent(
   label : String,
-  base : @katex_parser.ParseNode,
+  base : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   render_accent_block(label, base, state).render()
@@ -1119,7 +1084,7 @@ fn render_accent(
 ///|
 fn render_accent_block(
   label : String,
-  base : @katex_parser.ParseNode,
+  base : @katex.ParseNode,
   state : RenderState,
 ) -> Block {
   let mark = match label {

@@ -1,7 +1,7 @@
 ///|
 fn render_tag(
-  body : Array[@katex_parser.ParseNode],
-  tag : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
+  tag : Array[@katex.ParseNode],
   state : RenderState,
 ) -> MathMlNode {
   let pad = element("mtd", attributes=[("width", "50%")])
@@ -25,13 +25,13 @@ fn render_tag(
 /// KaTeX's MathML array builder), plus the row/column spacing attributes
 /// derived from the column spec and the `\hline`/`\hdashline` rules.
 fn render_array(
-  body : Array[Array[@katex_parser.ParseNode]],
-  columns : Array[@katex_parser.ArrayColumn]?,
+  body : Array[Array[@katex.ParseNode]],
+  columns : Array[@katex.ArrayColumn]?,
   array_stretch : Double,
-  _row_gaps : Array[@katex_parser.Measurement?],
+  _row_gaps : Array[@katex.Measurement?],
   hlines : Array[Array[Bool]],
-  separation : @katex_parser.ColumnSeparationType?,
-  tags : Array[Array[@katex_parser.ParseNode]?]?,
+  separation : @katex.ColumnSeparationType?,
+  tags : Array[Array[@katex.ParseNode]?]?,
   auto_tags : Array[Bool]?,
   leqno : Bool,
   add_jot : Bool,
@@ -93,7 +93,7 @@ fn row_lines(hlines : Array[Array[Bool]]) -> String? {
 
 ///|
 fn array_column_attributes(
-  columns : Array[@katex_parser.ArrayColumn],
+  columns : Array[@katex.ArrayColumn],
 ) -> Array[(String, String)] {
   let alignments : Array[String] = columns.fold(init=[], (acc, column) => {
     match column {
@@ -132,8 +132,8 @@ fn em(value : Double) -> String {
 
 ///|
 fn column_spacing(
-  kind : @katex_parser.ColumnSeparationType?,
-  columns : Array[@katex_parser.ArrayColumn]?,
+  kind : @katex.ColumnSeparationType?,
+  columns : Array[@katex.ArrayColumn]?,
 ) -> String {
   match kind {
     Some(AlignSeparation) => {
@@ -158,7 +158,7 @@ fn column_spacing(
 ///|
 fn render_cd_label(
   side : String,
-  label : @katex_parser.ParseNode,
+  label : @katex.ParseNode,
   state : RenderState,
 ) -> MathMlNode {
   let attrs = [
@@ -182,7 +182,7 @@ fn render_cd_label(
 }
 
 ///|
-fn render_cr(new_line : Bool, size : @katex_parser.Measurement?) -> MathMlNode {
+fn render_cr(new_line : Bool, size : @katex.Measurement?) -> MathMlNode {
   let attrs = [
     ..if new_line {
       [("linebreak", "newline")]

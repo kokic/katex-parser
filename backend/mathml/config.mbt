@@ -20,7 +20,7 @@ pub impl Default for RenderConfig with fn default() {
 
 ///|
 priv struct RenderState {
-  style : @katex_parser.StyleLevel
+  style : @katex.StyleLevel
   math_variant : String?
   text_family : String
   text_bold : Bool

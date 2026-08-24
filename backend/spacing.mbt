@@ -17,16 +17,16 @@ pub(all) struct SpacingSpec {
 
 ///|
 /// Converts AtomFamily to the corresponding spacing type string.
-pub fn atom_family_name(family : @katex_parser.AtomFamily) -> String {
+pub fn atom_family_name(family : @katex.AtomFamily) -> String {
   match family {
-    @katex_parser.AtomFamily::Mord => "mord"
-    @katex_parser.AtomFamily::Mop => "mop"
-    @katex_parser.AtomFamily::Mbin => "mbin"
-    @katex_parser.AtomFamily::Mrel => "mrel"
-    @katex_parser.AtomFamily::Mopen => "mopen"
-    @katex_parser.AtomFamily::Mclose => "mclose"
-    @katex_parser.AtomFamily::Mpunct => "mpunct"
-    @katex_parser.AtomFamily::Minner => "minner"
+    @katex.AtomFamily::Mord => "mord"
+    @katex.AtomFamily::Mop => "mop"
+    @katex.AtomFamily::Mbin => "mbin"
+    @katex.AtomFamily::Mrel => "mrel"
+    @katex.AtomFamily::Mopen => "mopen"
+    @katex.AtomFamily::Mclose => "mclose"
+    @katex.AtomFamily::Mpunct => "mpunct"
+    @katex.AtomFamily::Minner => "minner"
   }
 }
 

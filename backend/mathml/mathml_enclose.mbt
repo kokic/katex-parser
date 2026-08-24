@@ -1,7 +1,7 @@
 ///|
 fn render_enclose(
   label : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   background : String?,
   border : String?,
   state : RenderState,
@@ -27,9 +27,9 @@ fn render_enclose(
 ///|
 fn render_image(
   alt : String,
-  width : @katex_parser.Measurement,
-  height : @katex_parser.Measurement,
-  totalheight : @katex_parser.Measurement,
+  width : @katex.Measurement,
+  height : @katex.Measurement,
+  totalheight : @katex.Measurement,
   src : String,
 ) -> MathMlNode {
   let attrs = [

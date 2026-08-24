@@ -277,7 +277,7 @@ let battery_cases : Array[BatteryCase] = [
 test "typst battery renders stable output" {
   for case in battery_cases {
     @test.assert_eq(
-      @typst.render(@katex_parser.parse(case.tex)),
+      @typst.render(@katex.parse(case.tex)),
       case.expected,
       msg=case.name,
     )

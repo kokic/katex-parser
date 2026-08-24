@@ -1,7 +1,7 @@
 ///|
 fn render_styling(
-  body : Array[@katex_parser.ParseNode],
-  style : @katex_parser.StyleLevel,
+  body : Array[@katex.ParseNode],
+  style : @katex.StyleLevel,
 ) -> String {
   let state = { style, }
   match style {
@@ -17,10 +17,7 @@ fn render_styling(
 ///|
 /// Wraps rendered content in the display/script-level Typst function; empty
 /// content renders as nothing rather than an empty call.
-fn render_style_wrapper(
-  style : @katex_parser.StyleLevel,
-  content : String,
-) -> String {
+fn render_style_wrapper(style : @katex.StyleLevel, content : String) -> String {
   guard content != "" else { "" }
   match style {
     DisplayStyle => "display(\{content})"
@@ -33,7 +30,7 @@ fn render_style_wrapper(
 ///|
 fn render_sizing(
   size : Int,
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   state : RenderState,
 ) -> String {
   let em = @backend.katex_size_multiplier(size)
@@ -42,35 +39,35 @@ fn render_sizing(
 
 ///|
 fn render_sup_sub(
-  base : @katex_parser.ParseNode?,
-  sup : @katex_parser.ParseNode?,
-  sub : @katex_parser.ParseNode?,
+  base : @katex.ParseNode?,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
   let sup_mark = script_marks('^', sup, state)
   let sub_mark = script_marks('_', sub, state)
   guard base is Some(node) else { return "zws\{sup_mark}\{sub_mark}" }
   match node {
-    @katex_parser.ParseNode::HorizBrace(label~, base=brace_base, ..) =>
+    @katex.ParseNode::HorizBrace(label~, base=brace_base, ..) =>
       render_folded_brace(label, brace_base, sup, sub, state)
-    @katex_parser.ParseNode::XArrow(label~, body~, below~, ..) =>
+    @katex.ParseNode::XArrow(label~, body~, below~, ..) =>
       render_folded_arrow(label, body, below, sup, sub, state)
     // `\dddot`/`\ddddot` expand to
     // `\overset{\raisebox{-0.1ex}{\normalsize ...}}{x}`; recognize that
     // shape and emit the native dot accents instead of the generic
     // `attach` fallback.
-    @katex_parser.ParseNode::Op(
-      content=@katex_parser.OperatorContent::BodyOperator(body),
+    @katex.ParseNode::Op(
+      content=@katex.OperatorContent::BodyOperator(body),
       limits=true,
       ..
     ) if sup.map_or(None, dddot_dots) is Some(count) =>
       "accent(\{wrap_arg(render_nodes(body, state))}, \{dddot_symbol(count)})"
-    @katex_parser.ParseNode::Op(
-      content=@katex_parser.OperatorContent::BodyOperator(_),
+    @katex.ParseNode::Op(
+      content=@katex.OperatorContent::BodyOperator(_),
       limits=true,
       ..
     ) => render_sup_attach(node, sup, sub, state)
-    @katex_parser.ParseNode::OperatorName(limits=true, ..) =>
+    @katex.ParseNode::OperatorName(limits=true, ..) =>
       render_sup_attach(node, sup, sub, state)
     _ => "\{render_node(node, state)}\{sup_mark}\{sub_mark}"
   }
@@ -81,9 +78,9 @@ fn render_sup_sub(
 /// above/below the operator. `limits(...)` is required: a plain `attach`
 /// would only place the scripts next to the base without limit placement.
 fn render_sup_attach(
-  base : @katex_parser.ParseNode,
-  sup : @katex_parser.ParseNode?,
-  sub : @katex_parser.ParseNode?,
+  base : @katex.ParseNode,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
   "limits(\{render_node(base, state)})\{script_marks('^', sup, state)}\{script_marks('_', sub, state)}"
@@ -94,7 +91,7 @@ fn render_sup_attach(
 /// parentheses when it needs grouping (see `wrap_script`).
 fn script_marks(
   mark : Char,
-  node : @katex_parser.ParseNode?,
+  node : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
   node.map_or("", node => "\{mark}\{wrap_script(render_node(node, state))}")
@@ -134,9 +131,9 @@ fn is_script_separator(c : Char) -> Bool {
 /// Typst attaches the label relative to the brace.
 fn render_folded_brace(
   label : String,
-  body : @katex_parser.ParseNode,
-  sup : @katex_parser.ParseNode?,
-  sub : @katex_parser.ParseNode?,
+  body : @katex.ParseNode,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
   let brace = horiz_brace_name(label)
@@ -148,7 +145,7 @@ fn render_folded_brace(
 /// node is present, or nothing.
 fn attach_arg(
   name : String,
-  node : @katex_parser.ParseNode?,
+  node : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
   node.map_or("", node => ", \{name}: \{wrap_arg(render_node(node, state))}")
@@ -157,10 +154,10 @@ fn attach_arg(
 ///|
 fn render_folded_arrow(
   label : String,
-  body : @katex_parser.ParseNode,
-  below : @katex_parser.ParseNode?,
-  sup : @katex_parser.ParseNode?,
-  sub : @katex_parser.ParseNode?,
+  body : @katex.ParseNode,
+  below : @katex.ParseNode?,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
   let arrow = xarrow_name(label)
@@ -179,8 +176,8 @@ fn render_folded_arrow(
 
 ///|
 fn render_genfrac(
-  numer : @katex_parser.ParseNode,
-  denom : @katex_parser.ParseNode,
+  numer : @katex.ParseNode,
+  denom : @katex.ParseNode,
   has_bar_line : Bool,
   left_delim : String?,
   right_delim : String?,
@@ -265,7 +262,7 @@ fn render_spacing(text : String) -> String {
 }
 
 ///|
-fn render_kern(dimension : @katex_parser.Measurement) -> String {
+fn render_kern(dimension : @katex.Measurement) -> String {
   let amount = match @backend.em_value(dimension) {
     Some(em) if dimension.unit == "mu" => em_string(em)
     _ =>

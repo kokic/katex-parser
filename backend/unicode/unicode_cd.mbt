@@ -12,7 +12,7 @@ priv enum CdCell {
 /// nodes and horizontal arrows; odd rows hold the vertical arrows connecting
 /// them.
 fn render_cd_block(
-  body : Array[Array[@katex_parser.ParseNode]],
+  body : Array[Array[@katex.ParseNode]],
   state : RenderState,
 ) -> Block {
   let grid = body.map(row => row.map(c => classify_cd_cell(c, state)))
@@ -37,35 +37,30 @@ fn render_cd_block(
 }
 
 ///|
-fn classify_cd_cell(
-  cell : @katex_parser.ParseNode,
-  state : RenderState,
-) -> CdCell {
+fn classify_cd_cell(cell : @katex.ParseNode, state : RenderState) -> CdCell {
   match cell {
-    @katex_parser.ParseNode::Styling(body=[inner], ..) =>
+    @katex.ParseNode::Styling(body=[inner], ..) =>
       classify_cd_inner(inner, cell, state)
-    @katex_parser.ParseNode::Styling(body=[], ..) => CdEmpty
+    @katex.ParseNode::Styling(body=[], ..) => CdEmpty
     _ => CdNode(render_node_internal(cell, state))
   }
 }
 
 ///|
 fn classify_cd_inner(
-  inner : @katex_parser.ParseNode,
-  cell : @katex_parser.ParseNode,
+  inner : @katex.ParseNode,
+  cell : @katex.ParseNode,
   state : RenderState,
 ) -> CdCell {
   match inner {
-    @katex_parser.ParseNode::XArrow(label~, body~, below~, ..) if cd_arrow_dir(
-        label,
-      )
+    @katex.ParseNode::XArrow(label~, body~, below~, ..) if cd_arrow_dir(label)
       is Some(dir) =>
       CdHArrow(
         dir,
         render_node_internal(body, state),
         below.map_or("", b => render_node_internal(b, state)),
       )
-    @katex_parser.ParseNode::CdParent(fragment~, ..) =>
+    @katex.ParseNode::CdParent(fragment~, ..) =>
       classify_cd_parent(fragment, cell, state)
     _ => CdNode(render_node_internal(cell, state))
   }
@@ -73,23 +68,23 @@ fn classify_cd_inner(
 
 ///|
 fn classify_cd_parent(
-  fragment : @katex_parser.ParseNode,
-  cell : @katex_parser.ParseNode,
+  fragment : @katex.ParseNode,
+  cell : @katex.ParseNode,
   state : RenderState,
 ) -> CdCell {
   match fragment {
-    @katex_parser.ParseNode::OrdGroup(body~, ..) => {
+    @katex.ParseNode::OrdGroup(body~, ..) => {
       let mut left = ""
       let mut right = ""
       let mut dir = "V"
       for node in body {
         match node {
-          @katex_parser.ParseNode::CdLabel(side="left", label=l, ..) =>
+          @katex.ParseNode::CdLabel(side="left", label=l, ..) =>
             left = render_node_internal(l, state)
-          @katex_parser.ParseNode::CdLabel(side="right", label=r, ..) =>
+          @katex.ParseNode::CdLabel(side="right", label=r, ..) =>
             right = render_node_internal(r, state)
-          @katex_parser.ParseNode::DelimSizing(delim~, ..) if delim ==
-            "\\uparrow" => dir = "A"
+          @katex.ParseNode::DelimSizing(delim~, ..) if delim == "\\uparrow" =>
+            dir = "A"
           _ => ()
         }
       }

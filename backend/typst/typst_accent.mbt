@@ -41,7 +41,7 @@ let accent_names : Map[String, String] = Map::from_array([
 ///|
 fn render_accent(
   label : String,
-  base : @katex_parser.ParseNode,
+  base : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   guard label != "\\textcircled" else {
@@ -58,7 +58,7 @@ fn render_accent(
 /// Detects the `\dddot`/`\ddddot` macro expansion shape
 /// `\overset{\raisebox{-0.1ex}{\normalsize ...}}{x}` and returns the number of
 /// dots (3 or 4) in the raise box, or `None`.
-fn dddot_dots(node : @katex_parser.ParseNode) -> Int? {
+fn dddot_dots(node : @katex.ParseNode) -> Int? {
   match node {
     OrdGroup(
       body=[
@@ -87,7 +87,7 @@ fn dddot_symbol(count : Int) -> String {
 ///|
 fn render_horiz_brace(
   label : String,
-  base : @katex_parser.ParseNode,
+  base : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   math_fn(horiz_brace_name(label), render_node(base, state))
@@ -106,8 +106,8 @@ fn horiz_brace_name(label : String) -> String {
 ///|
 fn render_xarrow(
   label : String,
-  body : @katex_parser.ParseNode,
-  below : @katex_parser.ParseNode?,
+  body : @katex.ParseNode,
+  below : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
   let arrow = xarrow_name(label)

@@ -5,20 +5,17 @@
 /// appear between `$...$`), suitable for embedding in a Typst document.
 /// Approximations are allowed and documented in the emission sites; no layout
 /// or measurement is performed here.
-pub fn render(nodes : Array[@katex_parser.ParseNode]) -> String {
-  render_nodes(nodes, { style: @katex_parser.StyleLevel::TextStyle })
+pub fn render(nodes : Array[@katex.ParseNode]) -> String {
+  render_nodes(nodes, { style: @katex.StyleLevel::TextStyle })
 }
 
 ///|
 priv struct RenderState {
-  style : @katex_parser.StyleLevel
+  style : @katex.StyleLevel
 }
 
 ///|
-fn render_nodes(
-  nodes : Array[@katex_parser.ParseNode],
-  state : RenderState,
-) -> String {
+fn render_nodes(nodes : Array[@katex.ParseNode], state : RenderState) -> String {
   let rendered = nodes.map(node => render_node(node, state))
   join_math(fold_norm(fold_primes(merge_not(rendered))))
 }
@@ -137,7 +134,7 @@ fn is_single_symbol(text : String) -> Bool {
 }
 
 ///|
-fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
+fn render_node(node : @katex.ParseNode, state : RenderState) -> String {
   match node {
     Internal(..) | EnvironmentEnd(..) => ""
     Raw(string~, ..) => render_symbol(string)
@@ -217,8 +214,8 @@ fn render_node(node : @katex_parser.ParseNode, state : RenderState) -> String {
 /// A `\sqrt` node renders as Typst `sqrt(...)`; with an index it becomes a
 /// two-argument `root(index, body)`.
 fn render_sqrt(
-  index : @katex_parser.ParseNode?,
-  body : @katex_parser.ParseNode,
+  index : @katex.ParseNode?,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   match index {
@@ -265,7 +262,7 @@ fn quote_string(text : String) -> String {
 /// Renders a length for use inside `#...(...)` calls (code mode), where the
 /// `ex` unit is not lexable (`0.1ex` reads as the float `0.1e`). `ex` is
 /// converted to `em` with the standard x-height ratio of 0.5.
-fn render_measurement(measurement : @katex_parser.Measurement) -> String {
+fn render_measurement(measurement : @katex.Measurement) -> String {
   match @backend.em_value(measurement) {
     Some(em) if measurement.unit == "ex" => em_string(em)
     _ => "\{measurement.number}\{measurement.unit}"

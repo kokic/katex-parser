@@ -1,4 +1,4 @@
 import {
-  "kokic/katex-parser/parser" @katex_parser,
+  "kokic/katex-parser/parser" @katex,
   "kokic/katex-parser/backend",
 }

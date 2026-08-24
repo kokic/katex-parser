@@ -8,7 +8,7 @@
 /// Resolves a TeX command name or raw Unicode string to its Unicode rendering
 /// via the parser's symbol registry, falling back to the input itself.
 pub fn resolve_symbol(text : String) -> String {
-  @katex_parser.unicode_symbol(text).unwrap_or(text)
+  @katex.unicode_symbol(text).unwrap_or(text)
 }
 
 ///|
@@ -40,7 +40,7 @@ pub fn katex_size_multiplier(size : Int) -> Double {
 /// Converts a measurement to an em length: `em` passes through, `mu` uses
 /// the 18 mu per em ratio, and `ex` the standard 0.5 x-height ratio. Returns
 /// `None` for units with no fixed em relation (`fill`, `pt`, ...).
-pub fn em_value(measurement : @katex_parser.Measurement) -> Double? {
+pub fn em_value(measurement : @katex.Measurement) -> Double? {
   match measurement.unit {
     "em" => Some(measurement.number)
     "mu" => Some(measurement.number / 18.0)
@@ -52,16 +52,16 @@ pub fn em_value(measurement : @katex_parser.Measurement) -> Double? {
 ///|
 /// Selects the body of a `\mathchoice` node for the current style level.
 pub fn math_choice_variant(
-  display : Array[@katex_parser.ParseNode],
-  text : Array[@katex_parser.ParseNode],
-  script : Array[@katex_parser.ParseNode],
-  scriptscript : Array[@katex_parser.ParseNode],
-  style : @katex_parser.StyleLevel,
-) -> Array[@katex_parser.ParseNode] {
+  display : Array[@katex.ParseNode],
+  text : Array[@katex.ParseNode],
+  script : Array[@katex.ParseNode],
+  scriptscript : Array[@katex.ParseNode],
+  style : @katex.StyleLevel,
+) -> Array[@katex.ParseNode] {
   match style {
-    @katex_parser.StyleLevel::DisplayStyle => display
-    @katex_parser.StyleLevel::TextStyle => text
-    @katex_parser.StyleLevel::ScriptStyle => script
-    @katex_parser.StyleLevel::ScriptScriptStyle => scriptscript
+    @katex.StyleLevel::DisplayStyle => display
+    @katex.StyleLevel::TextStyle => text
+    @katex.StyleLevel::ScriptStyle => script
+    @katex.StyleLevel::ScriptScriptStyle => scriptscript
   }
 }

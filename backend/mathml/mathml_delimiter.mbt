@@ -1,7 +1,7 @@
 ///|
 fn render_sized_delim(
   delim : String,
-  mclass : @katex_parser.AtomFamily,
+  mclass : @katex.AtomFamily,
   size : Int,
 ) -> MathMlNode {
   let fence = match mclass {
@@ -56,7 +56,7 @@ fn render_middle(delim : String) -> MathMlNode {
 
 ///|
 fn render_left_right(
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   left : String,
   right : String,
   right_color : String?,

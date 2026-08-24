@@ -4,7 +4,7 @@ test "render \\boxed as a unicode box" {
     #|┌─┐
     #|│x│
     #|└─┘
-  @test.assert_eq(@unicode.render(@katex_parser.parse("\\boxed{x}")), output)
+  @test.assert_eq(@unicode.render(@katex.parse("\\boxed{x}")), output)
 
   let output =
     #|┌───────┐
@@ -13,14 +13,14 @@ test "render \\boxed as a unicode box" {
     #|│     d │
     #|└───────┘
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\boxed{\\pi=\\frac c d}")),
+    @unicode.render(@katex.parse("\\boxed{\\pi=\\frac c d}")),
     output,
   )
 }
 
 ///|
 test "boxed content centers in display mode" {
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   let output =
     #|    ┌───────┐
     #|    │     c │
@@ -28,9 +28,7 @@ test "boxed content centers in display mode" {
     #|    │     d │
     #|    └───────┘
   @test.assert_eq(
-    @unicode.render(
-      @katex_parser.parse("x = \\boxed{\\pi=\\frac c d}", settings~),
-    ),
+    @unicode.render(@katex.parse("x = \\boxed{\\pi=\\frac c d}", settings~)),
     output,
   )
 }
@@ -42,10 +40,7 @@ test "render boxes and fraction bars in ascii style" {
     #|---
     #||x|
     #|---
-  @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\boxed{x}"), config~),
-    output,
-  )
+  @test.assert_eq(@unicode.render(@katex.parse("\\boxed{x}"), config~), output)
 
   let output =
     #|---------
@@ -54,16 +49,16 @@ test "render boxes and fraction bars in ascii style" {
     #||     d |
     #|---------
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\boxed{\\pi=\\frac c d}"), config~),
+    @unicode.render(@katex.parse("\\boxed{\\pi=\\frac c d}"), config~),
     output,
   )
-  let settings = @katex_parser.Settings::make(display_mode=true)
+  let settings = @katex.Settings::make(display_mode=true)
   let output =
     #| a 
     #|---
     #| b 
   @test.assert_eq(
-    @unicode.render(@katex_parser.parse("\\frac{a}{b}", settings~), config~),
+    @unicode.render(@katex.parse("\\frac{a}{b}", settings~), config~),
     output,
   )
 }

@@ -1,6 +1,6 @@
 ///|
 fn render_text(
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   font : String,
   state : RenderState,
 ) -> String {
@@ -16,10 +16,7 @@ fn render_text(
 }
 
 ///|
-fn render_text_child(
-  node : @katex_parser.ParseNode,
-  state : RenderState,
-) -> String {
+fn render_text_child(node : @katex.ParseNode, state : RenderState) -> String {
   match node {
     TextOrd(text~, ..) | MathOrd(text~, ..) | Spacing(text~, ..) =>
       quote_string(@backend.resolve_symbol(text))
@@ -43,7 +40,7 @@ let font_functions : Map[String, String] = Map::from_array([
 ///|
 fn render_font(
   font : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   // A purely textual body whose text is a predefined Typst operator name
@@ -59,7 +56,7 @@ fn render_font(
 ///|
 fn render_font_wrapped(
   font : String,
-  body : @katex_parser.ParseNode,
+  body : @katex.ParseNode,
   state : RenderState,
 ) -> String {
   match font_functions.get(font) {
@@ -74,7 +71,7 @@ fn render_font_wrapped(
 /// Renders a font body: purely textual bodies collapse to a quoted string so
 /// the letters render as one word (`upright("abc")`), not as space-separated
 /// atoms; anything with math structure renders recursively.
-fn font_body(body : @katex_parser.ParseNode, state : RenderState) -> String {
+fn font_body(body : @katex.ParseNode, state : RenderState) -> String {
   match body {
     OrdGroup(body=nodes, ..) =>
       match plain_text_of(nodes) {

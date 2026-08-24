@@ -6,10 +6,7 @@ fn render_symbol(text : String) -> String {
 }
 
 ///|
-fn render_op(
-  content : @katex_parser.OperatorContent,
-  state : RenderState,
-) -> String {
+fn render_op(content : @katex.OperatorContent, state : RenderState) -> String {
   match content {
     SymbolOperator(text) => render_symbol(text)
     NamedOperator(text) => render_named_operator(text)
@@ -39,7 +36,7 @@ fn render_named_operator(text : String) -> String {
 
 ///|
 fn render_operatorname(
-  body : Array[@katex_parser.ParseNode],
+  body : Array[@katex.ParseNode],
   limits : Bool,
   state : RenderState,
 ) -> String {
@@ -54,7 +51,7 @@ fn render_operatorname(
 /// and spaces), or `None` if it contains any math structure. Parts are joined
 /// without separators; the result is always embedded in a quoted string, so
 /// spaces are preserved verbatim.
-fn plain_text_of(nodes : Array[@katex_parser.ParseNode]) -> String? {
+fn plain_text_of(nodes : Array[@katex.ParseNode]) -> String? {
   let parts : Array[String] = nodes.filter_map(node => {
     match node {
       TextOrd(text~, ..) | MathOrd(text~, ..) | Spacing(text~, ..) =>

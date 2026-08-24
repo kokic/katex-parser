@@ -49,7 +49,7 @@ pub(all) enum EvalExpr {
   Mul(Array[EvalExpr])
   Pow(EvalExpr, Int)
   Div(EvalExpr, EvalExpr)
-  Residual(@katex_parser.ParseNode)
+  Residual(@katex.ParseNode)
 } derive(Eq, @debug.Debug)
 
 ///|

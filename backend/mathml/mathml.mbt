@@ -1,11 +1,11 @@
 ///|
 /// Renders parsed KaTeX nodes as Presentation MathML.
 pub fn render(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   config? : RenderConfig = Default::default(),
 ) -> String {
   let state = {
-    style: @katex_parser.StyleLevel::TextStyle,
+    style: @katex.StyleLevel::TextStyle,
     math_variant: None,
     text_family: "normal",
     text_bold: false,
@@ -43,25 +43,19 @@ pub fn render(
 
 ///|
 fn render_expression(
-  nodes : Array[@katex_parser.ParseNode],
+  nodes : Array[@katex.ParseNode],
   state : RenderState,
 ) -> Array[MathMlNode] {
   combine_expression(nodes.map(node => render_node(node, state)))
 }
 
 ///|
-fn render_group(
-  node : @katex_parser.ParseNode,
-  state : RenderState,
-) -> MathMlNode {
+fn render_group(node : @katex.ParseNode, state : RenderState) -> MathMlNode {
   render_node(node, state)
 }
 
 ///|
-fn render_node(
-  node : @katex_parser.ParseNode,
-  state : RenderState,
-) -> MathMlNode {
+fn render_node(node : @katex.ParseNode, state : RenderState) -> MathMlNode {
   match node {
     Internal(..) | EnvironmentEnd(..) => element("mrow")
     Raw(string~, ..) => text_token(string, Text, state)
