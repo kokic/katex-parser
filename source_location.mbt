@@ -11,7 +11,7 @@ pub fn SourceLocation::make(
   start~ : Int,
   end~ : Int,
 ) -> SourceLocation {
-  { input, start, end }
+  { input, start, end, }
 }
 
 ///|
@@ -19,5 +19,5 @@ fn SourceLocation::range(
   start_loc : SourceLocation,
   end_loc : SourceLocation,
 ) -> SourceLocation {
-  { input: start_loc.input, start: start_loc.start, end: end_loc.end }
+  { input: start_loc.input, start: start_loc.start, end: end_loc.end, }
 }

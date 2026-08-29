@@ -8,7 +8,7 @@ pub(all) struct Token {
 
 ///|
 fn Token::make(text : String, loc? : SourceLocation) -> Token {
-  { text, loc, noexpand: false, treat_as_relax: false }
+  { text, loc, noexpand: false, treat_as_relax: false, }
 }
 
 ///|

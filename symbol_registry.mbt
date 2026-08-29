@@ -38,7 +38,7 @@ fn SymbolRegistry::define_symbol(
   accept_unicode? : Bool = false,
 ) -> Unit {
   let table = if mode == Math { self.math } else { self.text }
-  let spec = { group, replacement }
+  let spec = { group, replacement, }
   table[name] = spec
   if accept_unicode && replacement != "" {
     table[replacement] = spec
@@ -52,7 +52,7 @@ fn codepoint_string(codepoint : Int) -> String {
 
 ///|
 fn build_builtin_symbols() -> SymbolRegistry {
-  let registry : SymbolRegistry = { math: Map([]), text: Map([]) }
+  let registry : SymbolRegistry = { math: Map([]), text: Map([]), }
   registry.define_symbol(
     Math,
     RelationGroup,

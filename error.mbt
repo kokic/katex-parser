@@ -34,5 +34,5 @@ pub(all) struct Diagnostic {
 
 ///|
 fn Diagnostic::from_token(token : Token) -> Diagnostic {
-  { text: token.text, loc: token.loc }
+  { text: token.text, loc: token.loc, }
 }

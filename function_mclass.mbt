@@ -6,13 +6,13 @@ priv struct MClassCommandSpec {
 
 ///|
 let mclass_commands : Array[MClassCommandSpec] = [
-  { name: "\\mathord", mclass: Mord },
-  { name: "\\mathbin", mclass: Mbin },
-  { name: "\\mathrel", mclass: Mrel },
-  { name: "\\mathopen", mclass: Mopen },
-  { name: "\\mathclose", mclass: Mclose },
-  { name: "\\mathpunct", mclass: Mpunct },
-  { name: "\\mathinner", mclass: Minner },
+  { name: "\\mathord", mclass: Mord, },
+  { name: "\\mathbin", mclass: Mbin, },
+  { name: "\\mathrel", mclass: Mrel, },
+  { name: "\\mathopen", mclass: Mopen, },
+  { name: "\\mathclose", mclass: Mclose, },
+  { name: "\\mathpunct", mclass: Mpunct, },
+  { name: "\\mathinner", mclass: Minner, },
 ]
 
 ///|

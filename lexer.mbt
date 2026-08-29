@@ -14,7 +14,7 @@ fn Lexer::make(
   input : String,
   report_nonstrict? : LexerReporter = (_code, _message) => (),
 ) -> Lexer {
-  let lexer : Lexer = { input, offset: 0, catcodes: Map([]), report_nonstrict }
+  let lexer : Lexer = { input, offset: 0, catcodes: Map([]), report_nonstrict, }
   lexer.set_catcode("%", 14)
   lexer.set_catcode("~", 13)
   lexer

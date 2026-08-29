@@ -30,7 +30,7 @@ fn MacroExpansion::make(
   delimiters? : Array[Array[String]],
   unexpandable? : Bool = false,
 ) -> MacroExpansion {
-  { tokens, num_args, delimiters, unexpandable }
+  { tokens, num_args, delimiters, unexpandable, }
 }
 
 ///|

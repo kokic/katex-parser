@@ -106,7 +106,7 @@ pub(all) struct FunctionRegistry {
 
 ///|
 pub fn FunctionRegistry::make() -> FunctionRegistry {
-  { entries: Map([]) }
+  { entries: Map([]), }
 }
 
 ///|

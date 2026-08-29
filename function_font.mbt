@@ -6,30 +6,30 @@ priv struct FontCommandSpec {
 
 ///|
 let font_commands : Array[FontCommandSpec] = [
-  { name: "\\mathrm", font: "mathrm" },
-  { name: "\\mathit", font: "mathit" },
-  { name: "\\mathbf", font: "mathbf" },
-  { name: "\\mathnormal", font: "mathnormal" },
-  { name: "\\mathsfit", font: "mathsfit" },
-  { name: "\\mathbb", font: "mathbb" },
-  { name: "\\mathcal", font: "mathcal" },
-  { name: "\\mathfrak", font: "mathfrak" },
-  { name: "\\mathscr", font: "mathscr" },
-  { name: "\\mathsf", font: "mathsf" },
-  { name: "\\mathtt", font: "mathtt" },
-  { name: "\\Bbb", font: "mathbb" },
-  { name: "\\bold", font: "mathbf" },
-  { name: "\\frak", font: "mathfrak" },
+  { name: "\\mathrm", font: "mathrm", },
+  { name: "\\mathit", font: "mathit", },
+  { name: "\\mathbf", font: "mathbf", },
+  { name: "\\mathnormal", font: "mathnormal", },
+  { name: "\\mathsfit", font: "mathsfit", },
+  { name: "\\mathbb", font: "mathbb", },
+  { name: "\\mathcal", font: "mathcal", },
+  { name: "\\mathfrak", font: "mathfrak", },
+  { name: "\\mathscr", font: "mathscr", },
+  { name: "\\mathsf", font: "mathsf", },
+  { name: "\\mathtt", font: "mathtt", },
+  { name: "\\Bbb", font: "mathbb", },
+  { name: "\\bold", font: "mathbf", },
+  { name: "\\frak", font: "mathfrak", },
 ]
 
 ///|
 let old_font_commands : Array[FontCommandSpec] = [
-  { name: "\\rm", font: "mathrm" },
-  { name: "\\sf", font: "mathsf" },
-  { name: "\\tt", font: "mathtt" },
-  { name: "\\bf", font: "mathbf" },
-  { name: "\\it", font: "mathit" },
-  { name: "\\cal", font: "mathcal" },
+  { name: "\\rm", font: "mathrm", },
+  { name: "\\sf", font: "mathsf", },
+  { name: "\\tt", font: "mathtt", },
+  { name: "\\bf", font: "mathbf", },
+  { name: "\\it", font: "mathit", },
+  { name: "\\cal", font: "mathcal", },
 ]
 
 ///|

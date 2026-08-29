@@ -45,7 +45,7 @@ fn graphics_number(text : String) -> String? {
 fn graphics_size(text : String) -> Measurement raise ParseFailure {
   let text = trim_ascii_spaces(text)
   if graphics_number(text) is Some(number_text) {
-    return { number: parse_decimal(number_text), unit: "bp" }
+    return { number: parse_decimal(number_text), unit: "bp", }
   }
   match parse_size_measurement(text) {
     Some(size) if valid_size_unit(size.unit) => size
@@ -112,9 +112,9 @@ fn graphics_default_alt(src : String) -> String {
 fn parse_graphics_options(
   value : String,
 ) -> (Measurement, Measurement, Measurement, String) raise ParseFailure {
-  let mut width = { number: 0.0, unit: "em" }
-  let mut height = { number: 0.9, unit: "em" }
-  let mut totalheight = { number: 0.0, unit: "em" }
+  let mut width = { number: 0.0, unit: "em", }
+  let mut height = { number: 0.9, unit: "em", }
+  let mut totalheight = { number: 0.0, unit: "em", }
   let mut alt = ""
   for item in graphics_option_items(value) {
     guard graphics_option_pair(item) is Some((key, value)) else { continue }

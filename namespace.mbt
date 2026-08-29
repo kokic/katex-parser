@@ -10,7 +10,7 @@ fn[V] Namespace::make(
   builtins : Map[String, V],
   initial : Map[String, V],
 ) -> Namespace[V] {
-  { builtins, current: initial, undo_stack: [] }
+  { builtins, current: initial, undo_stack: [], }
 }
 
 ///|

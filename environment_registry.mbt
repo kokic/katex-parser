@@ -47,7 +47,7 @@ pub fn EnvironmentSpec::make(
   arg_types? : Array[ArgType] = [],
   handler~ : EnvironmentHandler,
 ) -> EnvironmentSpec {
-  { names, num_args, num_optional_args, arg_types, handler }
+  { names, num_args, num_optional_args, arg_types, handler, }
 }
 
 ///|
@@ -118,7 +118,7 @@ pub(all) struct EnvironmentRegistry {
 
 ///|
 pub fn EnvironmentRegistry::make() -> EnvironmentRegistry {
-  { entries: Map([]) }
+  { entries: Map([]), }
 }
 
 ///|
@@ -148,23 +148,17 @@ let builtin_environments : Array[EnvironmentSpec] = [
   ),
   EnvironmentSpec::make(
     [
-      "matrix",
-      "pmatrix",
-      "bmatrix",
-      "Bmatrix",
-      "vmatrix",
-      "Vmatrix",
-      "matrix*",
-      "pmatrix*",
-      "bmatrix*",
-      "Bmatrix*",
-      "vmatrix*",
-      "Vmatrix*",
+      "matrix", "pmatrix", "bmatrix", "Bmatrix", "vmatrix", "Vmatrix", "matrix*",
+      "pmatrix*", "bmatrix*", "Bmatrix*", "vmatrix*", "Vmatrix*",
     ],
     0,
     handler=matrix_environment_handler,
   ),
-  EnvironmentSpec::make(["smallmatrix"], 0, handler=smallmatrix_environment_handler),
+  EnvironmentSpec::make(
+    ["smallmatrix"],
+    0,
+    handler=smallmatrix_environment_handler,
+  ),
   EnvironmentSpec::make(
     ["cases", "dcases", "rcases", "drcases"],
     0,

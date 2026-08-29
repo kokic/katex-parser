@@ -297,7 +297,7 @@ fn MacroExpander::consume_arg(
             let _ = tokens.pop()
           }
           let normalized = normalize_consumed_argument(start, tokens)
-          break { start, end: token, tokens: normalized }
+          break { start, end: token, tokens: normalized, }
         }
       } else {
         delimiter_match = 0
@@ -305,7 +305,7 @@ fn MacroExpander::consume_arg(
     }
     if depth == 0 && !is_delimited {
       let normalized = normalize_consumed_argument(start, tokens)
-      break { start, end: token, tokens: normalized }
+      break { start, end: token, tokens: normalized, }
     }
   }
 }

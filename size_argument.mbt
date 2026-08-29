@@ -130,7 +130,7 @@ fn parse_size_measurement(text : String) -> Measurement? raise ParseFailure {
       continue
     }
     let unit = text.unsafe_substring(start=index, end=index + 2)
-    return Some({ number: parse_decimal(number_builder.to_string()), unit })
+    return Some({ number: parse_decimal(number_builder.to_string()), unit, })
   }
   None
 }
