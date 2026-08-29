@@ -4,6 +4,7 @@ priv struct Parser {
   gullet : MacroExpander
   settings : Settings
   function_registry : FunctionRegistry
+  environment_registry : EnvironmentRegistry
   mut next_token : Token?
   mut leftright_depth : Int
 }
@@ -19,6 +20,7 @@ fn Parser::make(
   input : String,
   settings : Settings,
   extra_specs? : Array[FunctionSpec] = [],
+  extra_env_specs? : Array[EnvironmentSpec] = [],
 ) -> Parser {
   let registry = build_function_registry(extra_specs)
   {
@@ -48,6 +50,7 @@ fn Parser::make(
     ),
     settings,
     function_registry: registry,
+    environment_registry: build_environment_registry(extra_env_specs),
     next_token: None,
     leftright_depth: 0,
   }
@@ -58,8 +61,9 @@ pub fn parse(
   input : String,
   settings? : Settings = Default::default(),
   extra_specs? : Array[FunctionSpec] = [],
+  extra_env_specs? : Array[EnvironmentSpec] = [],
 ) -> Array[ParseNode] raise ParseFailure {
-  let parser = Parser::make(input, settings, extra_specs~)
+  let parser = Parser::make(input, settings, extra_specs~, extra_env_specs~)
   parser.gullet.macros.set("\\df@tag", None)
   let body = parser.parse()
   let body = if parser.gullet.macros.get("\\df@tag") is Some(_) {
@@ -659,7 +663,7 @@ fn Parser::parse_environment(
   self : Parser,
   name : String,
 ) -> ParseNode raise ParseFailure {
-  guard lookup_environment(name) is Some(spec) else {
+  guard self.environment_registry.get(name) is Some(spec) else {
     raise InvalidArgument(message="No such environment: \{name}", loc=None)
   }
   let arguments = FunctionSpec::make(
