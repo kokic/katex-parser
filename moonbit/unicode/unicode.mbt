@@ -1,0 +1,1121 @@
+///|
+/// Renders parsed KaTeX nodes as Unicode text. Nodes without a direct Unicode
+/// rendering use UnicodeMath-style function syntax so that their structure is
+/// retained in plain text.
+pub fn render(
+  nodes : Array[@katex.ParseNode],
+  config? : RenderConfig = Default::default(),
+) -> String {
+  render_internal(nodes, {
+    style: @katex.StyleLevel::TextStyle,
+    in_display: false,
+    in_tight: false,
+    config,
+  })
+}
+
+///|
+fn render_internal(
+  nodes : Array[@katex.ParseNode],
+  state : RenderState,
+) -> String {
+  render_internal_block(nodes, state).render()
+}
+
+///|
+/// Renders a list of nodes into a `Block`, preserving per-item baseline info
+/// so that block-level content (e.g. fractions) stays vertically aligned with
+/// its neighbors when composed via `beside`.
+fn render_internal_block(
+  nodes : Array[@katex.ParseNode],
+  state : RenderState,
+) -> Block {
+  let items = merge_not_overlay(collect_spacable_items(nodes, state))
+  let cancelled = @anvil.cancel_bin_atoms(items)
+  if cancelled.any(it => it.text.contains("\n")) {
+    join_with_block(cancelled, state.in_tight, state.config.spacing)
+  } else {
+    Block::from(
+      @anvil.join_with_spacing(
+        cancelled,
+        state.in_tight,
+        state.config.spacing,
+      ),
+    )
+  }
+}
+
+///|
+fn join_with_block(
+  items : Array[@anvil.SpacableItem],
+  tight : Bool,
+  spec : @anvil.SpacingSpec,
+) -> Block {
+  let mut result = item_to_block(items[0])
+  for i = 1; i < items.length(); i = i + 1 {
+    let prev = items[i - 1]
+    let curr = items[i]
+    match (prev.atom_type, curr.atom_type) {
+      (Some(left), Some(right)) if @anvil.math_spacing(
+          left, right, tight, spec,
+        )
+        is Some(space) => result = result.beside(Block::from(space))
+      _ => ()
+    }
+    result = result.beside(item_to_block(curr))
+  }
+  result
+}
+
+///|
+fn item_to_block(item : @anvil.SpacableItem) -> Block {
+  { ..Block::from(item.text), baseline: item.baseline }
+}
+
+///|
+/// Renders a single node to an inline string (the default form used in text
+/// style and inside script arguments). Every `ParseNode` variant is handled
+/// here; variants that need vertical alignment in display mode are overridden
+/// by `content_block`, which falls back to this function for the rest.
+///
+/// Convention: node types whose display-mode form differs from the inline
+/// form are dispatched on `state.in_display` inside their arm; block-aware
+/// helpers (`frac_block`, `render_leftright_display_block`, ...) produce the
+/// display-mode output, and the inline form is composed as plain text.
+fn render_node_internal(node : @katex.ParseNode, state : RenderState) -> String {
+  let slash = state.config.fraction_slash
+  match node {
+    Internal(..) | EnvironmentEnd(..) => ""
+    Raw(string~, ..) => @anvil.resolve_symbol(string)
+    ColorToken(color~, ..) => @anvil.resolve_symbol(color)
+    TextOrd(text~, ..)
+    | MathOrd(text~, ..)
+    | Spacing(text~, ..)
+    | AccentToken(text~, ..)
+    | OperatorToken(text~, ..)
+    | Atom(text~, ..) => @anvil.resolve_symbol(text)
+    Size(value~, ..) => render_measurement(value)
+    Url(url~, ..) => url
+    Styling(body~, style~, ..) =>
+      render_internal(body, {
+        ..state,
+        style,
+        in_display: state.in_display || style == DisplayStyle,
+      })
+    Text(body~, ..) => render_internal(body, { ..state, in_tight: true })
+    MClass(body~, ..)
+    | HBox(body~, ..)
+    | Sizing(body~, ..)
+    | Color(body~, ..)
+    | Href(body~, ..)
+    | Html(body~, ..)
+    | OrdGroup(body~, ..) => render_internal(body, state)
+    Sqrt(body~, index=None, ..) => render_radical("", body, state)
+    Sqrt(body~, index=Some(index), ..) => render_root(index, body, state)
+    Infix(replace_with~, ..) => replace_with
+    // \atop/\atopfrac: no bar line, no delimiters — stacked without a bar
+    GenFrac(
+      numer~,
+      denom~,
+      has_bar_line=false,
+      left_delim=None,
+      right_delim=None,
+      ..
+    ) => {
+      guard !state.in_display else {
+        render_genfrac_block(numer, denom, state, has_bar_line=false)
+      }
+      inline_atop(numer, denom, state)
+    }
+    // Binomial: no bar line, delimiters present — stacked block in display
+    // mode, (n,k) inline otherwise.
+    GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) if state.in_display =>
+      barless_delimited_block(numer, denom, left_delim, right_delim, state).render()
+    GenFrac(numer~, denom~, has_bar_line=false, left_delim~, right_delim~, ..) =>
+      render_delimited(
+        left_delim,
+        inline_atop(numer, denom, state),
+        right_delim,
+      )
+    // Regular fraction: bar line, no delimiters
+    GenFrac(numer~, denom~, left_delim=None, right_delim=None, ..) => {
+      guard !state.in_display else { render_genfrac_block(numer, denom, state) }
+      inline_fraction(numer, denom, slash, state)
+    }
+    // Genfrac with a bar line and delimiters
+    GenFrac(numer~, denom~, has_bar_line~, left_delim~, right_delim~, ..) =>
+      if state.in_display {
+        wrap_delims(
+          frac_block(numer, denom, state, has_bar_line~),
+          left_delim,
+          right_delim,
+        ).render()
+      } else {
+        render_delimited(
+          left_delim,
+          inline_fraction(numer, denom, slash, state),
+          right_delim,
+        )
+      }
+    Font(font~, body~, ..) => render_font(font, body, state)
+    Op(content~, ..) => render_operator_content(content, state)
+    OperatorName(body~, ..) => render_internal(body, state)
+    Overline(body~, ..) => "overline(\{render_node_internal(body, state)})"
+    Underline(body~, ..) => "underline(\{render_node_internal(body, state)})"
+    Smash(body~, ..)
+    | VCenter(body~, ..)
+    | RaiseBox(body~, ..)
+    | Lap(body~, ..) => render_node_internal(body, state)
+    VPhantom(body~, ..) => "vphantom(\{render_node_internal(body, state)})"
+    CdParent(fragment~, ..) => render_node_internal(fragment, state)
+    Phantom(body~, ..) => "phantom(\{render_internal(body, state)})"
+    Pmb(body~, ..) => "bold(\{render_internal(body, state)})"
+    Rule(width~, height~, ..) =>
+      "rule(\{render_measurement(width)},\{render_measurement(height)})"
+    MathChoice(display~, text~, script~, scriptscript~, ..) =>
+      render_internal(
+        @anvil.math_choice_variant(
+          display,
+          text,
+          script,
+          scriptscript,
+          state.style,
+        ),
+        state,
+      )
+    HorizBrace(label~, base~, ..) =>
+      "\{@anvil.command_name(label)}(\{render_node_internal(base, state)})"
+    XArrow(label~, body~, below=None, ..) =>
+      "\{@anvil.command_name(label)}(\{render_node_internal(body, state)})"
+    XArrow(label~, body~, below=Some(below), ..) =>
+      "\{@anvil.command_name(label)}(\{render_node_internal(body, state)},\{render_node_internal(below, state)})"
+    AccentUnder(label~, base~, ..) =>
+      "underaccent(\{@anvil.command_name(label)},\{render_node_internal(base, state)})"
+    DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
+      render_delimiter(delim)
+    LeftRight(body~, left~, right~, ..) =>
+      if state.in_display {
+        render_leftright_display_block(body, left, right, state).render()
+      } else {
+        "\{render_delimiter(left)}\{render_internal(body, state)}\{render_delimiter(right)}"
+      }
+    Kern(dimension~, ..) => render_kern(dimension)
+    Enclose(label~, body~, ..) if label == "\\fbox" =>
+      render_enclose_block(body, state).render()
+    Enclose(label~, body~, ..) =>
+      "\{@anvil.command_name(label)}(\{render_node_internal(body, state)})"
+    IncludeGraphics(alt~, ..) => "image(\{alt})"
+    Tag(body~, tag~, ..) =>
+      "\{render_internal(body, state)}\t(\{render_internal(tag, state)})"
+    Array(
+      body~,
+      column_separation_type=Some(@katex.ColumnSeparationType::CdSeparation),
+      ..
+    ) => render_cd_block(body, state).render()
+    Array(body~, columns~, hlines_before_row~, column_separation_type~, ..) =>
+      if state.in_display {
+        render_array_block(
+          body, columns, hlines_before_row, column_separation_type, state,
+        )
+      } else {
+        render_array_inline(body, state)
+      }
+    CdLabel(side~, label~, ..) =>
+      "\{side}(\{render_node_internal(label, state)})"
+    Cr(new_line=true, ..) => "\n"
+    Cr(..) => ""
+    HtmlMathML(mathml~, ..) => render_internal(mathml, state)
+    SupSub(base~, sup~, sub~, ..) => render_sup_sub(base, sup, sub, state)
+    Accent(label~, base~, ..) => render_accent(label, base, state)
+    Verb(body~, ..) => body
+  }
+}
+
+///|
+/// Merges a standalone `\not` overlay into the following symbol. The MathML
+/// branch of the `\not` macro is `\char"338` (the combining long solidus
+/// U+0338), which this backend renders as a bare combining mark. Mirrors
+/// KaTeX's buildMathML handling: instead of leaving the mark standalone (which
+/// would gain a stray space before a following relation), it is appended after
+/// the next single-character symbol so the slash visually overlays it.
+/// `\not=` therefore renders as `=\u0338` (≈ ≠) rather than `̸ =`.
+fn merge_not_overlay(
+  items : Array[@anvil.SpacableItem],
+) -> Array[@anvil.SpacableItem] {
+  let result : Array[@anvil.SpacableItem] = []
+  let mut skip_next = false
+  for i in 0..<items.length() {
+    let item = items[i]
+    if skip_next {
+      skip_next = false
+      continue
+    }
+    if item.text == "\u0338" && i + 1 < items.length() {
+      let next = items[i + 1]
+      let next_text = next.text
+      if next.atom_type is Some(_) &&
+        next_text.length() > 0 &&
+        is_single_character_output(next_text) &&
+        !is_zero_width_mark(next_text[0].to_int()) {
+        result.push({ ..next, text: "\{next_text}\u0338" })
+        skip_next = true
+        continue
+      }
+    }
+    result.push(item)
+  }
+  result
+}
+
+///|
+/// Collect spacable items from a list of nodes. Partial groups (transparent
+/// wrappers that don't affect math spacing) have their children exposed to
+/// the current level. Real groups are rendered as a single spacable atom.
+fn collect_spacable_items(
+  nodes : Array[@katex.ParseNode],
+  state : RenderState,
+) -> Array[@anvil.SpacableItem] {
+  nodes.fold(init=[], (acc, n) => {
+    match n {
+      // --- Partial groups: expose children to parent spacing ---
+      Styling(body~, style~, ..) => {
+        let child_state = {
+          ..state,
+          style,
+          in_display: state.in_display ||
+          style == @katex.StyleLevel::DisplayStyle,
+        }
+        acc + collect_spacable_items(body, child_state)
+      }
+      @katex.ParseNode::Color(body~, ..)
+      | @katex.ParseNode::Sizing(body~, ..)
+      | @katex.ParseNode::HBox(body~, ..)
+      | @katex.ParseNode::Href(body~, ..)
+      | @katex.ParseNode::Html(body~, ..) =>
+        acc + collect_spacable_items(body, state)
+
+      // --- Space nodes: rendered text with no atom type ---
+      Spacing(text~, ..) =>
+        acc +
+        [{ atom_type: None, text: @anvil.resolve_symbol(text), baseline: 0 }]
+
+      // --- Everything else: render as a single atom with its baseline ---
+      _ => {
+        let block = content_block(n, state)
+        acc +
+        [
+          {
+            atom_type: get_outer_atom_type(n),
+            text: block.render(),
+            baseline: block.baseline(),
+          },
+        ]
+      }
+    }
+  })
+}
+
+///|
+/// Determine the outermost atom type of a node for spacing purposes.
+fn get_outer_atom_type(node : @katex.ParseNode) -> String? {
+  match node {
+    // --- Leaf atoms ---
+    Atom(family~, ..) => Some(@anvil.atom_family_name(family))
+    MathOrd(..) | TextOrd(..) | Raw(..) | ColorToken(..) | AccentToken(..) =>
+      Some("mord")
+    OperatorToken(..) | Op(..) | OperatorName(..) => Some("mop")
+
+    // --- Compound: delegate to base ---
+    SupSub(
+      base=Some(
+        @katex.ParseNode::Op(
+          content=@katex.OperatorContent::SymbolOperator(_),
+          ..
+        )
+      ),
+      ..
+    ) => Some("mbig")
+    SupSub(base=None, ..) => Some("mord")
+    SupSub(base=Some(base), ..) => get_outer_atom_type(base)
+    Accent(base~, ..) => get_outer_atom_type(base)
+    Font(body~, ..) => get_outer_atom_type(body)
+    VCenter(body~, ..)
+    | RaiseBox(body~, ..)
+    | Lap(body~, ..)
+    | Smash(body~, ..) => get_outer_atom_type(body)
+    CdParent(fragment~, ..) => get_outer_atom_type(fragment)
+
+    // --- Explicit math class ---
+    MClass(mclass~, ..) => Some(@anvil.atom_family_name(mclass))
+    DelimSizing(mclass~, ..) => Some(@anvil.atom_family_name(mclass))
+    Pmb(mclass~, ..) => Some(@anvil.atom_family_name(mclass))
+
+    // --- \left...\right produces Inner atoms ---
+    LeftRight(..) | LeftRightRight(..) | Middle(..) => Some("minner")
+
+    // --- All other compound nodes treated as ordinary ---
+    Sqrt(..)
+    | GenFrac(..)
+    | Overline(..)
+    | Underline(..)
+    | Phantom(..)
+    | VPhantom(..)
+    | Rule(..)
+    | Kern(..)
+    | Enclose(..)
+    | HorizBrace(..)
+    | XArrow(..)
+    | AccentUnder(..)
+    | IncludeGraphics(..)
+    | CdLabel(..)
+    | Array(..)
+    | Tag(..)
+    | Cr(..)
+    | Verb(..)
+    | OrdGroup(..)
+    | Text(..)
+    | Styling(..)
+    | MathChoice(..)
+    | HtmlMathML(..)
+    | Size(..)
+    | Url(..) => Some("mord")
+
+    // --- Untyped or shouldn't appear in final output ---
+    Spacing(..) => None
+    Internal(..) | EnvironmentEnd(..) | Infix(..) => None
+
+    // --- Partial groups: shouldn't reach here ---
+    Color(..) | Sizing(..) | HBox(..) | Href(..) | Html(..) => Some("mord")
+  }
+}
+
+///|
+fn render_operator_content(
+  content : @katex.OperatorContent,
+  state : RenderState,
+) -> String {
+  match content {
+    SymbolOperator(text) => @anvil.resolve_symbol(text)
+    NamedOperator(text) => @anvil.command_name(text)
+    BodyOperator(body) => render_internal(body, state)
+  }
+}
+
+///|
+/// Renders a delimiter. The null delimiter `.` (used by `\left.`/`\right.`)
+/// renders as nothing.
+fn render_delimiter(text : String) -> String {
+  guard !@anvil.is_null_delimiter(text) else { "" }
+  @anvil.resolve_symbol(text)
+}
+
+///|
+fn render_font(
+  font : String,
+  body : @katex.ParseNode,
+  state : RenderState,
+) -> String {
+  guard font != "mathrm" else { return render_node_internal(body, state) }
+  match font_char_sequence(font, body) {
+    Some(rendered) => rendered
+    None => "\{font}(\{render_node_internal(body, state)})"
+  }
+}
+
+///|
+/// Maps a font body character-by-character to the font's Unicode alphabet.
+/// Characters without a mapping are individually wrapped in `font(...)`
+/// fallbacks rather than falling back on the whole body. Returns `None` when
+/// the body contains non-character structure that cannot be decomposed.
+fn font_char_sequence(font : String, node : @katex.ParseNode) -> String? {
+  let chars : Array[String] = []
+  guard collect_font_chars(node, chars) else { return None }
+  Some(render_font_text(font, chars))
+}
+
+///|
+/// Accumulates the rendered characters of a font body. Returns `false` when
+/// the body contains non-character structure that cannot be decomposed.
+fn collect_font_chars(node : @katex.ParseNode, chars : Array[String]) -> Bool {
+  match node {
+    @katex.ParseNode::MathOrd(text~, ..)
+    | @katex.ParseNode::TextOrd(text~, ..)
+    | @katex.ParseNode::Atom(text~, ..) => {
+      let rendered = @anvil.resolve_symbol(text)
+      for ch in rendered {
+        chars.push(String::from_array([ch]))
+      }
+      true
+    }
+    @katex.ParseNode::OrdGroup(body~, ..) => {
+      for child in body {
+        guard collect_font_chars(child, chars) else { return false }
+      }
+      true
+    }
+    _ => false
+  }
+}
+
+///|
+/// Maps each character of a rendered text through the font. Letters that have
+/// no mapping fall back to `font(...)` (a bold variant may exist but isn't
+/// mapped); symbols and other characters with no font variant render as-is.
+fn render_font_text(font : String, chars : Array[String]) -> String {
+  let mut result = ""
+  let mut failed : Array[String] = []
+  for s in chars {
+    match @katex.unicode_font_character(font, s) {
+      Some(mapped) => {
+        if failed.length() > 0 {
+          result = result + font_fallback(font, failed)
+          failed = []
+        }
+        result = result + mapped
+      }
+      None if is_font_letter(s) => failed.push(s)
+      None => {
+        if failed.length() > 0 {
+          result = result + font_fallback(font, failed)
+          failed = []
+        }
+        result = result + s
+      }
+    }
+  }
+  if failed.length() > 0 {
+    result = result + font_fallback(font, failed)
+  }
+  result
+}
+
+///|
+/// True when a character is a letter that could have a math font variant,
+/// i.e. an ASCII letter or a Greek letter.
+fn is_font_letter(s : String) -> Bool {
+  if s.length() != 1 {
+    return false
+  }
+  let c = s[0]
+  (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= 'Α' && c <= 'ω')
+}
+
+///|
+fn font_fallback(font : String, chars : Array[String]) -> String {
+  let text = chars.fold(init="", (acc, s) => acc + s)
+  "\{font}(\{text})"
+}
+
+///|
+/// The inline (non-display) form of a bar-less stacked fraction
+/// (`\atop`/`\atopfrac`): numerator and denominator joined by a comma, both
+/// rendered in tight style.
+fn inline_atop(
+  numer : @katex.ParseNode,
+  denom : @katex.ParseNode,
+  state : RenderState,
+) -> String {
+  let num_state = { ..state, in_tight: true }
+  let den_state = { ..state, in_tight: true }
+  "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}"
+}
+
+///|
+/// The inline (non-display) form of a fraction with a bar: numerator and
+/// denominator joined by the configured fraction slash, each operand
+/// parenthesized when it is not atomic.
+fn inline_fraction(
+  numer : @katex.ParseNode,
+  denom : @katex.ParseNode,
+  slash : String,
+  state : RenderState,
+) -> String {
+  let num_state = { ..state, in_tight: true }
+  let den_state = { ..state, in_tight: true }
+  "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
+}
+
+///|
+/// Renders the display-mode form of `\left..\right`: a body consisting of a
+/// single array becomes a bordered block; any other body is wrapped with the
+/// delimiters.
+fn render_leftright_display_block(
+  body : Array[@katex.ParseNode],
+  left : String,
+  right : String,
+  state : RenderState,
+) -> Block {
+  match body {
+    [
+      @katex.ParseNode::Array(
+        body~,
+        columns~,
+        hlines_before_row~,
+        column_separation_type~,
+        ..
+      ),
+    ] =>
+      render_leftright_block(
+        render_delimiter(left),
+        render_delimiter(right),
+        body,
+        columns,
+        hlines_before_row,
+        column_separation_type,
+        state,
+      )
+    _ =>
+      wrap_delims(render_internal_block(body, state), Some(left), Some(right))
+  }
+}
+
+///|
+fn render_delimited(
+  left : String?,
+  content : String,
+  right : String?,
+) -> String {
+  let left = left.map_or("", render_delimiter)
+  let right = right.map_or("", render_delimiter)
+  "\{left}\{content}\{right}"
+}
+
+///|
+/// Renders a `\fbox`/`\boxed` body as a box drawn with the configured line
+/// style: ASCII (`-`/`|`, no corners) or Unicode box drawing (`─`/`│` with
+/// corners).
+fn render_enclose_block(body : @katex.ParseNode, state : RenderState) -> Block {
+  enclose_box(render_internal_block([body], state), state.config.line_style)
+}
+
+///|
+/// Draw a box around a block. The box keeps the content's baseline shifted
+/// down by one (the top border line).
+fn enclose_box(block : Block, style : LineStyle) -> Block {
+  let w = block.width()
+  let top = box_border(style, w, true)
+  let bottom = box_border(style, w, false)
+  let side = box_side(style)
+  let middle = block.lines.map(l => side + l + side)
+  let lines = Array::makei(middle.length() + 2, i => {
+    if i == 0 {
+      top
+    } else if i == middle.length() + 1 {
+      bottom
+    } else {
+      middle[i - 1]
+    }
+  })
+  { lines, width: w + 2, baseline: block.baseline() + 1 }
+}
+
+///|
+/// The top or bottom border line of a box of inner width `w`.
+fn box_border(style : LineStyle, w : Int, is_top : Bool) -> String {
+  match style {
+    Ascii => "-".repeat(w + 2)
+    Unicode =>
+      if is_top {
+        "┌\{"─".repeat(w)}┐"
+      } else {
+        "└\{"─".repeat(w)}┘"
+      }
+  }
+}
+
+///|
+/// The vertical side character of a box.
+fn box_side(style : LineStyle) -> String {
+  match style {
+    Ascii => "|"
+    Unicode => "│"
+  }
+}
+
+///|
+fn render_measurement(measurement : @katex.Measurement) -> String {
+  "\{measurement.number}\{measurement.unit}"
+}
+
+///|
+/// Renders a horizontal space as plain spaces when its size maps to a standard
+/// spacing unit (`em`/`mu`). Em-sized spaces scale 2 spaces per em; negative or
+/// zero spaces have no plain-text representation and render as nothing. Other
+/// units fall back to `kern(...)`.
+fn render_kern(dimension : @katex.Measurement) -> String {
+  guard dimension.unit == "em" || dimension.unit == "mu" else {
+    return "kern(\{render_measurement(dimension)})"
+  }
+  let em = @anvil.em_value(dimension).unwrap_or_default()
+  if em <= 0.0 {
+    return ""
+  }
+  let n = (em * 2.0).round()
+  let count = if n < 1.0 { 1 } else { n.to_int() }
+  " ".repeat(count)
+}
+
+///|
+fn render_root(
+  index : @katex.ParseNode,
+  body : @katex.ParseNode,
+  state : RenderState,
+) -> String {
+  render_root_block(index, body, state).render()
+}
+
+///|
+fn render_root_block(
+  index : @katex.ParseNode,
+  body : @katex.ParseNode,
+  state : RenderState,
+) -> Block {
+  let tight_state = { ..state, in_display: false, in_tight: true }
+  let index_text = render_node_internal(index, tight_state)
+  match unicode_script(index_text, UnicodeSuperscript) {
+    Some(prefix) => render_radical_block(prefix, body, state)
+    None =>
+      Block::from("root(\{index_text},")
+      .beside(render_operand_block(body, state))
+      .beside(Block::from(")"))
+  }
+}
+
+///|
+/// Renders a radical with its body as a `Block`, so the radical sign aligns
+/// with the body's baseline (e.g. the fraction bar of a block fraction).
+fn render_radical(
+  prefix : String,
+  body : @katex.ParseNode,
+  state : RenderState,
+) -> String {
+  render_radical_block(prefix, body, state).render()
+}
+
+///|
+fn render_radical_block(
+  prefix : String,
+  body : @katex.ParseNode,
+  state : RenderState,
+) -> Block {
+  Block::from("\{prefix}√").beside(render_operand_block(body, state))
+}
+
+///|
+/// Renders an expression where precedence must remain visible in plain text.
+fn render_operand(node : @katex.ParseNode, state : RenderState) -> String {
+  render_operand_block(node, state).render()
+}
+
+///|
+/// Renders an expression as a `Block`, preserving its baseline. Non-atomic
+/// operands are wrapped in parentheses aligned at the baseline so that
+/// multi-line content (e.g. a block fraction) stays vertically aligned with
+/// its delimiters and neighbors.
+fn render_operand_block(node : @katex.ParseNode, state : RenderState) -> Block {
+  let content = content_block(node, state)
+  if is_atomic_expression(node) {
+    content
+  } else {
+    wrap_delims(content, Some("("), Some(")"))
+  }
+}
+
+///|
+fn render_sup_sub(
+  base : @katex.ParseNode?,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
+  state : RenderState,
+) -> String {
+  render_sup_sub_block(base, sup, sub, state).render()
+}
+
+///|
+fn render_sup_sub_block(
+  base : @katex.ParseNode?,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
+  state : RenderState,
+) -> Block {
+  match base {
+    Some(base) if operator_uses_limits(base, state) =>
+      render_limits_block(base, sup, sub, state)
+    _ => {
+      let base = base.map_or(Block::empty(), b => render_operand_block(b, state))
+      let sub = render_script(sub, UnicodeSubscript, "_", state)
+      let sup = render_script(sup, UnicodeSuperscript, "^", state)
+      base.beside(Block::from("\{sub}\{sup}"))
+    }
+  }
+}
+
+///|
+/// True when a large operator with `limits=true` should draw its scripts as
+/// limits above and below (display mode only; integrals and `\nolimits`
+/// operators stay on the side).
+fn operator_uses_limits(base : @katex.ParseNode, state : RenderState) -> Bool {
+  match base {
+    // \operatorname* draws limits in every style; other large operators with
+    // limits=true stack only in display mode. Integrals and \nolimits stay on
+    // the side.
+    Op(limits=true, always_handle_sup_sub~, ..) =>
+      state.in_display || always_handle_sup_sub
+    OperatorName(always_handle_sup_sub=true, ..) => true
+    _ => false
+  }
+}
+
+///|
+/// Renders an operator with its scripts stacked as limits above and below,
+/// keeping the operator's line as the block baseline. Limit bodies are
+/// rendered inline (tight state) so block fractions inside limits stay on one
+/// line.
+fn render_limits_block(
+  base : @katex.ParseNode,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
+  state : RenderState,
+) -> Block {
+  let tight_state = { ..state, in_display: false, in_tight: true }
+  let op_text = render_node_internal(base, tight_state)
+  let sup_text = sup.map_or("", s => render_node_internal(s, tight_state))
+  let sub_text = sub.map_or("", s => render_node_internal(s, tight_state))
+  let w = display_width(op_text)
+    .max(display_width(sup_text))
+    .max(display_width(sub_text))
+  let lines : Array[String] = []
+  if sup_text.length() > 0 {
+    lines.push(center_text(sup_text, w))
+  }
+  lines.push(center_text(op_text, w))
+  let baseline = lines.length() - 1
+  if sub_text.length() > 0 {
+    lines.push(center_text(sub_text, w))
+  }
+  { lines, width: w, baseline }
+}
+
+///|
+fn render_script(
+  node : @katex.ParseNode?,
+  kind : @katex.UnicodeScriptKind,
+  fallback_prefix : String,
+  state : RenderState,
+) -> String {
+  let tight_state = { ..state, in_display: false, in_tight: true }
+  node.map_or("", node => {
+    let text = render_node_internal(node, tight_state)
+    let default = () => "\{fallback_prefix}\{render_operand(node, tight_state)}"
+    match (kind, split_prime_prefix(text)) {
+      (UnicodeSuperscript, Some((primes, rest))) =>
+        match unicode_script(rest, kind) {
+          Some(mapped) => "\{primes}\{mapped}"
+          None => default()
+        }
+      _ => unicode_script(text, kind).unwrap_or_else(default)
+    }
+  })
+}
+
+///|
+/// Splits a leading run of prime characters (`′`) from `text`. A prime
+/// superscript has no Unicode superscript form, but reads naturally as an
+/// apostrophe (`'`) in plain text.
+fn split_prime_prefix(text : String) -> (String, String)? {
+  let mut count = 0
+  for char in text {
+    if char == '′' {
+      count = count + 1
+    } else {
+      break
+    }
+  }
+  guard count > 0 else { return None }
+  Some(
+    ("'".repeat(count), text.unsafe_substring(start=count, end=text.length())),
+  )
+}
+
+///|
+/// Wraps a `Block` in single-line `name(...)` delimiters aligned at its
+/// baseline, so fallback notation stays aligned around multi-line content.
+fn render_function_block(name : String, body : Block) -> Block {
+  Block::from("\{name}(").beside(body).beside(Block::from(")"))
+}
+
+///|
+fn render_font_block(
+  font : String,
+  body : @katex.ParseNode,
+  state : RenderState,
+) -> Block {
+  if font == "mathrm" {
+    return content_block(body, state)
+  }
+  match font_char_sequence(font, body) {
+    Some(rendered) => Block::from(rendered)
+    None => render_function_block(font, content_block(body, state))
+  }
+}
+
+///|
+fn render_operator_content_block(
+  content : @katex.OperatorContent,
+  state : RenderState,
+) -> Block {
+  match content {
+    SymbolOperator(text) => Block::from(@anvil.resolve_symbol(text))
+    NamedOperator(text) => Block::from(@anvil.command_name(text))
+    BodyOperator(body) => content_body_block(body, state)
+  }
+}
+
+///|
+/// Renders a single node into a `Block`, preserving baseline information so
+/// that multi-line display-mode content stays vertically aligned.
+///
+/// This is the display-mode counterpart of `render_node_internal`: it
+/// overrides the arms that produce multi-line output (fractions, arrays,
+/// `\left..\right`, roots, ...) and falls back to `render_node_internal`
+/// (rendered into a single-line block) for everything else, including the
+/// inline-mode forms of the overridden node types. Keeping the two tiers in
+/// sync is intentional: adding a node type only requires a fallback arm here.
+fn content_block(node : @katex.ParseNode, state : RenderState) -> Block {
+  match node {
+    // --- Transparent wrappers: expose children ---
+    @katex.ParseNode::Styling(body~, style~, ..) =>
+      content_body_block(body, {
+        ..state,
+        style,
+        in_display: state.in_display || style == @katex.StyleLevel::DisplayStyle,
+      })
+    @katex.ParseNode::Text(body~, ..) =>
+      content_body_block(body, { ..state, in_tight: true })
+    @katex.ParseNode::OrdGroup(body~, ..)
+    | @katex.ParseNode::MClass(body~, ..)
+    | @katex.ParseNode::HBox(body~, ..)
+    | @katex.ParseNode::Sizing(body~, ..)
+    | @katex.ParseNode::Color(body~, ..)
+    | @katex.ParseNode::Href(body~, ..)
+    | @katex.ParseNode::Html(body~, ..) => content_body_block(body, state)
+    @katex.ParseNode::Smash(body~, ..)
+    | @katex.ParseNode::VCenter(body~, ..)
+    | @katex.ParseNode::RaiseBox(body~, ..)
+    | @katex.ParseNode::Lap(body~, ..) => content_block(body, state)
+    @katex.ParseNode::CdParent(fragment~, ..) => content_block(fragment, state)
+    // --- Multi-line block producers in display mode ---
+    // \atop/\atopfrac: no bar line, no delimiters — stacked without a bar
+    @katex.ParseNode::GenFrac(
+      numer~,
+      denom~,
+      has_bar_line=false,
+      left_delim=None,
+      right_delim=None,
+      ..
+    ) if state.in_display => frac_block(numer, denom, state, has_bar_line=false)
+    // Binomial: no bar line, delimiters present — stacked block in display
+    @katex.ParseNode::GenFrac(
+      numer~,
+      denom~,
+      has_bar_line=false,
+      left_delim~,
+      right_delim~,
+      ..
+    ) if state.in_display =>
+      barless_delimited_block(numer, denom, left_delim, right_delim, state)
+    // Regular fraction: bar line, no delimiters
+    @katex.ParseNode::GenFrac(
+      numer~,
+      denom~,
+      left_delim=None,
+      right_delim=None,
+      ..
+    ) if state.in_display => frac_block(numer, denom, state)
+    // Genfrac with a bar line and delimiters
+    @katex.ParseNode::GenFrac(
+      numer~,
+      denom~,
+      has_bar_line~,
+      left_delim~,
+      right_delim~,
+      ..
+    ) if state.in_display =>
+      wrap_delims(
+        frac_block(numer, denom, state, has_bar_line~),
+        left_delim,
+        right_delim,
+      )
+    @katex.ParseNode::LeftRight(body~, left~, right~, ..) if state.in_display =>
+      render_leftright_display_block(body, left, right, state)
+    @katex.ParseNode::Array(
+      body~,
+      column_separation_type=Some(@katex.ColumnSeparationType::CdSeparation),
+      ..
+    ) => render_cd_block(body, state)
+    @katex.ParseNode::Array(
+      body~,
+      columns~,
+      hlines_before_row~,
+      column_separation_type~,
+      ..
+    ) if state.in_display =>
+      cell_block(
+        body, columns, hlines_before_row, column_separation_type, state,
+      )
+    @katex.ParseNode::Array(..) =>
+      Block::from(render_node_internal(node, state))
+    @katex.ParseNode::Enclose(label~, body~, ..) if label == "\\fbox" =>
+      render_enclose_block(body, state)
+    @katex.ParseNode::Sqrt(body~, index=None, ..) =>
+      render_radical_block("", body, state)
+    @katex.ParseNode::Sqrt(body~, index=Some(index), ..) =>
+      render_root_block(index, body, state)
+    @katex.ParseNode::SupSub(base~, sup~, sub~, ..) =>
+      render_sup_sub_block(base, sup, sub, state)
+    // --- Fallback function notation, block-aware ---
+    @katex.ParseNode::Overline(body~, ..) =>
+      render_function_block("overline", content_block(body, state))
+    @katex.ParseNode::Underline(body~, ..) =>
+      render_function_block("underline", content_block(body, state))
+    @katex.ParseNode::VPhantom(body~, ..) =>
+      render_function_block("vphantom", content_block(body, state))
+    @katex.ParseNode::Phantom(body~, ..) =>
+      render_function_block("phantom", content_body_block(body, state))
+    @katex.ParseNode::Pmb(body~, ..) =>
+      render_function_block("bold", content_body_block(body, state))
+    @katex.ParseNode::Enclose(label~, body~, ..) =>
+      render_function_block(
+        @anvil.command_name(label),
+        content_block(body, state),
+      )
+    @katex.ParseNode::HorizBrace(label~, base~, ..) =>
+      render_function_block(
+        @anvil.command_name(label),
+        content_block(base, state),
+      )
+    @katex.ParseNode::XArrow(label~, body~, below=None, ..) =>
+      render_function_block(
+        @anvil.command_name(label),
+        content_block(body, state),
+      )
+    @katex.ParseNode::XArrow(label~, body~, below=Some(below), ..) =>
+      render_function_block(
+        @anvil.command_name(label),
+        content_block(body, state)
+        .beside(Block::from(","))
+        .beside(content_block(below, state)),
+      )
+    @katex.ParseNode::AccentUnder(label~, base~, ..) =>
+      Block::from("underaccent(\{@anvil.command_name(label)},")
+      .beside(content_block(base, state))
+      .beside(Block::from(")"))
+    @katex.ParseNode::Accent(label~, base~, ..) =>
+      render_accent_block(label, base, state)
+    @katex.ParseNode::Font(font~, body~, ..) =>
+      render_font_block(font, body, state)
+    @katex.ParseNode::Op(content~, ..) =>
+      render_operator_content_block(content, state)
+    @katex.ParseNode::OperatorName(body~, ..) => content_body_block(body, state)
+    @katex.ParseNode::MathChoice(display~, text~, script~, scriptscript~, ..) =>
+      content_body_block(
+        @anvil.math_choice_variant(
+          display,
+          text,
+          script,
+          scriptscript,
+          state.style,
+        ),
+        state,
+      )
+    @katex.ParseNode::Tag(body~, tag~, ..) =>
+      content_body_block(body, state)
+      .beside(Block::from("\t"))
+      .beside(content_body_block(tag, state))
+    @katex.ParseNode::HtmlMathML(mathml~, ..) =>
+      content_body_block(mathml, state)
+    @katex.ParseNode::Internal(..) | @katex.ParseNode::EnvironmentEnd(..) =>
+      Block::empty()
+    _ => Block::from(render_node_internal(node, state))
+  }
+}
+
+///|
+/// Renders a wrapper's body array into a `Block`. A single child is rendered
+/// directly, preserving its baseline; mixed content goes through block
+/// composition so inline atoms align with any embedded block fractions.
+fn content_body_block(
+  body : Array[@katex.ParseNode],
+  state : RenderState,
+) -> Block {
+  match body {
+    [] => Block::empty()
+    [single] => content_block(single, state)
+    _ => render_internal_block(body, state)
+  }
+}
+
+///|
+fn unicode_script(text : String, kind : @katex.UnicodeScriptKind) -> String? {
+  let acc0 : String? = Some("")
+  text.fold(init=acc0, (acc, character) => {
+    match acc {
+      None => None
+      Some(s) => {
+        let ch = String::from_array([character])
+        match @katex.unicode_script_character(kind, ch) {
+          Some(script) => Some("\{s}\{script}")
+          None => None
+        }
+      }
+    }
+  })
+}
+
+///|
+fn render_accent(
+  label : String,
+  base : @katex.ParseNode,
+  state : RenderState,
+) -> String {
+  render_accent_block(label, base, state).render()
+}
+
+///|
+fn render_accent_block(
+  label : String,
+  base : @katex.ParseNode,
+  state : RenderState,
+) -> Block {
+  let mark = match label {
+    "\\acute" => Some("́")
+    "\\grave" => Some("̀")
+    "\\ddot" => Some("̈")
+    "\\tilde" => Some("̃")
+    "\\bar" => Some("̄")
+    "\\breve" => Some("̆")
+    "\\check" => Some("̌")
+    "\\hat" => Some("̂")
+    "\\dot" => Some("̇")
+    "\\mathring" => Some("̊")
+    "\\vec" => Some("⃗")
+    _ => None
+  }
+  let rendered_base = render_node_internal(base, state)
+  match mark {
+    Some(mark) if is_single_character_output(rendered_base) =>
+      Block::from("\{rendered_base}\{mark}")
+    _ =>
+      render_function_block(
+        @anvil.command_name(label),
+        content_block(base, state),
+      )
+  }
+}
+
+///|
+/// True when the string consists of exactly one Unicode scalar value,
+/// i.e. it is a single character that can directly receive a combining mark.
+fn is_single_character_output(s : String) -> Bool {
+  s.fold(init=0, (acc, _c) => acc + 1) == 1
+}
