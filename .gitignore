@@ -1,8 +1,3 @@
 .DS_Store
-_build/
-target/
-.mooncakes/
-.moonagent/
 .local/
-*.mbti
 AGENTS.md
