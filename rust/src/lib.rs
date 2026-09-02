@@ -1,4 +1,5 @@
 mod ast;
+mod anvil;
 mod builtin_macros;
 mod builtin_macros_commands;
 mod builtin_macros_control;
@@ -19,10 +20,14 @@ mod source_location;
 mod symbol_registry;
 mod text_ligature;
 mod token;
+mod unicode;
 mod unicode_font;
 mod unicode_scripts;
 mod unicode_symbols;
 
+pub use anvil::{atom_family_name, cancel_bin_atoms, command_name, em_value, is_null_delimiter,
+    join_with_spacing, katex_size_multiplier, math_choice_variant, math_spacing, resolve_symbol,
+    SpacableItem, SpacingSpec};
 pub use ast::{
     ArrayColumn, AtomFamily, ColumnSeparationType, LapAlignment, Measurement, Mode,
     OperatorContent, ParseNode, StyleLevel,
@@ -43,5 +48,9 @@ pub use settings::{Macros, Settings, StrictHandler, StrictResponse, Strictness,
 pub use source_location::SourceLocation;
 pub use symbol_registry::unicode_symbol;
 pub use token::{token_location, Token};
+pub use unicode::{line_style_frac_bar, render, unicode_text_spacing, Block, LineStyle, RenderConfig};
 pub use unicode_font::unicode_font_character;
 pub use unicode_scripts::{supported_codepoint, unicode_script_character, UnicodeScriptKind};
+
+#[cfg(test)]
+mod tests;
