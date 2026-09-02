@@ -10,6 +10,6 @@ license = "AGPL-3.0"
 
 keywords = [ "katex", "latex", "math", "parser", "tex" ]
 
-description = "A MoonBit parser for KaTeX, lexing and parsing LaTeX math expressions with macro expansion"
+description = "A port of the KaTeX parser: lexing and parsing LaTeX math expressions with macro expansion into a typed AST, plus a Unicode rendering backend"
 
 preferred_target = "wasm"

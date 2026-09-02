@@ -2,5 +2,12 @@
 name = "katex-parser"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "A port of the KaTeX parser: lexing and parsing LaTeX math expressions with macro expansion into a typed AST, plus a Unicode rendering backend"
+license = "AGPL-3.0"
+repository = "https://github.com/kokic/katex-parser"
+readme = "README.md"
+keywords = ["katex", "latex", "math", "parser", "tex"]
+categories = ["parser-implementations", "text-processing"]
 
 [dependencies]
