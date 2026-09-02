@@ -7,6 +7,7 @@ use crate::source_location::SourceLocation;
 use crate::token::{token_location, Token};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The result of a strict-mode check: ignore, warn, or error.
 pub enum StrictResponse {
     Ignore,
     Warn,
@@ -16,6 +17,7 @@ pub enum StrictResponse {
 pub type StrictHandler =
     Rc<dyn Fn(&str, &str, Option<&SourceLocation>) -> Result<StrictResponse, ParseError>>;
 
+/// The strictness policy for LaTeX-incompatible input.
 pub enum Strictness {
     Ignore,
     Warn,
@@ -34,8 +36,10 @@ impl Clone for Strictness {
     }
 }
 
+/// A callback invoked when strict mode produces a warning.
 pub type StrictWarningHandler = Rc<dyn Fn(&str)>;
 
+/// The context of a trust check for potentially unsafe commands.
 pub enum TrustContext {
     UrlTrust {
         command: String,
@@ -56,8 +60,10 @@ pub enum TrustContext {
     },
 }
 
+/// A callback deciding whether a trust context is accepted.
 pub type TrustHandler = Rc<dyn Fn(&TrustContext) -> bool>;
 
+/// The trust policy for commands that could be unsafe (\href, \url, HTML).
 pub enum TrustPolicy {
     Untrusted,
     Trusted,
@@ -75,6 +81,7 @@ impl Clone for TrustPolicy {
 }
 
 #[derive(Debug, Clone)]
+/// A persistent macro store shared across parses.
 pub struct Macros(pub HashMap<String, MacroDefinition>);
 
 impl Macros {
@@ -88,6 +95,7 @@ impl Macros {
 }
 
 #[derive(Clone)]
+/// Parser configuration: display mode, macros, strictness, trust, and limits.
 pub struct Settings {
     pub throw_on_error: bool,
     pub display_mode: bool,

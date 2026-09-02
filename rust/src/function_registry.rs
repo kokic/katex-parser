@@ -10,6 +10,7 @@ use crate::functions::*;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// How a function argument should be parsed.
 pub enum ArgType {
     ColorArg,
     SizeArg,
@@ -72,6 +73,7 @@ pub struct FunctionContext {
     pub display_mode: bool,
 }
 
+/// A function handler implementation.
 pub type FunctionHandler = fn(
     parser: &mut dyn FunctionParser,
     context: &FunctionContext,
@@ -80,6 +82,7 @@ pub type FunctionHandler = fn(
 ) -> Result<ParseNode, ParseError>;
 
 #[derive(Debug, Clone)]
+/// The declaration of a function (name, arguments, handler).
 pub struct FunctionSpec {
     pub names: Vec<String>,
     pub num_args: usize,
@@ -119,6 +122,7 @@ impl FunctionSpec {
 }
 
 #[derive(Clone, Default)]
+/// A map from function names to their specs.
 pub struct FunctionRegistry {
     entries: HashMap<String, FunctionSpec>,
 }

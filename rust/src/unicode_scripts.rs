@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Whether a Unicode script is a subscript or superscript.
 pub enum UnicodeScriptKind {
     UnicodeSubscript,
     UnicodeSuperscript,

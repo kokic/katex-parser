@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::source_location::SourceLocation;
 
 #[derive(Debug, Clone, PartialEq)]
+/// A lexed or macro-expanded token.
 pub struct Token {
     pub text: String,
     pub loc: Option<SourceLocation>,
@@ -37,6 +38,7 @@ impl Token {
     }
 }
 
+/// Returns the source location of a token, if any.
 pub fn token_location(token: Option<&Token>) -> Option<SourceLocation> {
     token.and_then(|token| token.loc.clone())
 }

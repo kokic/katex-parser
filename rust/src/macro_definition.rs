@@ -1,6 +1,7 @@
 use crate::token::Token;
 
 #[derive(Debug, Clone, PartialEq)]
+/// A macro expansion with its argument count and delimiters.
 pub struct MacroExpansion {
     pub tokens: Vec<Token>,
     pub num_args: usize,
@@ -25,6 +26,7 @@ impl MacroExpansion {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// A macro body: raw text or a pre-expanded token list.
 pub enum MacroDefinition {
     Text(String),
     Expansion(MacroExpansion),

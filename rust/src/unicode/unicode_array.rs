@@ -236,7 +236,7 @@ fn vertical_lines(b: &Block, top: usize, row_h: usize) -> Vec<String> {
 fn column_gap(separation: Option<ColumnSeparationType>, boundary: usize) -> String {
     match separation {
         Some(ColumnSeparationType::AlignSeparation) => {
-            if boundary.is_multiple_of(2) {
+            if boundary % 2 == 0 {
                 "  ".to_string()
             } else {
                 String::new()

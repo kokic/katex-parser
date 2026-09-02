@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::source_location::SourceLocation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The parsing mode: math or text.
 pub enum Mode {
 
     Math,
@@ -10,6 +11,7 @@ pub enum Mode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The math atom class of a symbol, used for spacing decisions.
 pub enum AtomFamily {
 
     Mord,
@@ -23,12 +25,14 @@ pub enum AtomFamily {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// A dimension with a numeric value and a unit (e.g. `em`, `pt`).
 pub struct Measurement {
     pub number: f64,
     pub unit: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The typesetting style level, as selected by \\displaystyle and friends.
 pub enum StyleLevel {
 
     DisplayStyle,
@@ -38,6 +42,7 @@ pub enum StyleLevel {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// The body of an `Op` node: a symbol, a named operator, or an argument body.
 pub enum OperatorContent {
     SymbolOperator(String),
     BodyOperator(Vec<ParseNode>),
@@ -45,6 +50,7 @@ pub enum OperatorContent {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Horizontal alignment of a `Lap` (mathllap/mathrlap/mathclap) node.
 pub enum LapAlignment {
 
     LLap,
@@ -53,6 +59,7 @@ pub enum LapAlignment {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// A column of an array environment: an alignment cell or a vertical separator.
 pub enum ArrayColumn {
     AlignColumn {
         alignment: String,
@@ -65,6 +72,7 @@ pub enum ArrayColumn {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// How columns of an array are separated.
 pub enum ColumnSeparationType {
 
     AlignSeparation,
@@ -75,6 +83,7 @@ pub enum ColumnSeparationType {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// A parsed node in the LaTeX AST.
 pub enum ParseNode {
     Internal { mode: Mode },
     Raw { mode: Mode, string: String },
@@ -354,6 +363,7 @@ pub enum ParseNode {
 }
 
 impl ParseNode {
+    /// Returns the [`Mode`] this node was parsed in.
     pub fn mode(&self) -> Mode {
         match self {
             ParseNode::Internal { mode }

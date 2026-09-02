@@ -14,6 +14,7 @@ use super::matrix::{matrix_environment_handler, smallmatrix_environment_handler}
 use super::subarray::subarray_environment_handler;
 
 #[derive(Debug, Clone)]
+/// Options controlling how an array environment is parsed.
 pub struct ArrayEnvironmentOptions {
     pub columns: Option<Vec<ArrayColumn>>,
     pub array_stretch: f64,
@@ -43,6 +44,7 @@ pub struct EnvironmentContext {
     pub env_name: String,
 }
 
+/// An environment handler implementation.
 pub type EnvironmentHandler = fn(
     parser: &mut dyn EnvironmentParser,
     context: &EnvironmentContext,
@@ -51,6 +53,7 @@ pub type EnvironmentHandler = fn(
 ) -> Result<ParseNode, ParseError>;
 
 #[derive(Debug, Clone)]
+/// The declaration of an environment (name, arguments, handler).
 pub struct EnvironmentSpec {
     pub names: Vec<String>,
     pub num_args: usize,
@@ -139,6 +142,7 @@ fn array_environment_handler(
 }
 
 #[derive(Default)]
+/// A map from environment names to their specs.
 pub struct EnvironmentRegistry {
     entries: HashMap<String, EnvironmentSpec>,
 }
@@ -254,6 +258,8 @@ pub fn builtin_environment_specs() -> Vec<EnvironmentSpec> {
     ]
 }
 
+/// Builds an environment registry from the builtin specs plus caller-provided
+/// extension specs (which override builtins sharing the same name).
 pub fn build_environment_registry(extra_specs: &[EnvironmentSpec]) -> EnvironmentRegistry {
     let mut registry = EnvironmentRegistry::new();
     for spec in builtin_environment_specs() {
