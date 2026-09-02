@@ -12,14 +12,12 @@ pub struct RenderConfig {
 }
 
 /// Glyph style for drawn lines: fraction bars, boxes, tables, etc.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LineStyle {
     Ascii,
     #[default]
     Unicode,
 }
-
 
 /// Unicode text spacing: regular spaces for thick/medium, thin and after
 /// operators.

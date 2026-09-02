@@ -1,6 +1,6 @@
 use crate::ast::{AtomFamily, Mode, ParseNode, StyleLevel};
-use crate::error::ParseError;
 use crate::environments::registry::{EnvironmentContext, EnvironmentParser};
+use crate::error::ParseError;
 
 fn cd_cell(body: Vec<ParseNode>) -> ParseNode {
     ParseNode::Styling {
@@ -68,7 +68,11 @@ fn cd_arrow(arrow: &str, upper: ParseNode, lower: ParseNode) -> Result<ParseNode
             text: " ".to_string(),
         },
         "A" | "V" => {
-            let direction = if arrow == "A" { "\\uparrow" } else { "\\downarrow" };
+            let direction = if arrow == "A" {
+                "\\uparrow"
+            } else {
+                "\\downarrow"
+            };
             ParseNode::CdParent {
                 mode: Mode::Math,
                 fragment: Box::new(ParseNode::OrdGroup {
@@ -100,7 +104,7 @@ fn cd_arrow(arrow: &str, upper: ParseNode, lower: ParseNode) -> Result<ParseNode
             return Err(ParseError::InvalidArgument {
                 message: "Expected one of \"<>AV=|.\" after @".to_string(),
                 loc: None,
-            })
+            });
         }
     };
     Ok(node)
@@ -118,14 +122,13 @@ fn scan_cd_label(
             return Ok((label, index + 1));
         }
         if let ParseNode::TextOrd { text, .. } = current
-            && text == "@" {
-                return Err(ParseError::InvalidArgument {
-                    message: format!(
-                        "Missing a {arrow} character to complete a CD arrow."
-                    ),
-                    loc: None,
-                });
-            }
+            && text == "@"
+        {
+            return Err(ParseError::InvalidArgument {
+                message: format!("Missing a {arrow} character to complete a CD arrow."),
+                loc: None,
+            });
+        }
         label.push(current.clone());
         index += 1;
     }
@@ -142,51 +145,52 @@ pub(crate) fn cd_row(nodes: Vec<ParseNode>, even: bool) -> Result<Vec<ParseNode>
     while index < nodes.len() {
         let node = &nodes[index];
         if let ParseNode::TextOrd { text, .. } = node
-            && text == "@" {
-                row.push(cd_cell(cell.clone()));
-                cell.clear();
-                index += 1;
-                let Some(character_node) = nodes.get(index) else {
-                    return Err(ParseError::InvalidArgument {
-                        message: "Expected one of \"<>AV=|.\" after @".to_string(),
+            && text == "@"
+        {
+            row.push(cd_cell(cell.clone()));
+            cell.clear();
+            index += 1;
+            let Some(character_node) = nodes.get(index) else {
+                return Err(ParseError::InvalidArgument {
+                    message: "Expected one of \"<>AV=|.\" after @".to_string(),
+                    loc: None,
+                });
+            };
+            let Some(arrow) = cd_arrow_character(character_node) else {
+                return Err(ParseError::InvalidArgument {
+                    message: "Expected one of \"<>AV=|.\" after @".to_string(),
+                    loc: None,
+                });
+            };
+            index += 1;
+            let mut labels: Vec<ParseNode> = Vec::new();
+            if arrow == ">" || arrow == "<" || arrow == "A" || arrow == "V" {
+                for _ in 0..2 {
+                    let (label_body, next_index) = scan_cd_label(&nodes, index, &arrow)?;
+                    index = next_index;
+                    labels.push(ParseNode::OrdGroup {
+                        mode: Mode::Math,
                         loc: None,
+                        body: label_body,
+                        semisimple: false,
                     });
-                };
-                let Some(arrow) = cd_arrow_character(character_node) else {
-                    return Err(ParseError::InvalidArgument {
-                        message: "Expected one of \"<>AV=|.\" after @".to_string(),
-                        loc: None,
-                    });
-                };
-                index += 1;
-                let mut labels: Vec<ParseNode> = Vec::new();
-                if arrow == ">" || arrow == "<" || arrow == "A" || arrow == "V" {
-                    for _ in 0..2 {
-                        let (label_body, next_index) = scan_cd_label(&nodes, index, &arrow)?;
-                        index = next_index;
-                        labels.push(ParseNode::OrdGroup {
-                            mode: Mode::Math,
-                            loc: None,
-                            body: label_body,
-                            semisimple: false,
-                        });
-                    }
-                } else if arrow != "=" && arrow != "|" && arrow != "." {
-                    return Err(ParseError::InvalidArgument {
-                        message: "Expected one of \"<>AV=|.\" after @".to_string(),
-                        loc: None,
-                    });
-                } else {
-                    labels.push(cd_empty_label());
-                    labels.push(cd_empty_label());
                 }
-                row.push(cd_cell(vec![cd_arrow(
-                    &arrow,
-                    labels[0].clone(),
-                    labels[1].clone(),
-                )?]));
-                continue;
+            } else if arrow != "=" && arrow != "|" && arrow != "." {
+                return Err(ParseError::InvalidArgument {
+                    message: "Expected one of \"<>AV=|.\" after @".to_string(),
+                    loc: None,
+                });
+            } else {
+                labels.push(cd_empty_label());
+                labels.push(cd_empty_label());
             }
+            row.push(cd_cell(vec![cd_arrow(
+                &arrow,
+                labels[0].clone(),
+                labels[1].clone(),
+            )?]));
+            continue;
+        }
         cell.push(node.clone());
         index += 1;
     }
@@ -212,4 +216,3 @@ pub(crate) fn cd_environment_handler(
     }
     parser.parse_cd()
 }
-

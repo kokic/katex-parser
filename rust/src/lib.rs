@@ -10,8 +10,8 @@
 //! - [`Settings`] — parser configuration (display mode, macros, strictness,
 //!   trust policy, and a persistent macro store).
 
-mod ast;
 mod anvil;
+mod ast;
 mod builtin_macros;
 mod builtin_macros_commands;
 mod builtin_macros_control;
@@ -37,32 +37,38 @@ mod unicode_font;
 mod unicode_scripts;
 mod unicode_symbols;
 
-pub use anvil::{atom_family_name, cancel_bin_atoms, command_name, em_value, is_null_delimiter,
-    join_with_spacing, katex_size_multiplier, math_choice_variant, math_spacing, resolve_symbol,
-    SpacableItem, SpacingSpec};
+pub use anvil::{
+    SpacableItem, SpacingSpec, atom_family_name, cancel_bin_atoms, command_name, em_value,
+    is_null_delimiter, join_with_spacing, katex_size_multiplier, math_choice_variant, math_spacing,
+    resolve_symbol,
+};
 pub use ast::{
     ArrayColumn, AtomFamily, ColumnSeparationType, LapAlignment, Measurement, Mode,
     OperatorContent, ParseNode, StyleLevel,
 };
 pub use environments::{
-    build_environment_registry, EnvironmentContext, EnvironmentHandler, EnvironmentParser,
-    EnvironmentRegistry, EnvironmentSpec, ArrayEnvironmentOptions,
+    ArrayEnvironmentOptions, EnvironmentContext, EnvironmentHandler, EnvironmentParser,
+    EnvironmentRegistry, EnvironmentSpec, build_environment_registry,
 };
 pub use error::{Diagnostic, ParseError};
 pub use function_registry::{
-    build_function_registry, ArgType, FunctionContext, FunctionHandler, FunctionParser,
-    FunctionRegistry, FunctionSpec,
+    ArgType, FunctionContext, FunctionHandler, FunctionParser, FunctionRegistry, FunctionSpec,
+    build_function_registry,
 };
 pub use macro_definition::{MacroDefinition, MacroExpansion};
 pub use parser::{parse, parse_with_specs};
-pub use settings::{Macros, Settings, StrictHandler, StrictResponse, Strictness,
-    StrictWarningHandler, TrustContext, TrustHandler, TrustPolicy};
+pub use settings::{
+    Macros, Settings, StrictHandler, StrictResponse, StrictWarningHandler, Strictness,
+    TrustContext, TrustHandler, TrustPolicy,
+};
 pub use source_location::SourceLocation;
 pub use symbol_registry::unicode_symbol;
-pub use token::{token_location, Token};
-pub use unicode::{line_style_frac_bar, render, unicode_text_spacing, Block, LineStyle, RenderConfig};
+pub use token::{Token, token_location};
+pub use unicode::{
+    Block, LineStyle, RenderConfig, line_style_frac_bar, render, unicode_text_spacing,
+};
 pub use unicode_font::unicode_font_character;
-pub use unicode_scripts::{supported_codepoint, unicode_script_character, UnicodeScriptKind};
+pub use unicode_scripts::{UnicodeScriptKind, supported_codepoint, unicode_script_character};
 
 #[cfg(test)]
 mod tests;

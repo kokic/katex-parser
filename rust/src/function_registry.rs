@@ -4,7 +4,7 @@ use crate::ast::{Measurement, Mode, ParseNode};
 use crate::error::ParseError;
 use crate::macro_definition::MacroDefinition;
 use crate::settings::TrustContext;
-use crate::token::{token_location, Token};
+use crate::token::{Token, token_location};
 
 use crate::functions::*;
 
@@ -187,9 +187,7 @@ fn relax_handler(
     _args: &[ParseNode],
     _opt_args: &[Option<ParseNode>],
 ) -> Result<ParseNode, ParseError> {
-    Ok(ParseNode::Internal {
-        mode: context.mode,
-    })
+    Ok(ParseNode::Internal { mode: context.mode })
 }
 
 pub fn builtin_function_specs() -> Vec<FunctionSpec> {
@@ -281,7 +279,8 @@ pub fn build_function_registry(extra_specs: &[FunctionSpec]) -> FunctionRegistry
 }
 
 #[allow(dead_code)]
-static BUILTIN_FUNCTION_REGISTRY: std::sync::OnceLock<FunctionRegistry> = std::sync::OnceLock::new();
+static BUILTIN_FUNCTION_REGISTRY: std::sync::OnceLock<FunctionRegistry> =
+    std::sync::OnceLock::new();
 
 #[allow(dead_code)]
 pub fn builtin_function_registry() -> &'static FunctionRegistry {

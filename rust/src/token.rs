@@ -23,10 +23,7 @@ impl Token {
 
     pub fn eof(input: impl Into<Arc<str>>, offset: usize) -> Self {
         let input = input.into();
-        Token::new(
-            "EOF",
-            Some(SourceLocation::new(input, offset, offset)),
-        )
+        Token::new("EOF", Some(SourceLocation::new(input, offset, offset)))
     }
 
     pub fn range(&self, end_token: &Token, text: impl Into<String>) -> Self {

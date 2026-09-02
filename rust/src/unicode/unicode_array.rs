@@ -1,5 +1,5 @@
 use crate::ast::{ArrayColumn, ColumnSeparationType, ParseNode};
-use crate::unicode::block::{center_text, column_max_widths, display_width, pad_right, Block};
+use crate::unicode::block::{Block, center_text, column_max_widths, display_width, pad_right};
 use crate::unicode::config::{LineStyle, RenderState};
 use crate::unicode::unicode::{content_block, render_node_internal};
 
@@ -69,7 +69,10 @@ pub(crate) fn cell_block(
     let (line_width, vbar_pos) = row_geometry(&widths, &vlines, separation);
     let hline_kind = hline_band_kinds(hlines_before_row, last);
     let lines = render_array_lines(
-        &rows.iter().map(|row| row_block(row, &widths, &aligns, &vlines, separation)).collect::<Vec<_>>(),
+        &rows
+            .iter()
+            .map(|row| row_block(row, &widths, &aligns, &vlines, separation))
+            .collect::<Vec<_>>(),
         hlines_before_row,
         &vbar_pos,
         line_width,
@@ -305,8 +308,21 @@ fn render_array_lines(
 fn hline_band_kinds(hlines_before_row: &[Vec<bool>], last: usize) -> Vec<Vec<usize>> {
     let mut kinds: Vec<Vec<usize>> = Vec::new();
     for k in 0..hlines_before_row.len() {
-        let kind = if k == 0 { 0 } else if k <= last { 1 } else { 2 };
-        kinds.push(hlines_before_row.get(k).unwrap_or(&Vec::new()).iter().map(|_| kind).collect());
+        let kind = if k == 0 {
+            0
+        } else if k <= last {
+            1
+        } else {
+            2
+        };
+        kinds.push(
+            hlines_before_row
+                .get(k)
+                .unwrap_or(&Vec::new())
+                .iter()
+                .map(|_| kind)
+                .collect(),
+        );
     }
     kinds
 }

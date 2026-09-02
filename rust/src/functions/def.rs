@@ -5,17 +5,17 @@ use crate::macro_definition::{MacroDefinition, MacroExpansion};
 use crate::token::Token;
 
 fn internal_node(context: &FunctionContext) -> ParseNode {
-    ParseNode::Internal {
-        mode: context.mode,
-    }
+    ParseNode::Internal { mode: context.mode }
 }
 
 fn check_control_sequence(token: &Token) -> Result<String, ParseError> {
     match token.text.as_str() {
-        "\\" | "{" | "}" | "$" | "&" | "#" | "^" | "_" | "EOF" => Err(ParseError::InvalidArgument {
-            message: "Expected a control sequence".to_string(),
-            loc: token.loc.clone(),
-        }),
+        "\\" | "{" | "}" | "$" | "&" | "#" | "^" | "_" | "EOF" => {
+            Err(ParseError::InvalidArgument {
+                message: "Expected a control sequence".to_string(),
+                loc: token.loc.clone(),
+            })
+        }
         name => Ok(name.to_string()),
     }
 }
@@ -201,7 +201,8 @@ fn expand_definition_body(
         combined
     } else {
         tokens
-    };    if context.func_name == "\\edef" || context.func_name == "\\xdef" {
+    };
+    if context.func_name == "\\edef" || context.func_name == "\\xdef" {
         let mut expanded = parser.expand_tokens(tokens)?;
         expanded.reverse();
         Ok(expanded)
@@ -231,12 +232,7 @@ fn let_rhs(parser: &mut dyn FunctionParser) -> Result<Token, ParseError> {
     Ok(token)
 }
 
-fn assign_let(
-    parser: &mut dyn FunctionParser,
-    name: &str,
-    mut token: Token,
-    global: bool,
-) {
+fn assign_let(parser: &mut dyn FunctionParser, name: &str, mut token: Token, global: bool) {
     let definition = match parser.get_macro(&token.text) {
         Some(value) => value,
         None => {
@@ -285,7 +281,12 @@ fn futurelet_handler(
     let name = check_control_sequence(&parser.pop_token()?)?;
     let middle = parser.pop_token()?;
     let token = parser.pop_token()?;
-    assign_let(parser, &name, token.clone(), context.func_name == "\\\\globalfuture");
+    assign_let(
+        parser,
+        &name,
+        token.clone(),
+        context.func_name == "\\\\globalfuture",
+    );
     parser.push_token(token);
     parser.push_token(middle);
     Ok(internal_node(context))

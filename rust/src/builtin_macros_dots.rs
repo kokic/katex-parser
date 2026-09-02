@@ -7,13 +7,43 @@ fn dots_by_token(name: &str) -> Option<String> {
     let result = match name {
         "," => Some("\\dotsc"),
         "\\not" => Some("\\dotsb"),
-        "+" | "=" | "<" | ">" | "-" | "*" | ":" | "\\DOTSB" | "\\coprod" | "\\bigvee"
-        | "\\bigwedge" | "\\biguplus" | "\\bigcap" | "\\bigcup" | "\\prod" | "\\sum"
-        | "\\bigotimes" | "\\bigoplus" | "\\bigodot" | "\\bigsqcup" | "\\And"
-        | "\\longrightarrow" | "\\Longrightarrow" | "\\longleftarrow" | "\\Longleftarrow"
-        | "\\longleftrightarrow" | "\\Longleftrightarrow" | "\\mapsto" | "\\longmapsto"
-        | "\\hookrightarrow" | "\\doteq" | "\\mathbin" | "\\mathrel" | "\\relbar"
-        | "\\Relbar" | "\\xrightarrow" | "\\xleftarrow" => Some("\\dotsb"),
+        "+"
+        | "="
+        | "<"
+        | ">"
+        | "-"
+        | "*"
+        | ":"
+        | "\\DOTSB"
+        | "\\coprod"
+        | "\\bigvee"
+        | "\\bigwedge"
+        | "\\biguplus"
+        | "\\bigcap"
+        | "\\bigcup"
+        | "\\prod"
+        | "\\sum"
+        | "\\bigotimes"
+        | "\\bigoplus"
+        | "\\bigodot"
+        | "\\bigsqcup"
+        | "\\And"
+        | "\\longrightarrow"
+        | "\\Longrightarrow"
+        | "\\longleftarrow"
+        | "\\Longleftarrow"
+        | "\\longleftrightarrow"
+        | "\\Longleftrightarrow"
+        | "\\mapsto"
+        | "\\longmapsto"
+        | "\\hookrightarrow"
+        | "\\doteq"
+        | "\\mathbin"
+        | "\\mathrel"
+        | "\\relbar"
+        | "\\Relbar"
+        | "\\xrightarrow"
+        | "\\xleftarrow" => Some("\\dotsb"),
         "\\DOTSI" | "\\int" | "\\oint" | "\\iint" | "\\iiint" | "\\iiiint" | "\\idotsint" => {
             Some("\\dotsi")
         }
@@ -26,8 +56,7 @@ fn dots_by_token(name: &str) -> Option<String> {
 fn space_after_dots(name: &str) -> bool {
     matches!(
         name,
-        ")"
-            | "]"
+        ")" | "]"
             | "\\rbrack"
             | "\\}"
             | "\\rbrace"
@@ -65,7 +94,9 @@ pub(crate) fn dots_macro(context: &mut MacroExpander) -> Result<MacroReplacement
     Ok(MacroReplacement::ReplacementText(result))
 }
 
-pub(crate) fn dots_other_macro(context: &mut MacroExpander) -> Result<MacroReplacement, ParseError> {
+pub(crate) fn dots_other_macro(
+    context: &mut MacroExpander,
+) -> Result<MacroReplacement, ParseError> {
     if space_after_dots(&context.future()?.text) {
         Ok(MacroReplacement::ReplacementText("\\ldots\\,".to_string()))
     } else {
@@ -73,7 +104,9 @@ pub(crate) fn dots_other_macro(context: &mut MacroExpander) -> Result<MacroRepla
     }
 }
 
-pub(crate) fn dots_comma_macro(context: &mut MacroExpander) -> Result<MacroReplacement, ParseError> {
+pub(crate) fn dots_comma_macro(
+    context: &mut MacroExpander,
+) -> Result<MacroReplacement, ParseError> {
     let next = context.future()?;
     if next.text != "," && space_after_dots(&next.text) {
         Ok(MacroReplacement::ReplacementText("\\ldots\\,".to_string()))

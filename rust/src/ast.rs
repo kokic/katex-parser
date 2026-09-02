@@ -5,7 +5,6 @@ use crate::source_location::SourceLocation;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// The parsing mode: math or text.
 pub enum Mode {
-
     Math,
     Text,
 }
@@ -13,7 +12,6 @@ pub enum Mode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// The math atom class of a symbol, used for spacing decisions.
 pub enum AtomFamily {
-
     Mord,
     Mop,
     Mbin,
@@ -34,7 +32,6 @@ pub struct Measurement {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// The typesetting style level, as selected by \\displaystyle and friends.
 pub enum StyleLevel {
-
     DisplayStyle,
     TextStyle,
     ScriptStyle,
@@ -52,7 +49,6 @@ pub enum OperatorContent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Horizontal alignment of a `Lap` (mathllap/mathrlap/mathclap) node.
 pub enum LapAlignment {
-
     LLap,
     RLap,
     CLap,
@@ -74,7 +70,6 @@ pub enum ArrayColumn {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// How columns of an array are separated.
 pub enum ColumnSeparationType {
-
     AlignSeparation,
     AlignAtSeparation,
     GatherSeparation,
@@ -85,15 +80,26 @@ pub enum ColumnSeparationType {
 #[derive(Debug, Clone, PartialEq)]
 /// A parsed node in the LaTeX AST.
 pub enum ParseNode {
-    Internal { mode: Mode },
-    Raw { mode: Mode, string: String },
-    ColorToken { mode: Mode, color: String },
+    Internal {
+        mode: Mode,
+    },
+    Raw {
+        mode: Mode,
+        string: String,
+    },
+    ColorToken {
+        mode: Mode,
+        color: String,
+    },
     Size {
         mode: Mode,
         value: Measurement,
         is_blank: bool,
     },
-    Url { mode: Mode, url: String },
+    Url {
+        mode: Mode,
+        url: String,
+    },
     Styling {
         mode: Mode,
         body: Vec<ParseNode>,
@@ -152,22 +158,37 @@ pub enum ParseNode {
         limits: bool,
         parent_is_sup_sub: bool,
     },
-    Overline { mode: Mode, body: Box<ParseNode> },
-    Underline { mode: Mode, body: Box<ParseNode> },
+    Overline {
+        mode: Mode,
+        body: Box<ParseNode>,
+    },
+    Underline {
+        mode: Mode,
+        body: Box<ParseNode>,
+    },
     Smash {
         mode: Mode,
         body: Box<ParseNode>,
         smash_height: bool,
         smash_depth: bool,
     },
-    Phantom { mode: Mode, body: Vec<ParseNode> },
-    VPhantom { mode: Mode, body: Box<ParseNode> },
+    Phantom {
+        mode: Mode,
+        body: Vec<ParseNode>,
+    },
+    VPhantom {
+        mode: Mode,
+        body: Box<ParseNode>,
+    },
     Pmb {
         mode: Mode,
         mclass: AtomFamily,
         body: Vec<ParseNode>,
     },
-    VCenter { mode: Mode, body: Box<ParseNode> },
+    VCenter {
+        mode: Mode,
+        body: Box<ParseNode>,
+    },
     Rule {
         mode: Mode,
         shift: Option<Measurement>,
@@ -179,7 +200,10 @@ pub enum ParseNode {
         dy: Measurement,
         body: Box<ParseNode>,
     },
-    HBox { mode: Mode, body: Vec<ParseNode> },
+    HBox {
+        mode: Mode,
+        body: Vec<ParseNode>,
+    },
     Lap {
         mode: Mode,
         alignment: LapAlignment,
@@ -232,8 +256,14 @@ pub enum ParseNode {
         right: String,
         right_color: Option<String>,
     },
-    Middle { mode: Mode, delim: String },
-    Kern { mode: Mode, dimension: Measurement },
+    Middle {
+        mode: Mode,
+        delim: String,
+    },
+    Kern {
+        mode: Mode,
+        dimension: Measurement,
+    },
     Enclose {
         mode: Mode,
         body: Box<ParseNode>,
@@ -278,7 +308,10 @@ pub enum ParseNode {
         auto_tags: Option<Vec<bool>>,
         leqno: bool,
     },
-    EnvironmentEnd { mode: Mode, name: String },
+    EnvironmentEnd {
+        mode: Mode,
+        name: String,
+    },
     CdLabel {
         mode: Mode,
         side: String,

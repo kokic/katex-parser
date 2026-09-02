@@ -1,6 +1,8 @@
 use crate::ast::{ArrayColumn, ColumnSeparationType, ParseNode, StyleLevel};
+use crate::environments::registry::{
+    ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser,
+};
 use crate::error::ParseError;
-use crate::environments::registry::{ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser};
 
 use super::matrix::{array_with_columns, matrix_column_count};
 
@@ -31,7 +33,10 @@ pub(crate) fn alignment_columns(count: usize, aligned: bool) -> Vec<ArrayColumn>
         .collect()
 }
 
-pub(crate) fn replace_alignment_columns(node: ParseNode, columns: Vec<ArrayColumn>) -> Result<ParseNode, ParseError> {
+pub(crate) fn replace_alignment_columns(
+    node: ParseNode,
+    columns: Vec<ArrayColumn>,
+) -> Result<ParseNode, ParseError> {
     array_with_columns(node, columns)
 }
 
@@ -67,7 +72,7 @@ fn alignment_rhs_cell(cell: &ParseNode) -> Result<ParseNode, ParseError> {
                 _ => {
                     return Err(ParseError::InternalInvariant {
                         message: "Expected alignment cell".to_string(),
-                    })
+                    });
                 }
             };
             Ok(ParseNode::Styling {
@@ -170,7 +175,10 @@ pub(crate) fn aligned_environment_handler(
     })?;
     let array = insert_alignment_empty_groups(array)?;
     let count = matrix_column_count(array_body(&array)?);
-    replace_alignment_columns(array, alignment_columns(count, context.env_name == "aligned"))
+    replace_alignment_columns(
+        array,
+        alignment_columns(count, context.env_name == "aligned"),
+    )
 }
 
 pub(crate) fn gather_environment_handler(

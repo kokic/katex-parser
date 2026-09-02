@@ -36,11 +36,7 @@ fn render_internal_block(
     join_with_block(cancelled, state.in_tight, state.config.spacing)
   } else {
     Block::from(
-      @anvil.join_with_spacing(
-        cancelled,
-        state.in_tight,
-        state.config.spacing,
-      ),
+      @anvil.join_with_spacing(cancelled, state.in_tight, state.config.spacing),
     )
   }
 }
@@ -56,9 +52,7 @@ fn join_with_block(
     let prev = items[i - 1]
     let curr = items[i]
     match (prev.atom_type, curr.atom_type) {
-      (Some(left), Some(right)) if @anvil.math_spacing(
-          left, right, tight, spec,
-        )
+      (Some(left), Some(right)) if @anvil.math_spacing(left, right, tight, spec)
         is Some(space) => result = result.beside(Block::from(space))
       _ => ()
     }
@@ -69,7 +63,7 @@ fn join_with_block(
 
 ///|
 fn item_to_block(item : @anvil.SpacableItem) -> Block {
-  { ..Block::from(item.text), baseline: item.baseline }
+  { ..Block::from(item.text), baseline: item.baseline, }
 }
 
 ///|
@@ -102,7 +96,7 @@ fn render_node_internal(node : @katex.ParseNode, state : RenderState) -> String 
         style,
         in_display: state.in_display || style == DisplayStyle,
       })
-    Text(body~, ..) => render_internal(body, { ..state, in_tight: true })
+    Text(body~, ..) => render_internal(body, { ..state, in_tight: true, })
     MClass(body~, ..)
     | HBox(body~, ..)
     | Sizing(body~, ..)
@@ -257,7 +251,7 @@ fn merge_not_overlay(
         next_text.length() > 0 &&
         is_single_character_output(next_text) &&
         !is_zero_width_mark(next_text[0].to_int()) {
-        result.push({ ..next, text: "\{next_text}\u0338" })
+        result.push({ ..next, text: "\{next_text}\u0338", })
         skip_next = true
         continue
       }
@@ -297,7 +291,7 @@ fn collect_spacable_items(
       // --- Space nodes: rendered text with no atom type ---
       Spacing(text~, ..) =>
         acc +
-        [{ atom_type: None, text: @anvil.resolve_symbol(text), baseline: 0 }]
+        [{ atom_type: None, text: @anvil.resolve_symbol(text), baseline: 0, }]
 
       // --- Everything else: render as a single atom with its baseline ---
       _ => {
@@ -515,8 +509,8 @@ fn inline_atop(
   denom : @katex.ParseNode,
   state : RenderState,
 ) -> String {
-  let num_state = { ..state, in_tight: true }
-  let den_state = { ..state, in_tight: true }
+  let num_state = { ..state, in_tight: true, }
+  let den_state = { ..state, in_tight: true, }
   "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}"
 }
 
@@ -530,8 +524,8 @@ fn inline_fraction(
   slash : String,
   state : RenderState,
 ) -> String {
-  let num_state = { ..state, in_tight: true }
-  let den_state = { ..state, in_tight: true }
+  let num_state = { ..state, in_tight: true, }
+  let den_state = { ..state, in_tight: true, }
   "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
 }
 
@@ -606,7 +600,7 @@ fn enclose_box(block : Block, style : LineStyle) -> Block {
       middle[i - 1]
     }
   })
-  { lines, width: w + 2, baseline: block.baseline() + 1 }
+  { lines, width: w + 2, baseline: block.baseline() + 1, }
 }
 
 ///|
@@ -670,7 +664,7 @@ fn render_root_block(
   body : @katex.ParseNode,
   state : RenderState,
 ) -> Block {
-  let tight_state = { ..state, in_display: false, in_tight: true }
+  let tight_state = { ..state, in_display: false, in_tight: true, }
   let index_text = render_node_internal(index, tight_state)
   match unicode_script(index_text, UnicodeSuperscript) {
     Some(prefix) => render_radical_block(prefix, body, state)
@@ -777,7 +771,7 @@ fn render_limits_block(
   sub : @katex.ParseNode?,
   state : RenderState,
 ) -> Block {
-  let tight_state = { ..state, in_display: false, in_tight: true }
+  let tight_state = { ..state, in_display: false, in_tight: true, }
   let op_text = render_node_internal(base, tight_state)
   let sup_text = sup.map_or("", s => render_node_internal(s, tight_state))
   let sub_text = sub.map_or("", s => render_node_internal(s, tight_state))
@@ -793,7 +787,7 @@ fn render_limits_block(
   if sub_text.length() > 0 {
     lines.push(center_text(sub_text, w))
   }
-  { lines, width: w, baseline }
+  { lines, width: w, baseline, }
 }
 
 ///|
@@ -803,7 +797,7 @@ fn render_script(
   fallback_prefix : String,
   state : RenderState,
 ) -> String {
-  let tight_state = { ..state, in_display: false, in_tight: true }
+  let tight_state = { ..state, in_display: false, in_tight: true, }
   node.map_or("", node => {
     let text = render_node_internal(node, tight_state)
     let default = () => "\{fallback_prefix}\{render_operand(node, tight_state)}"
@@ -891,7 +885,7 @@ fn content_block(node : @katex.ParseNode, state : RenderState) -> Block {
         in_display: state.in_display || style == @katex.StyleLevel::DisplayStyle,
       })
     @katex.ParseNode::Text(body~, ..) =>
-      content_body_block(body, { ..state, in_tight: true })
+      content_body_block(body, { ..state, in_tight: true, })
     @katex.ParseNode::OrdGroup(body~, ..)
     | @katex.ParseNode::MClass(body~, ..)
     | @katex.ParseNode::HBox(body~, ..)

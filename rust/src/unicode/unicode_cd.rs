@@ -1,6 +1,6 @@
 use crate::ast::ParseNode;
-use crate::unicode::block::{center_text, pad_right, Block};
-use crate::unicode::config::{line_style_frac_bar, LineStyle, RenderState};
+use crate::unicode::block::{Block, center_text, pad_right};
+use crate::unicode::config::{LineStyle, RenderState, line_style_frac_bar};
 use crate::unicode::unicode::render_node_internal;
 
 /// Cell classification for commutative-diagram (`CD`) rendering.
@@ -186,10 +186,13 @@ fn cd_cell_widths(
             for (col, cell) in row.iter().enumerate() {
                 if col % 2 == 0 {
                     if let CdCell::CdNode(text) = cell {
-                        node_w[col / 2] = node_w[col / 2].max(offsets[col / 2] + text.chars().count());
+                        node_w[col / 2] =
+                            node_w[col / 2].max(offsets[col / 2] + text.chars().count());
                     }
                 } else if let CdCell::CdHArrow(_, upper, lower) = cell {
-                    arrow_w[col / 2] = arrow_w[col / 2].max(upper.chars().count()).max(lower.chars().count());
+                    arrow_w[col / 2] = arrow_w[col / 2]
+                        .max(upper.chars().count())
+                        .max(lower.chars().count());
                 } else if let CdCell::CdNode(text) = cell {
                     arrow_w[col / 2] = arrow_w[col / 2].max(text.chars().count());
                 }
@@ -238,9 +241,10 @@ fn cd_node_row_block(
         let mut cells: Vec<String> = vec![String::new(); n];
         for (col, cell) in row.iter().enumerate() {
             if col % 2 == 1
-                && let CdCell::CdHArrow(_, upper, _) = cell {
-                    cells[col] = center_text(upper, arrow_w[col / 2]);
-                }
+                && let CdCell::CdHArrow(_, upper, _) = cell
+            {
+                cells[col] = center_text(upper, arrow_w[col / 2]);
+            }
         }
         lines.insert(0, cd_pad_line(&cells, node_w, arrow_w, offsets));
     }
@@ -248,9 +252,10 @@ fn cd_node_row_block(
         let mut cells: Vec<String> = vec![String::new(); n];
         for (col, cell) in row.iter().enumerate() {
             if col % 2 == 1
-                && let CdCell::CdHArrow(_, _, lower) = cell {
-                    cells[col] = center_text(lower, arrow_w[col / 2]);
-                }
+                && let CdCell::CdHArrow(_, _, lower) = cell
+            {
+                cells[col] = center_text(lower, arrow_w[col / 2]);
+            }
         }
         lines.push(cd_pad_line(&cells, node_w, arrow_w, offsets));
     }
@@ -258,15 +263,13 @@ fn cd_node_row_block(
 }
 
 fn cd_row_has_upper(row: &[CdCell]) -> bool {
-    row.iter().any(|cell| {
-        matches!(cell, CdCell::CdHArrow(_, upper, _) if !upper.is_empty())
-    })
+    row.iter()
+        .any(|cell| matches!(cell, CdCell::CdHArrow(_, upper, _) if !upper.is_empty()))
 }
 
 fn cd_row_has_lower(row: &[CdCell]) -> bool {
-    row.iter().any(|cell| {
-        matches!(cell, CdCell::CdHArrow(_, _, lower) if !lower.is_empty())
-    })
+    row.iter()
+        .any(|cell| matches!(cell, CdCell::CdHArrow(_, _, lower) if !lower.is_empty()))
 }
 
 fn cd_varrow_row_block(
@@ -282,22 +285,17 @@ fn cd_varrow_row_block(
         let mut cells: Vec<String> = vec![String::new(); n];
         for (col, cell) in row.iter().enumerate() {
             if col % 2 == 0
-                && let CdCell::CdVArrow(dir, left, right) = cell {
-                    cells[col] = cd_varrow_lines(dir, left, right, vbar, offsets[col / 2])[h]
-                        .clone();
-                }
+                && let CdCell::CdVArrow(dir, left, right) = cell
+            {
+                cells[col] = cd_varrow_lines(dir, left, right, vbar, offsets[col / 2])[h].clone();
+            }
         }
         lines.push(cd_pad_line(&cells, node_w, arrow_w, offsets));
     }
     Block::from(&lines.join("\n"))
 }
 
-fn cd_pad_line(
-    cells: &[String],
-    node_w: &[usize],
-    arrow_w: &[usize],
-    offsets: &[usize],
-) -> String {
+fn cd_pad_line(cells: &[String], node_w: &[usize], arrow_w: &[usize], offsets: &[usize]) -> String {
     let mut result = String::new();
     let mut j = 0;
     while j < cells.len() {

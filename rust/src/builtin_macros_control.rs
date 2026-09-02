@@ -1,10 +1,8 @@
 use crate::ast::Mode;
 use crate::error::ParseError;
-use crate::macro_expander::{token_expansion, MacroExpander, MacroReplacement};
+use crate::macro_expander::{MacroExpander, MacroReplacement, token_expansion};
 
-pub(crate) fn noexpand_macro(
-    context: &mut MacroExpander,
-) -> Result<MacroReplacement, ParseError> {
+pub(crate) fn noexpand_macro(context: &mut MacroExpander) -> Result<MacroReplacement, ParseError> {
     let mut token = context.pop_token()?;
     if context.is_expandable(&token.text) {
         token.noexpand = true;
@@ -25,11 +23,12 @@ pub(crate) fn first_of_two_macro(
     context: &mut MacroExpander,
 ) -> Result<MacroReplacement, ParseError> {
     let args = context.consume_args(2, None)?;
-    let tokens = args.first().cloned().ok_or_else(|| {
-        ParseError::InternalInvariant {
+    let tokens = args
+        .first()
+        .cloned()
+        .ok_or_else(|| ParseError::InternalInvariant {
             message: "Missing first macro argument".to_string(),
-        }
-    })?;
+        })?;
     Ok(token_expansion(tokens))
 }
 
@@ -37,11 +36,12 @@ pub(crate) fn second_of_two_macro(
     context: &mut MacroExpander,
 ) -> Result<MacroReplacement, ParseError> {
     let args = context.consume_args(2, None)?;
-    let tokens = args.get(1).cloned().ok_or_else(|| {
-        ParseError::InternalInvariant {
+    let tokens = args
+        .get(1)
+        .cloned()
+        .ok_or_else(|| ParseError::InternalInvariant {
             message: "Missing second macro argument".to_string(),
-        }
-    })?;
+        })?;
     Ok(token_expansion(tokens))
 }
 

@@ -49,10 +49,10 @@ pub(crate) const INTEGRAL_OPERATOR_COMMANDS: &[(&str, &str)] = &[
 ];
 
 pub(crate) const NAMED_OPERATOR_COMMANDS: &[&str] = &[
-    "\\arcsin", "\\arccos", "\\arctan", "\\arctg", "\\arcctg", "\\arg", "\\ch", "\\cos",
-    "\\cosec", "\\cosh", "\\cot", "\\cotg", "\\coth", "\\csc", "\\ctg", "\\cth", "\\deg",
-    "\\dim", "\\exp", "\\hom", "\\ker", "\\lg", "\\ln", "\\log", "\\sec", "\\sin",
-    "\\sinh", "\\sh", "\\tan", "\\tanh", "\\tg", "\\th",
+    "\\arcsin", "\\arccos", "\\arctan", "\\arctg", "\\arcctg", "\\arg", "\\ch", "\\cos", "\\cosec",
+    "\\cosh", "\\cot", "\\cotg", "\\coth", "\\csc", "\\ctg", "\\cth", "\\deg", "\\dim", "\\exp",
+    "\\hom", "\\ker", "\\lg", "\\ln", "\\log", "\\sec", "\\sin", "\\sinh", "\\sh", "\\tan",
+    "\\tanh", "\\tg", "\\th",
 ];
 
 pub(crate) const LIMITED_NAMED_OPERATOR_COMMANDS: &[&str] = &[
@@ -63,7 +63,10 @@ fn operator_names(commands: &[(&str, &str)]) -> Vec<String> {
     commands.iter().map(|(name, _)| name.to_string()).collect()
 }
 
-fn canonical_operator_name(commands: &[(&str, &str)], func_name: &str) -> Result<String, ParseError> {
+fn canonical_operator_name(
+    commands: &[(&str, &str)],
+    func_name: &str,
+) -> Result<String, ParseError> {
     for (name, canonical) in commands {
         if *name == func_name {
             return Ok((*canonical).to_string());
@@ -149,7 +152,10 @@ fn mathop_handler(
 
 pub(crate) fn named_operator_spec() -> FunctionSpec {
     FunctionSpec {
-        names: NAMED_OPERATOR_COMMANDS.iter().map(|s| s.to_string()).collect(),
+        names: NAMED_OPERATOR_COMMANDS
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         handler: Some(named_operator_handler),
         ..Default::default()
     }
@@ -161,7 +167,11 @@ fn named_operator_handler(
     _args: &[ParseNode],
     _opt_args: &[Option<ParseNode>],
 ) -> Result<ParseNode, ParseError> {
-    Ok(named_operator(context.mode, false, context.func_name.clone()))
+    Ok(named_operator(
+        context.mode,
+        false,
+        context.func_name.clone(),
+    ))
 }
 
 pub(crate) fn limited_named_operator_spec() -> FunctionSpec {
@@ -181,7 +191,11 @@ fn limited_named_operator_handler(
     _args: &[ParseNode],
     _opt_args: &[Option<ParseNode>],
 ) -> Result<ParseNode, ParseError> {
-    Ok(named_operator(context.mode, true, context.func_name.clone()))
+    Ok(named_operator(
+        context.mode,
+        true,
+        context.func_name.clone(),
+    ))
 }
 
 pub(crate) fn integral_operator_spec() -> FunctionSpec {

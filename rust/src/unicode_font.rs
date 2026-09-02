@@ -20,10 +20,26 @@ pub fn unicode_font_character(font: &str, ch: &str) -> Option<String> {
     }
     let cp = match font {
         "mathbf" | "boldsymbol" => {
-            let base = if font == "boldsymbol" { 0x1D468 } else { 0x1D400 };
-            let greek_cap = if font == "boldsymbol" { 0x1D71C } else { 0x1D6A8 };
-            let greek_small = if font == "boldsymbol" { 0x1D736 } else { 0x1D6C2 };
-            let greek_symbols = if font == "boldsymbol" { 0x1D750 } else { 0x1D6DC };
+            let base = if font == "boldsymbol" {
+                0x1D468
+            } else {
+                0x1D400
+            };
+            let greek_cap = if font == "boldsymbol" {
+                0x1D71C
+            } else {
+                0x1D6A8
+            };
+            let greek_small = if font == "boldsymbol" {
+                0x1D736
+            } else {
+                0x1D6C2
+            };
+            let greek_symbols = if font == "boldsymbol" {
+                0x1D750
+            } else {
+                0x1D6DC
+            };
             let cd = c as u32;
             match c {
                 'A'..='Z' => Some(base + cd - 'A' as u32),

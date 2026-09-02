@@ -98,7 +98,10 @@ fn boldsymbol_handler(
 
 pub(crate) fn old_font_spec() -> FunctionSpec {
     FunctionSpec {
-        names: OLD_FONT_COMMANDS.iter().map(|(n, _)| n.to_string()).collect(),
+        names: OLD_FONT_COMMANDS
+            .iter()
+            .map(|(n, _)| n.to_string())
+            .collect(),
         allowed_in_text: true,
         handler: Some(old_font_handler),
         ..Default::default()

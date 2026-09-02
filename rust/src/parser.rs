@@ -2,24 +2,24 @@ use std::rc::Rc;
 
 use crate::ast::{AtomFamily, ColumnSeparationType, Measurement, Mode, ParseNode, StyleLevel};
 use crate::environments::{
-    build_environment_registry, cd_row, EnvironmentContext, EnvironmentParser,
-    EnvironmentRegistry, EnvironmentSpec, ArrayEnvironmentOptions,
+    ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser, EnvironmentRegistry,
+    EnvironmentSpec, build_environment_registry, cd_row,
 };
 use crate::error::{Diagnostic, ParseError};
 use crate::function_registry::{
-    build_function_registry, ArgType, FunctionContext, FunctionParser, FunctionRegistry,
-    FunctionSpec,
+    ArgType, FunctionContext, FunctionParser, FunctionRegistry, FunctionSpec,
+    build_function_registry,
 };
 use crate::functions::{parse_size_measurement, size_scan_candidate, valid_size_unit};
 use crate::lexer::{is_ascii_alphabetic, starts_with_at};
 use crate::macro_definition::MacroDefinition;
-use crate::macro_expander::{is_implicit_command, ExternalCommandStatus, MacroExpander};
+use crate::macro_expander::{ExternalCommandStatus, MacroExpander, is_implicit_command};
 use crate::settings::{Settings, TrustContext};
 use crate::source_location::SourceLocation;
-use crate::symbol_registry::{is_registered_symbol, lookup_symbol, SymbolGroup, SymbolSpec};
+use crate::symbol_registry::{SymbolGroup, SymbolSpec, is_registered_symbol, lookup_symbol};
 use crate::text_ligature::form_text_ligatures;
 use crate::token::Token;
-use crate::unicode_scripts::{lookup_unicode_script, supported_codepoint, UnicodeScriptKind};
+use crate::unicode_scripts::{UnicodeScriptKind, lookup_unicode_script, supported_codepoint};
 use crate::unicode_symbols::{
     normalize_unicode_symbol, trailing_combining_mark_start, unicode_accent_command,
 };
@@ -278,11 +278,16 @@ impl Parser {
         Ok(())
     }
 
-    fn parse_atom(&mut self, break_on_token_text: Option<&str>) -> Result<Option<AtomResult>, ParseError> {
+    fn parse_atom(
+        &mut self,
+        break_on_token_text: Option<&str>,
+    ) -> Result<Option<AtomResult>, ParseError> {
         match self.parse_group("atom", break_on_token_text)? {
             None => Ok(None),
             Some(AtomResult::SkipAtom) => Ok(Some(AtomResult::SkipAtom)),
-            Some(AtomResult::EmitAtom(ParseNode::Internal { .. })) => Ok(Some(AtomResult::SkipAtom)),
+            Some(AtomResult::EmitAtom(ParseNode::Internal { .. })) => {
+                Ok(Some(AtomResult::SkipAtom))
+            }
             Some(AtomResult::EmitAtom(base)) if self.mode == Mode::Text => {
                 Ok(Some(AtomResult::EmitAtom(base)))
             }
@@ -305,19 +310,25 @@ impl Parser {
                 continue;
             } else if token.text == "^" {
                 if sup.is_some() {
-                    return Err(ParseError::DoubleSuperscript { loc: token.loc.clone() });
+                    return Err(ParseError::DoubleSuperscript {
+                        loc: token.loc.clone(),
+                    });
                 }
                 sup = Some(self.handle_sup_subscript("superscript")?);
                 continue;
             } else if token.text == "_" {
                 if sub.is_some() {
-                    return Err(ParseError::DoubleSubscript { loc: token.loc.clone() });
+                    return Err(ParseError::DoubleSubscript {
+                        loc: token.loc.clone(),
+                    });
                 }
                 sub = Some(self.handle_sup_subscript("subscript")?);
                 continue;
             } else if token.text == "'" {
                 if sup.is_some() {
-                    return Err(ParseError::DoubleSuperscript { loc: token.loc.clone() });
+                    return Err(ParseError::DoubleSuperscript {
+                        loc: token.loc.clone(),
+                    });
                 }
                 sup = Some(self.parse_prime_run()?);
                 continue;
@@ -399,7 +410,8 @@ impl Parser {
         self.consume_spaces()?;
         loop {
             match self.parse_group(name, None)? {
-                Some(AtomResult::EmitAtom(ParseNode::Internal { .. })) | Some(AtomResult::SkipAtom) => {
+                Some(AtomResult::EmitAtom(ParseNode::Internal { .. }))
+                | Some(AtomResult::SkipAtom) => {
                     continue;
                 }
                 Some(AtomResult::EmitAtom(group)) => return Ok(group),
@@ -407,7 +419,7 @@ impl Parser {
                     return Err(ParseError::ExpectedGroupAfter {
                         symbol: token.text.clone(),
                         loc: token.loc.clone(),
-                    })
+                    });
                 }
             }
         }
@@ -435,7 +447,11 @@ impl Parser {
         }
     }
 
-    fn parse_group_body(&mut self, first_token: &Token, text: &str) -> Result<ParseNode, ParseError> {
+    fn parse_group_body(
+        &mut self,
+        first_token: &Token,
+        text: &str,
+    ) -> Result<ParseNode, ParseError> {
         self.consume();
         let group_end = if text == "{" { "}" } else { "\\endgroup" };
         self.gullet.begin_group();
@@ -489,13 +505,15 @@ impl Parser {
         };
         self.consume();
         if let Some(context_name) = name
-            && context_name != "atom" && !func_data.allowed_in_argument {
-                return Err(ParseError::FunctionNotAllowed {
-                    func_name: token.text.clone(),
-                    context: context_name.to_string(),
-                    loc: token.loc.clone(),
-                });
-            }
+            && context_name != "atom"
+            && !func_data.allowed_in_argument
+        {
+            return Err(ParseError::FunctionNotAllowed {
+                func_name: token.text.clone(),
+                context: context_name.to_string(),
+                loc: token.loc.clone(),
+            });
+        }
         if self.mode == Mode::Text && !func_data.allowed_in_text {
             return Err(ParseError::FunctionNotAllowed {
                 func_name: token.text.clone(),
@@ -542,10 +560,11 @@ impl Parser {
                     loc: None,
                 }
             })?;
-            spec.handler.ok_or_else(|| ParseError::MissingFunctionHandler {
-                func_name: func_name.to_string(),
-                loc: None,
-            })?
+            spec.handler
+                .ok_or_else(|| ParseError::MissingFunctionHandler {
+                    func_name: func_name.to_string(),
+                    loc: None,
+                })?
         };
         handler(self, &context, &args, &opt_args)
     }
@@ -564,15 +583,14 @@ impl Parser {
             let arg_type = match func_data.arg_types.get(index) {
                 Some(kind) => *kind,
                 None if func_data.primitive => ArgType::PrimitiveArg,
-                None
-                    if func_data
-                        .primitive_after_missing_optional
-                        .is_some_and(|optional_index| {
-                            index == func_data.num_optional_args
-                                && opt_args
-                                    .get(optional_index)
-                                    .is_some_and(|value| value.is_none())
-                        }) =>
+                None if func_data.primitive_after_missing_optional.is_some_and(
+                    |optional_index| {
+                        index == func_data.num_optional_args
+                            && opt_args
+                                .get(optional_index)
+                                .is_some_and(|value| value.is_none())
+                    },
+                ) =>
                 {
                     ArgType::PrimitiveArg
                 }
@@ -588,7 +606,7 @@ impl Parser {
                     return Err(ParseError::InternalInvariant {
                         message: "Null mandatory function argument after parser validation"
                             .to_string(),
-                    })
+                    });
                 }
                 Some(arg) if optional => {
                     opt_args.push(Some(arg));
@@ -623,20 +641,26 @@ impl Parser {
                 })),
             ArgType::MathArg => self.parse_argument_group(optional, Some(Mode::Math)),
             ArgType::TextArg => self.parse_argument_group(optional, Some(Mode::Text)),
-            ArgType::HboxArg => Ok(self.parse_argument_group(optional, Some(Mode::Text))?.map(
-                |group| ParseNode::Styling {
-                    mode: group.mode(),
-                    body: vec![group],
-                    style: StyleLevel::TextStyle,
-                    reset_font: true,
-                },
-            )),
+            ArgType::HboxArg => {
+                Ok(self
+                    .parse_argument_group(optional, Some(Mode::Text))?
+                    .map(|group| ParseNode::Styling {
+                        mode: group.mode(),
+                        body: vec![group],
+                        style: StyleLevel::TextStyle,
+                        reset_font: true,
+                    }))
+            }
             ArgType::PrimitiveArg => self.parse_primitive_group(name, optional),
             ArgType::OriginalArg => self.parse_argument_group(optional, None),
         }
     }
 
-    fn parse_primitive_group(&mut self, name: &str, optional: bool) -> Result<Option<ParseNode>, ParseError> {
+    fn parse_primitive_group(
+        &mut self,
+        name: &str,
+        optional: bool,
+    ) -> Result<Option<ParseNode>, ParseError> {
         if optional {
             return Err(ParseError::InvalidArgument {
                 message: "A primitive argument cannot be optional".to_string(),
@@ -706,12 +730,11 @@ impl Parser {
         match self.parse_string_group(optional)? {
             None => Ok(None),
             Some(token) => {
-                let color = normalized_color(&token.text).ok_or_else(|| {
-                    ParseError::InvalidArgument {
+                let color =
+                    normalized_color(&token.text).ok_or_else(|| ParseError::InvalidArgument {
                         message: format!("Invalid color: '{}'", token.text),
                         loc: token.loc.clone(),
-                    }
-                })?;
+                    })?;
                 Ok(Some(ParseNode::ColorToken {
                     mode: self.mode,
                     color,
@@ -776,12 +799,11 @@ impl Parser {
                 if is_blank {
                     text = "0pt".to_string();
                 }
-                let value = parse_size_measurement(&text)?.ok_or_else(|| {
-                    ParseError::InvalidArgument {
+                let value =
+                    parse_size_measurement(&text)?.ok_or_else(|| ParseError::InvalidArgument {
                         message: format!("Invalid size: '{text}'"),
                         loc: token.loc.clone(),
-                    }
-                })?;
+                    })?;
                 if !valid_size_unit(&value.unit) {
                     return Err(ParseError::InvalidArgument {
                         message: format!("Invalid unit: '{}'", value.unit),
@@ -800,7 +822,10 @@ impl Parser {
     fn handle_infix_nodes(&mut self, body: Vec<ParseNode>) -> Result<Vec<ParseNode>, ParseError> {
         let mut infix: Option<(usize, String)> = None;
         for (index, node) in body.iter().enumerate() {
-            if let ParseNode::Infix { replace_with, loc, .. } = node {
+            if let ParseNode::Infix {
+                replace_with, loc, ..
+            } = node
+            {
                 if infix.is_some() {
                     return Err(ParseError::InvalidArgument {
                         message: "only one infix operator per group".to_string(),
@@ -863,9 +888,7 @@ impl Parser {
             }
             Some(AtomResult::EmitAtom(ParseNode::EnvironmentEnd { name: end_name, .. })) => {
                 Err(ParseError::InvalidArgument {
-                    message: format!(
-                        "Mismatch: \\begin{{{name}}} matched by \\end{{{end_name}}}"
-                    ),
+                    message: format!("Mismatch: \\begin{{{name}}} matched by \\end{{{end_name}}}"),
                     loc: None,
                 })
             }
@@ -1061,9 +1084,11 @@ impl Parser {
         options: ArrayEnvironmentOptions,
     ) -> Result<ParseNode, ParseError> {
         self.gullet.begin_group();
-        self.gullet
-            .macros
-            .set("\\cr".to_string(), Some(MacroDefinition::text("\\\\\\relax")), false);
+        self.gullet.macros.set(
+            "\\cr".to_string(),
+            Some(MacroDefinition::text("\\\\\\relax")),
+            false,
+        );
         self.gullet.begin_group();
         let result: Result<ParseNode, ParseError> = (|| {
             let mut body: Vec<Vec<ParseNode>> = vec![Vec::new()];
@@ -1124,7 +1149,7 @@ impl Parser {
                         return Err(ParseError::InvalidArgument {
                             message: format!("Expected & or \\\\ or \\end, got {text}"),
                             loc: None,
-                        })
+                        });
                     }
                 }
             }
@@ -1141,8 +1166,16 @@ impl Parser {
                 hskip_before_and_after: options.hskip_before_and_after,
                 hlines_before_row,
                 column_separation_type: options.column_separation_type,
-                tags: if options.auto_tag.is_some() { Some(tags) } else { None },
-                auto_tags: if options.auto_tag.is_some() { Some(auto_tags) } else { None },
+                tags: if options.auto_tag.is_some() {
+                    Some(tags)
+                } else {
+                    None
+                },
+                auto_tags: if options.auto_tag.is_some() {
+                    Some(auto_tags)
+                } else {
+                    None
+                },
                 leqno: options.leqno,
             })
         })();
@@ -1153,9 +1186,11 @@ impl Parser {
 
     fn parse_cd_environment(&mut self) -> Result<ParseNode, ParseError> {
         self.gullet.begin_group();
-        self.gullet
-            .macros
-            .set("\\cr".to_string(), Some(MacroDefinition::text("\\\\\\relax")), false);
+        self.gullet.macros.set(
+            "\\cr".to_string(),
+            Some(MacroDefinition::text("\\\\\\relax")),
+            false,
+        );
         self.gullet.begin_group();
         let result: Result<ParseNode, ParseError> = (|| {
             let mut parsed_rows: Vec<Vec<ParseNode>> = vec![Vec::new()];
@@ -1178,7 +1213,7 @@ impl Parser {
                         return Err(ParseError::InvalidArgument {
                             message: format!("Expected \\ or \\end, got {token}"),
                             loc: None,
-                        })
+                        });
                     }
                 }
             }
@@ -1228,7 +1263,8 @@ impl FunctionParser for Parser {
         error_message: &str,
         token: Option<&Token>,
     ) -> Result<(), ParseError> {
-        self.settings.report_nonstrict(error_code, error_message, token)
+        self.settings
+            .report_nonstrict(error_code, error_message, token)
     }
 
     fn use_strict_behavior(
@@ -1237,7 +1273,8 @@ impl FunctionParser for Parser {
         error_message: &str,
         token: Option<&Token>,
     ) -> bool {
-        self.settings.use_strict_behavior(error_code, error_message, token)
+        self.settings
+            .use_strict_behavior(error_code, error_message, token)
     }
 
     fn is_trusted(&self, context: TrustContext) -> bool {
@@ -1265,7 +1302,9 @@ impl FunctionParser for Parser {
     }
 
     fn set_macro_definition(&mut self, name: &str, definition: MacroDefinition, global: bool) {
-        self.gullet.macros.set(name.to_string(), Some(definition), global);
+        self.gullet
+            .macros
+            .set(name.to_string(), Some(definition), global);
     }
 
     fn parse_expression(
@@ -1387,10 +1426,7 @@ pub fn parse_with_specs(
         .gullet
         .macros
         .set("\\current@color".to_string(), None, false);
-    parser
-        .gullet
-        .macros
-        .set("\\color".to_string(), None, false);
+    parser.gullet.macros.set("\\color".to_string(), None, false);
     if settings.display_mode {
         Ok(vec![ParseNode::Styling {
             mode: Mode::Math,
@@ -1403,7 +1439,10 @@ pub fn parse_with_specs(
     }
 }
 
-fn unwrap_captured<V>(close: Result<(), ParseError>, value: Result<V, ParseError>) -> Result<V, ParseError> {
+fn unwrap_captured<V>(
+    close: Result<(), ParseError>,
+    value: Result<V, ParseError>,
+) -> Result<V, ParseError> {
     match (close, value) {
         (Err(err), _) => Err(err),
         (_, Err(err)) => Err(err),
@@ -1415,7 +1454,11 @@ fn is_end_of_expression(text: &str) -> bool {
     text == "}" || text == "\\endgroup" || text == "\\end" || text == "\\right" || text == "&"
 }
 
-fn set_limits(base: ParseNode, limits: bool, loc: Option<SourceLocation>) -> Result<ParseNode, ParseError> {
+fn set_limits(
+    base: ParseNode,
+    limits: bool,
+    loc: Option<SourceLocation>,
+) -> Result<ParseNode, ParseError> {
     match base {
         ParseNode::Op {
             mode,
@@ -1451,7 +1494,12 @@ fn set_limits(base: ParseNode, limits: bool, loc: Option<SourceLocation>) -> Res
     }
 }
 
-fn make_supsub_or_base(mode: Mode, base: ParseNode, sup: Option<ParseNode>, sub: Option<ParseNode>) -> ParseNode {
+fn make_supsub_or_base(
+    mode: Mode,
+    base: ParseNode,
+    sup: Option<ParseNode>,
+    sub: Option<ParseNode>,
+) -> ParseNode {
     match (sup, sub) {
         (None, None) => base,
         (sup, sub) => ParseNode::SupSub {
@@ -1482,16 +1530,18 @@ fn is_undefined_control_sequence(text: &str) -> bool {
 
 fn is_verb_token(text: &str) -> bool {
     let chars: Vec<char> = text.chars().collect();
-    chars.len() > 5
-        && starts_with_at(&chars, 0, "\\verb")
-        && !is_ascii_alphabetic(chars[5])
+    chars.len() > 5 && starts_with_at(&chars, 0, "\\verb") && !is_ascii_alphabetic(chars[5])
 }
 
 fn parse_verb_token(text: &str) -> Result<ParseNode, ParseError> {
     let chars: Vec<char> = text.chars().collect();
     let raw_argument = &chars[5..];
     let star = !raw_argument.is_empty() && raw_argument[0] == '*';
-    let argument: &[char] = if star { &raw_argument[1..] } else { raw_argument };
+    let argument: &[char] = if star {
+        &raw_argument[1..]
+    } else {
+        raw_argument
+    };
     if argument.len() < 2 || argument[0] != argument[argument.len() - 1] {
         Err(ParseError::InternalInvariant {
             message: "\\verb assertion failed -- please report what input caused this bug"
@@ -1630,9 +1680,7 @@ fn format_unsupported_command(mode: Mode, settings: &Settings, text: &str) -> Pa
 }
 
 fn array_row_at_max(body: &[Vec<ParseNode>], max_columns: Option<usize>) -> bool {
-    max_columns.is_some_and(|maximum| {
-        body.last().is_some_and(|row| row.len() >= maximum)
-    })
+    max_columns.is_some_and(|maximum| body.last().is_some_and(|row| row.len() >= maximum))
 }
 
 fn unwrap_array_parse_result(
@@ -1687,9 +1735,7 @@ fn unescape_url(text: &str) -> String {
     let mut segment_start = 0;
     let mut index = 0;
     while index < chars.len() {
-        if chars[index] == '\\'
-            && index + 1 < chars.len()
-            && is_url_escape_target(chars[index + 1])
+        if chars[index] == '\\' && index + 1 < chars.len() && is_url_escape_target(chars[index + 1])
         {
             builder.extend(&chars[segment_start..index]);
             builder.push(chars[index + 1]);

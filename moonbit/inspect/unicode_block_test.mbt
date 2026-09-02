@@ -163,7 +163,7 @@ test "label beside fraction" {
   let num = @unicode.Block::from("p").center(3)
   let bar = @unicode.Block::from("---")
   let den = @unicode.Block::from("q").center(3)
-  let frac = { ..num.above(bar).above(den), baseline: 1 }
+  let frac = { ..num.above(bar).above(den), baseline: 1, }
   let label = @unicode.Block::from("r = ")
   let result = frac.append_left(label)
   // Fraction baseline = 1 (fraction bar line), label baseline = 0
@@ -184,7 +184,7 @@ test "label beside fraction with uneven width" {
   let num = @unicode.Block::from("p²").center(5)
   let bar = @unicode.Block::from("-----")
   let den = @unicode.Block::from("q+1").center(5)
-  let frac = { ..num.above(bar).above(den), baseline: 1 }
+  let frac = { ..num.above(bar).above(den), baseline: 1, }
   let label = @unicode.Block::from("r = ")
   let result = frac.append_left(label)
   let output =

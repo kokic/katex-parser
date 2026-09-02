@@ -14,12 +14,12 @@ pub fn Block::from(s : String) -> Block {
   let raw = s.split("\n").to_array()
   let width = raw.fold(init=0, (m, l) => m.max(display_width(l.to_owned())))
   let lines = raw.map(l => pad_right(l.to_owned(), width))
-  { lines, width, baseline: 0 }
+  { lines, width, baseline: 0, }
 }
 
 ///|
 pub fn Block::empty() -> Block {
-  { lines: [], width: 0, baseline: 0 }
+  { lines: [], width: 0, baseline: 0, }
 }
 
 ///|
@@ -46,14 +46,14 @@ pub fn Block::baseline(self : Block) -> Int {
 pub fn Block::pad_to(self : Block, target_width : Int) -> Block {
   guard target_width > self.width else { self }
   let lines = self.lines.map(l => pad_right(l, target_width))
-  { lines, width: target_width, baseline: self.baseline }
+  { lines, width: target_width, baseline: self.baseline, }
 }
 
 ///|
 pub fn Block::center(self : Block, target_width : Int) -> Block {
   guard self.lines.length() > 0 && target_width > self.width else { self }
   let lines = self.lines.map(l => center_text(l, target_width))
-  { lines, width: target_width, baseline: self.baseline }
+  { lines, width: target_width, baseline: self.baseline, }
 }
 
 ///|
@@ -63,7 +63,7 @@ pub fn Block::above(self : Block, other : Block) -> Block {
   let self_lines = self.lines.map(l => pad_right(l, new_w))
   let other_lines = other.lines.map(l => pad_right(l, new_w))
   // Preserve self's baseline; other's baseline is shifted down by self's height
-  { lines: self_lines + other_lines, width: new_w, baseline: self.baseline }
+  { lines: self_lines + other_lines, width: new_w, baseline: self.baseline, }
 }
 
 ///|
@@ -83,7 +83,7 @@ pub fn Block::beside(self : Block, other : Block) -> Block {
   let new_w = self.width + other.width
   let result_bl = self_bl.max(other_bl)
   let lines = Array::makei(result_h, i => self_padded[i] + other_padded[i])
-  { lines, width: new_w, baseline: result_bl }
+  { lines, width: new_w, baseline: result_bl, }
 }
 
 ///|

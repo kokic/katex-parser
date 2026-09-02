@@ -1,6 +1,6 @@
 use crate::ast::{ParseNode, StyleLevel};
 use crate::unicode::block::Block;
-use crate::unicode::config::{line_style_frac_bar, RenderState};
+use crate::unicode::config::{RenderState, line_style_frac_bar};
 use crate::unicode::unicode::{render_delimiter, render_node_internal};
 
 use super::block::{center_text, display_width};

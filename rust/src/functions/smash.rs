@@ -29,7 +29,7 @@ fn smash_flags(arg: Option<&ParseNode>) -> Result<(bool, bool), ParseError> {
             _ => {
                 return Err(ParseError::InternalInvariant {
                     message: "Expected symbol in \\smash option".to_string(),
-                })
+                });
             }
         };
         if text == "t" {

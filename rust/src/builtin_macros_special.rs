@@ -1,13 +1,17 @@
 use std::rc::Rc;
 
 use crate::error::ParseError;
-use crate::macro_expander::{token_expansion, MacroExpander, MacroHandler, MacroReplacement};
+use crate::macro_expander::{MacroExpander, MacroHandler, MacroReplacement, token_expansion};
 use crate::token::Token;
 
 use crate::builtin_macros::MacroLogEvent;
 
 fn tokens_to_text(tokens: &[Token]) -> String {
-    tokens.iter().rev().map(|token| token.text.clone()).collect()
+    tokens
+        .iter()
+        .rev()
+        .map(|token| token.text.clone())
+        .collect()
 }
 
 pub(crate) fn message_macro(context: &mut MacroExpander) -> Result<MacroReplacement, ParseError> {
@@ -31,7 +35,10 @@ pub(crate) fn show_macro(context: &mut MacroExpander) -> Result<MacroReplacement
     } else {
         "undefined"
     };
-    (context.macro_reporter)(MacroLogEvent::MacroShow(format!("{}: {}", token.text, status)));
+    (context.macro_reporter)(MacroLogEvent::MacroShow(format!(
+        "{}: {}",
+        token.text, status
+    )));
     Ok(MacroReplacement::ReplacementText(String::new()))
 }
 
@@ -50,7 +57,9 @@ pub(crate) fn tag_literal_macro(
 }
 
 fn restore_dynamic_macro(context: &mut MacroExpander, name: &str, old_value: Option<MacroHandler>) {
-    context.dynamic_macros.set(name.to_string(), old_value, false);
+    context
+        .dynamic_macros
+        .set(name.to_string(), old_value, false);
 }
 
 fn braket_separator_handler(

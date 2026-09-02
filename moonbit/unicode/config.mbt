@@ -22,7 +22,7 @@ pub impl Default for LineStyle with fn default() {
 /// Unicode text spacing: regular spaces for thick/medium, thin and after
 /// operators.
 pub fn unicode_text_spacing() -> @anvil.SpacingSpec {
-  { thick: " ", medium: " ", thin: " ", operator: " " }
+  { thick: " ", medium: " ", thin: " ", operator: " ", }
 }
 
 ///|
@@ -31,7 +31,7 @@ pub fn RenderConfig::make(
   spacing? : @anvil.SpacingSpec = unicode_text_spacing(),
   line_style? : LineStyle = Unicode,
 ) -> RenderConfig {
-  { fraction_slash, spacing, line_style }
+  { fraction_slash, spacing, line_style, }
 }
 
 ///|

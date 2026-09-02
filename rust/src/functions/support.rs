@@ -6,9 +6,11 @@ pub(crate) fn require_function_arg(
     index: usize,
     func_name: &str,
 ) -> Result<ParseNode, ParseError> {
-    args.get(index).cloned().ok_or_else(|| ParseError::InternalInvariant {
-        message: format!("Missing argument {index} for {func_name}"),
-    })
+    args.get(index)
+        .cloned()
+        .ok_or_else(|| ParseError::InternalInvariant {
+            message: format!("Missing argument {index} for {func_name}"),
+        })
 }
 
 pub(crate) fn ord_argument(arg: ParseNode) -> Vec<ParseNode> {
@@ -21,8 +23,9 @@ pub(crate) fn ord_argument(arg: ParseNode) -> Vec<ParseNode> {
 
 pub(crate) fn normalize_argument(arg: ParseNode) -> ParseNode {
     if let ParseNode::OrdGroup { body, .. } = &arg
-        && body.len() == 1 {
-            return body[0].clone();
-        }
+        && body.len() == 1
+    {
+        return body[0].clone();
+    }
     arg
 }

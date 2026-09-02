@@ -113,7 +113,10 @@ pub struct SpacableItem {
 /// True when a type to the left of a binary atom cancels its binary spacing.
 /// TeXbook Rules 5-6.
 fn cancels_left_of_bin(ty: &str) -> bool {
-    matches!(ty, "leftmost" | "mbin" | "mopen" | "mrel" | "mop" | "mpunct" | "mbig")
+    matches!(
+        ty,
+        "leftmost" | "mbin" | "mopen" | "mrel" | "mop" | "mpunct" | "mbig"
+    )
 }
 
 /// True when a type to the right of a binary atom cancels its binary spacing.
@@ -142,10 +145,9 @@ pub fn cancel_bin_atoms(items: Vec<SpacableItem>) -> Vec<SpacableItem> {
                     items[i - 1].atom_type = Some("mord".to_string());
                 }
             }
-            (Some(left), Some("mbin"))
-                if cancels_left_of_bin(left) => {
-                    items[i].atom_type = Some("mord".to_string());
-                }
+            (Some(left), Some("mbin")) if cancels_left_of_bin(left) => {
+                items[i].atom_type = Some("mord".to_string());
+            }
             _ => (),
         }
     }

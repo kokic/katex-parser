@@ -11,7 +11,7 @@ fn environment_name(arg: &ParseNode) -> Result<String, ParseError> {
             return Err(ParseError::InvalidArgument {
                 message: "Invalid environment name".to_string(),
                 loc: None,
-            })
+            });
         }
     };
     let mut builder = String::new();
@@ -22,7 +22,7 @@ fn environment_name(arg: &ParseNode) -> Result<String, ParseError> {
                 return Err(ParseError::InvalidArgument {
                     message: "Invalid environment name".to_string(),
                     loc: None,
-                })
+                });
             }
         }
     }

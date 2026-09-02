@@ -69,9 +69,11 @@ impl Default for EnvironmentSpec {
             num_args: 0,
             num_optional_args: 0,
             arg_types: Vec::new(),
-            handler: |_, _, _, _| Err(ParseError::InternalInvariant {
-                message: "Environment handler not set".to_string(),
-            }),
+            handler: |_, _, _, _| {
+                Err(ParseError::InternalInvariant {
+                    message: "Environment handler not set".to_string(),
+                })
+            },
         }
     }
 }
@@ -92,7 +94,7 @@ pub fn array_columns(arg: &ParseNode, name: &str) -> Result<Vec<ArrayColumn>, Pa
                 return Err(ParseError::InvalidArgument {
                     message: format!("Unknown column alignment in {name}"),
                     loc: None,
-                })
+                });
             }
         };
         match text.as_str() {
@@ -106,7 +108,7 @@ pub fn array_columns(arg: &ParseNode, name: &str) -> Result<Vec<ArrayColumn>, Pa
                 return Err(ParseError::InvalidArgument {
                     message: format!("Unknown column alignment: {text}"),
                     loc: None,
-                })
+                });
             }
         }
     }

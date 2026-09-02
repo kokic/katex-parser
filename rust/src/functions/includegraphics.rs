@@ -4,8 +4,7 @@ use crate::function_registry::{ArgType, FunctionContext, FunctionParser, Functio
 use crate::settings::TrustContext;
 
 use super::{
-    parse_decimal, parse_size_measurement, require_function_arg, trim_ascii_spaces,
-    valid_size_unit,
+    parse_decimal, parse_size_measurement, require_function_arg, trim_ascii_spaces, valid_size_unit,
 };
 
 pub(crate) fn includegraphics_spec() -> FunctionSpec {
@@ -138,7 +137,7 @@ fn parse_graphics_options(
                 return Err(ParseError::InvalidArgument {
                     message: format!("Invalid key: '{key}' in \\includegraphics."),
                     loc: None,
-                })
+                });
             }
         }
     }
@@ -156,7 +155,7 @@ fn includegraphics_handler(
         Some(_) => {
             return Err(ParseError::InternalInvariant {
                 message: "Expected raw graphics options".to_string(),
-            })
+            });
         }
         None => parse_graphics_options("")?,
     };
@@ -165,7 +164,7 @@ fn includegraphics_handler(
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: "Expected URL argument for \\includegraphics".to_string(),
-            })
+            });
         }
     };
     if alt.is_empty() {

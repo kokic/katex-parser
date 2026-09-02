@@ -30,14 +30,10 @@ pub(crate) type MacroReporter = Rc<dyn Fn(MacroLogEvent)>;
 
 pub(crate) fn default_math_symbol_group(name: &str) -> Option<MathSymbolGroup> {
     match lookup_symbol(Mode::Math, name) {
-        Some(symbol)
-            if symbol.group == crate::symbol_registry::SymbolGroup::BinaryGroup =>
-        {
+        Some(symbol) if symbol.group == crate::symbol_registry::SymbolGroup::BinaryGroup => {
             Some(MathSymbolGroup::BinarySymbol)
         }
-        Some(symbol)
-            if symbol.group == crate::symbol_registry::SymbolGroup::RelationGroup =>
-        {
+        Some(symbol) if symbol.group == crate::symbol_registry::SymbolGroup::RelationGroup => {
             Some(MathSymbolGroup::RelationSymbol)
         }
         _ => None,
@@ -63,7 +59,10 @@ pub(crate) fn builtin_dynamic_macros() -> HashMap<String, MacroHandler> {
     map.insert("\\char".to_string(), Rc::new(char_macro));
     map.insert("\\newcommand".to_string(), Rc::new(new_command_macro));
     map.insert("\\renewcommand".to_string(), Rc::new(renew_command_macro));
-    map.insert("\\providecommand".to_string(), Rc::new(provide_command_macro));
+    map.insert(
+        "\\providecommand".to_string(),
+        Rc::new(provide_command_macro),
+    );
     map.insert("\\message".to_string(), Rc::new(message_macro));
     map.insert("\\errmessage".to_string(), Rc::new(error_message_macro));
     map.insert("\\show".to_string(), Rc::new(show_macro));

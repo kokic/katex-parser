@@ -143,7 +143,7 @@ pub fn cancel_bin_atoms(items : Array[SpacableItem]) -> Array[SpacableItem] {
 
   // Handle leftmost boundary
   if items[0].atom_type is Some("mbin") {
-    items[0] = { ..items[0], atom_type: Some("mord") }
+    items[0] = { ..items[0], atom_type: Some("mord"), }
   }
 
   // Handle adjacent pairs
@@ -153,11 +153,11 @@ pub fn cancel_bin_atoms(items : Array[SpacableItem]) -> Array[SpacableItem] {
     match (prev_ty, curr_ty) {
       (Some("mbin"), Some(right)) =>
         if cancels_right_of_bin(right) {
-          items[i - 1] = { ..items[i - 1], atom_type: Some("mord") }
+          items[i - 1] = { ..items[i - 1], atom_type: Some("mord"), }
         }
       (Some(left), Some("mbin")) =>
         if cancels_left_of_bin(left) {
-          items[i] = { ..items[i], atom_type: Some("mord") }
+          items[i] = { ..items[i], atom_type: Some("mord"), }
         }
       _ => ()
     }
@@ -165,7 +165,7 @@ pub fn cancel_bin_atoms(items : Array[SpacableItem]) -> Array[SpacableItem] {
 
   // Handle rightmost boundary
   if n >= 1 && items[n - 1].atom_type is Some("mbin") {
-    items[n - 1] = { ..items[n - 1], atom_type: Some("mord") }
+    items[n - 1] = { ..items[n - 1], atom_type: Some("mord"), }
   }
 
   items

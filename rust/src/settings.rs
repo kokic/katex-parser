@@ -4,7 +4,7 @@ use std::rc::Rc;
 use crate::error::ParseError;
 use crate::macro_definition::MacroDefinition;
 use crate::source_location::SourceLocation;
-use crate::token::{token_location, Token};
+use crate::token::{Token, token_location};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// The result of a strict-mode check: ignore, warn, or error.
@@ -142,7 +142,12 @@ impl Settings {
         error_message: &str,
         token: Option<&Token>,
     ) -> bool {
-        match strict_response(&self.strict, error_code, error_message, token_location(token)) {
+        match strict_response(
+            &self.strict,
+            error_code,
+            error_message,
+            token_location(token),
+        ) {
             StrictResponse::Error => true,
             StrictResponse::Warn => {
                 let warning = format!(
@@ -163,7 +168,12 @@ impl Settings {
         error_message: &str,
         token: Option<&Token>,
     ) -> Result<(), ParseError> {
-        match strict_response(&self.strict, error_code, error_message, token_location(token)) {
+        match strict_response(
+            &self.strict,
+            error_code,
+            error_message,
+            token_location(token),
+        ) {
             StrictResponse::Ignore => Ok(()),
             StrictResponse::Warn => {
                 let warning = format!(
@@ -274,7 +284,11 @@ fn url_protocol(url: &str) -> Option<String> {
                 return None;
             }
             let scheme: String = chars[start..index].iter().collect();
-            if !scheme.chars().next().is_some_and(|c| c.is_ascii_alphabetic()) {
+            if !scheme
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphabetic())
+            {
                 return None;
             }
             for c in scheme.chars() {

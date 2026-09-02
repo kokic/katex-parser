@@ -1,6 +1,8 @@
 use crate::ast::{ArrayColumn, ColumnSeparationType, ParseNode, StyleLevel};
+use crate::environments::registry::{
+    ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser,
+};
 use crate::error::ParseError;
-use crate::environments::registry::{ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser};
 
 pub(crate) fn matrix_column_count(body: &[Vec<ParseNode>]) -> usize {
     body.iter().map(|row| row.len()).max().unwrap_or(0)
@@ -16,7 +18,10 @@ fn matrix_columns(count: usize, alignment: &str) -> Vec<ArrayColumn> {
         .collect()
 }
 
-pub(crate) fn array_with_columns(node: ParseNode, columns: Vec<ArrayColumn>) -> Result<ParseNode, ParseError> {
+pub(crate) fn array_with_columns(
+    node: ParseNode,
+    columns: Vec<ArrayColumn>,
+) -> Result<ParseNode, ParseError> {
     match node {
         ParseNode::Array {
             mode,
@@ -98,7 +103,7 @@ pub(crate) fn matrix_environment_handler(
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: "Expected matrix array".to_string(),
-            })
+            });
         }
     };
     let array = array_with_columns(array, matrix_columns(count, &alignment))?;
@@ -138,7 +143,7 @@ pub(crate) fn smallmatrix_environment_handler(
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: "Expected smallmatrix array".to_string(),
-            })
+            });
         }
     };
     array_with_columns(array, matrix_columns(count, "c"))

@@ -101,7 +101,7 @@ fn standard_genfrac_config(func_name: &str) -> Result<GenFracConfig, ParseError>
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: format!("Unrecognized standard genfrac command: {func_name}"),
-            })
+            });
         }
     };
     Ok(config)
@@ -158,7 +158,7 @@ fn infix_replacement(func_name: &str) -> Result<String, ParseError> {
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: format!("Unrecognized infix genfrac command: {func_name}"),
-            })
+            });
         }
     };
     Ok(replacement.to_string())
@@ -232,7 +232,7 @@ fn genfrac_style(arg: &ParseNode) -> Result<Option<StyleLevel>, ParseError> {
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: "\\genfrac style argument did not contain a textord".to_string(),
-            })
+            });
         }
     };
     Ok(match text.as_str() {
@@ -285,7 +285,7 @@ fn general_genfrac_handler(
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: "\\genfrac bar argument was not a size".to_string(),
-            })
+            });
         }
     };
     let node = ParseNode::GenFrac {
@@ -324,7 +324,7 @@ fn above_handler(
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: "\\above argument was not a size".to_string(),
-            })
+            });
         }
     };
     Ok(ParseNode::Infix {
@@ -355,11 +355,13 @@ fn abovefrac_handler(
     let infix = require_function_arg(args, 1, &context.func_name)?;
     let denom = require_function_arg(args, 2, &context.func_name)?;
     let bar_size = match &infix {
-        ParseNode::Infix { size: Some(size), .. } => size.clone(),
+        ParseNode::Infix {
+            size: Some(size), ..
+        } => size.clone(),
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: "\\\\abovefrac expected an infix size".to_string(),
-            })
+            });
         }
     };
     Ok(ParseNode::GenFrac {

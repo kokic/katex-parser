@@ -1,6 +1,8 @@
 use crate::ast::{ColumnSeparationType, ParseNode, StyleLevel};
+use crate::environments::registry::{
+    ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser,
+};
 use crate::error::ParseError;
-use crate::environments::registry::{ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser};
 use crate::functions::require_function_arg;
 
 pub(crate) fn environment_argument_text(arg: &ParseNode) -> Result<String, ParseError> {
@@ -18,7 +20,7 @@ pub(crate) fn environment_argument_text(arg: &ParseNode) -> Result<String, Parse
                 return Err(ParseError::InvalidArgument {
                     message: "Invalid alignment column count".to_string(),
                     loc: None,
-                })
+                });
             }
         };
         text.push_str(part);
@@ -72,6 +74,13 @@ pub(crate) fn alignat_environment_handler(
         column_separation_type: Some(ColumnSeparationType::AlignAtSeparation),
     })?;
     let array = super::alignment::insert_alignment_empty_groups(array)?;
-    let count = super::alignment::array_body(&array)?.iter().map(|r| r.len()).max().unwrap_or(0);
-    super::alignment::replace_alignment_columns(array, super::alignment::alignment_columns(count, false))
+    let count = super::alignment::array_body(&array)?
+        .iter()
+        .map(|r| r.len())
+        .max()
+        .unwrap_or(0);
+    super::alignment::replace_alignment_columns(
+        array,
+        super::alignment::alignment_columns(count, false),
+    )
 }

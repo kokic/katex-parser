@@ -55,9 +55,10 @@ pub(crate) fn skip_ascii_spaces(chars: &[char], start: usize) -> usize {
 }
 
 pub(crate) fn parse_decimal(text: &str) -> Result<f64, ParseError> {
-    text.parse::<f64>().map_err(|_| ParseError::InternalInvariant {
-        message: format!("Validated size number failed Double conversion: {text}"),
-    })
+    text.parse::<f64>()
+        .map_err(|_| ParseError::InternalInvariant {
+            message: format!("Validated size number failed Double conversion: {text}"),
+        })
 }
 
 pub(crate) fn parse_size_measurement(text: &str) -> Result<Option<Measurement>, ParseError> {
@@ -110,8 +111,7 @@ pub(crate) fn parse_size_measurement(text: &str) -> Result<Option<Measurement>, 
 pub(crate) fn valid_size_unit(unit: &str) -> bool {
     matches!(
         unit,
-        "pt"
-            | "mm"
+        "pt" | "mm"
             | "cm"
             | "in"
             | "bp"

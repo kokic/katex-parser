@@ -43,8 +43,7 @@ fn delimiter_text(node: &ParseNode) -> Option<String> {
 fn is_delimiter(text: &str) -> bool {
     matches!(
         text,
-        "("
-            | "\\lparen"
+        "(" | "\\lparen"
             | ")"
             | "\\rparen"
             | "["

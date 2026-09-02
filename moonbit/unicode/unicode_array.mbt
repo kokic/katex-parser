@@ -83,7 +83,7 @@ fn cell_block(
   let block = pad_gather(block, separation)
   // Math axis sits at the vertical center of the array, so surrounding
   // content (e.g. `=` in `x = \begin{cases}...`) aligns against it.
-  { ..block, baseline: block.height() / 2 }
+  { ..block, baseline: block.height() / 2, }
 }
 
 ///|
@@ -98,7 +98,7 @@ fn pad_gather(
     block
   }
   let lines = block.lines.map(l => "    \{l}    ")
-  { lines, width: block.width + 8, baseline: block.baseline }
+  { lines, width: block.width + 8, baseline: block.baseline, }
 }
 
 ///|
@@ -199,14 +199,14 @@ fn row_block(
       }
     }
   }
-  { lines, width, baseline: row_bl }
+  { lines, width, baseline: row_bl, }
 }
 
 ///|
 /// Pads a cell block to a column width according to its alignment. Empty
 /// cells grow to the width without any lines.
 fn pad_cell(b : Block, width : Int, align : String) -> Block {
-  guard b.lines.length() > 0 else { { lines: [], width, baseline: 0 } }
+  guard b.lines.length() > 0 else { { lines: [], width, baseline: 0, } }
   guard width > b.width else { b }
   match align {
     "r" =>

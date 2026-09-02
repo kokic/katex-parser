@@ -12,23 +12,67 @@ mod tests {
 
     #[test]
     fn t0() {
-        assert_eq!(render(&parse("\\boxed{x}", &mut Settings::new()).unwrap(), RenderConfig::new()), "┌─┐\n│x│\n└─┘");
-        assert_eq!(render(&parse("\\boxed{\\pi=\\frac c d}", &mut Settings::new()).unwrap(), RenderConfig::new()), "┌───────┐\n│     c │\n│π = ───│\n│     d │\n└───────┘");
+        assert_eq!(
+            render(
+                &parse("\\boxed{x}", &mut Settings::new()).unwrap(),
+                RenderConfig::new()
+            ),
+            "┌─┐\n│x│\n└─┘"
+        );
+        assert_eq!(
+            render(
+                &parse("\\boxed{\\pi=\\frac c d}", &mut Settings::new()).unwrap(),
+                RenderConfig::new()
+            ),
+            "┌───────┐\n│     c │\n│π = ───│\n│     d │\n└───────┘"
+        );
     }
 
     #[test]
     fn t1() {
-        let mut settings = Settings { display_mode: true, ..Settings::new() };
-        assert_eq!(render(&parse("x = \\boxed{\\pi=\\frac c d}", &mut settings).unwrap(), RenderConfig::new()), "    ┌───────┐\n    │     c │\nx = │π = ───│\n    │     d │\n    └───────┘");
+        let mut settings = Settings {
+            display_mode: true,
+            ..Settings::new()
+        };
+        assert_eq!(
+            render(
+                &parse("x = \\boxed{\\pi=\\frac c d}", &mut settings).unwrap(),
+                RenderConfig::new()
+            ),
+            "    ┌───────┐\n    │     c │\nx = │π = ───│\n    │     d │\n    └───────┘"
+        );
     }
 
     #[test]
     fn t2() {
-        let config = RenderConfig { line_style: LineStyle::Ascii, ..RenderConfig::new() };
-        let mut settings = Settings { display_mode: true, ..Settings::new() };
-        assert_eq!(render(&parse("\\boxed{x}", &mut Settings::new()).unwrap(), config.clone()), "---\n|x|\n---");
-        assert_eq!(render(&parse("\\boxed{\\pi=\\frac c d}", &mut Settings::new()).unwrap(), config.clone()), "---------\n|     c |\n|π = ---|\n|     d |\n---------");
-        assert_eq!(render(&parse("\\frac{a}{b}", &mut settings).unwrap(), config.clone()), " a \n---\n b ");
+        let config = RenderConfig {
+            line_style: LineStyle::Ascii,
+            ..RenderConfig::new()
+        };
+        let mut settings = Settings {
+            display_mode: true,
+            ..Settings::new()
+        };
+        assert_eq!(
+            render(
+                &parse("\\boxed{x}", &mut Settings::new()).unwrap(),
+                config.clone()
+            ),
+            "---\n|x|\n---"
+        );
+        assert_eq!(
+            render(
+                &parse("\\boxed{\\pi=\\frac c d}", &mut Settings::new()).unwrap(),
+                config.clone()
+            ),
+            "---------\n|     c |\n|π = ---|\n|     d |\n---------"
+        );
+        assert_eq!(
+            render(
+                &parse("\\frac{a}{b}", &mut settings).unwrap(),
+                config.clone()
+            ),
+            " a \n---\n b "
+        );
     }
-
 }

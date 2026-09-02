@@ -51,7 +51,11 @@ impl Block {
         if target_width <= self.width {
             return self.clone();
         }
-        let lines: Vec<String> = self.lines.iter().map(|l| pad_right(l, target_width)).collect();
+        let lines: Vec<String> = self
+            .lines
+            .iter()
+            .map(|l| pad_right(l, target_width))
+            .collect();
         Block {
             lines,
             width: target_width,
@@ -63,7 +67,11 @@ impl Block {
         if self.lines.is_empty() || target_width <= self.width {
             return self.clone();
         }
-        let lines: Vec<String> = self.lines.iter().map(|l| center_text(l, target_width)).collect();
+        let lines: Vec<String> = self
+            .lines
+            .iter()
+            .map(|l| center_text(l, target_width))
+            .collect();
         Block {
             lines,
             width: target_width,

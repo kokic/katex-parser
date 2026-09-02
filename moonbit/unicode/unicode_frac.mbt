@@ -12,8 +12,8 @@ fn frac_block(
   // fraction, script/scriptscript otherwise. The numerator and denominator
   // share the same style, so they must use the same (tight) spacing too.
   let child_tight = state.style != @katex.StyleLevel::DisplayStyle
-  let num_state = { ..state, in_display: false, in_tight: child_tight }
-  let den_state = { ..state, in_display: false, in_tight: child_tight }
+  let num_state = { ..state, in_display: false, in_tight: child_tight, }
+  let den_state = { ..state, in_display: false, in_tight: child_tight, }
   let num = Block::from(render_node_internal(numer, num_state))
   let den = Block::from(render_node_internal(denom, den_state))
   let bar_w = num.width().max(den.width()) + 2
@@ -25,7 +25,7 @@ fn frac_block(
   } else {
     num.center(bar_w).above(den.center(bar_w))
   }
-  { ..frac, baseline: num.height() }
+  { ..frac, baseline: num.height(), }
 }
 
 ///|
@@ -59,8 +59,8 @@ fn barless_delimited_block(
   state : RenderState,
 ) -> Block {
   let child_tight = state.style != @katex.StyleLevel::DisplayStyle
-  let num_state = { ..state, in_display: false, in_tight: child_tight }
-  let den_state = { ..state, in_display: false, in_tight: child_tight }
+  let num_state = { ..state, in_display: false, in_tight: child_tight, }
+  let den_state = { ..state, in_display: false, in_tight: child_tight, }
   let num = Block::from(render_node_internal(numer, num_state))
   let den = Block::from(render_node_internal(denom, den_state))
   let w = num.width().max(den.width())
@@ -70,5 +70,5 @@ fn barless_delimited_block(
     "\{l}\{center_text(num.render(), w)}\{r}",
     "\{l}\{center_text(den.render(), w)}\{r}",
   ]
-  { lines, width: w + display_width(l) + display_width(r), baseline: 0 }
+  { lines, width: w + display_width(l) + display_width(r), baseline: 0, }
 }

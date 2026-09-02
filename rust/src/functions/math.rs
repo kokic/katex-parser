@@ -19,7 +19,11 @@ fn math_mode_handler(
     _args: &[ParseNode],
     _opt_args: &[Option<ParseNode>],
 ) -> Result<ParseNode, ParseError> {
-    let close = if context.func_name == "\\(" { "\\)" } else { "$" };
+    let close = if context.func_name == "\\(" {
+        "\\)"
+    } else {
+        "$"
+    };
     Ok(ParseNode::Styling {
         mode: context.mode,
         style: StyleLevel::TextStyle,

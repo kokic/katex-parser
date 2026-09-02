@@ -1,6 +1,8 @@
 use crate::ast::{ArrayColumn, ColumnSeparationType, ParseNode, StyleLevel};
+use crate::environments::registry::{
+    ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser, array_columns,
+};
 use crate::error::ParseError;
-use crate::environments::registry::{array_columns, ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser};
 use crate::functions::require_function_arg;
 
 fn subarray_columns(arg: &ParseNode) -> Result<Vec<ArrayColumn>, ParseError> {
@@ -30,7 +32,11 @@ pub(crate) fn subarray_environment_handler(
     _opt_args: &[Option<ParseNode>],
 ) -> Result<ParseNode, ParseError> {
     parser.parse_array(ArrayEnvironmentOptions {
-        columns: Some(subarray_columns(&require_function_arg(args, 0, "\\begin{subarray}")?)?),
+        columns: Some(subarray_columns(&require_function_arg(
+            args,
+            0,
+            "\\begin{subarray}",
+        )?)?),
         array_stretch: 0.5,
         hskip_before_and_after: false,
         cell_style: StyleLevel::ScriptStyle,

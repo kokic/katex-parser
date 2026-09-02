@@ -12,8 +12,8 @@ use crate::symbol_registry::is_registered_symbol;
 use crate::token::Token;
 
 use crate::builtin_macros::{
-    builtin_dynamic_macros, default_macro_reporter, default_math_symbol_group, MacroReporter,
-    MathSymbolGroupResolver,
+    MacroReporter, MathSymbolGroupResolver, builtin_dynamic_macros, default_macro_reporter,
+    default_math_symbol_group,
 };
 use crate::builtin_macros_static::builtin_static_macros;
 
@@ -37,8 +37,7 @@ pub(crate) enum ExternalCommandStatus {
     ExternalUnexpandable,
 }
 
-pub(crate) type CommandStatusResolver =
-    Rc<dyn Fn(&str) -> ExternalCommandStatus>;
+pub(crate) type CommandStatusResolver = Rc<dyn Fn(&str) -> ExternalCommandStatus>;
 
 pub(crate) type MacroHandler =
     Rc<dyn Fn(&mut MacroExpander) -> Result<MacroReplacement, ParseError>>;
@@ -141,17 +140,22 @@ impl MacroExpander {
             self.stack.push(token.clone());
             Ok(token)
         } else {
-            self.stack.last().cloned().ok_or_else(|| ParseError::InternalInvariant {
-                message: "Empty token stack".to_string(),
-            })
+            self.stack
+                .last()
+                .cloned()
+                .ok_or_else(|| ParseError::InternalInvariant {
+                    message: "Empty token stack".to_string(),
+                })
         }
     }
 
     pub(crate) fn pop_token(&mut self) -> Result<Token, ParseError> {
         let _ = self.future()?;
-        self.stack.pop().ok_or_else(|| ParseError::InternalInvariant {
-            message: "Empty token stack".to_string(),
-        })
+        self.stack
+            .pop()
+            .ok_or_else(|| ParseError::InternalInvariant {
+                message: "Empty token stack".to_string(),
+            })
     }
 
     pub(crate) fn push_token(&mut self, token: Token) {
@@ -236,22 +240,22 @@ impl MacroExpander {
             if let Some(values) = delimiters
                 && is_delimited
             {
-                    if delimiter_is_active(values, delimiter_match, depth, &token) {
-                        delimiter_match += 1;
-                        if delimiter_match == values.len() {
-                            for _ in 0..delimiter_match {
-                                tokens.pop();
-                            }
-                            let normalized = normalize_consumed_argument(&start, tokens);
-                            return Ok(MacroArgument {
-                                start,
-                                end: token,
-                                tokens: normalized,
-                            });
+                if delimiter_is_active(values, delimiter_match, depth, &token) {
+                    delimiter_match += 1;
+                    if delimiter_match == values.len() {
+                        for _ in 0..delimiter_match {
+                            tokens.pop();
                         }
-                    } else {
-                        delimiter_match = 0;
+                        let normalized = normalize_consumed_argument(&start, tokens);
+                        return Ok(MacroArgument {
+                            start,
+                            end: token,
+                            tokens: normalized,
+                        });
                     }
+                } else {
+                    delimiter_match = 0;
+                }
             }
             if depth == 0 && !is_delimited {
                 let normalized = normalize_consumed_argument(&start, tokens);
@@ -272,7 +276,8 @@ impl MacroExpander {
         if let Some(values) = delimiters {
             if values.len() != num_args + 1 {
                 return Err(ParseError::InvalidArgument {
-                    message: "The length of delimiters doesn't match the number of args!".to_string(),
+                    message: "The length of delimiters doesn't match the number of args!"
+                        .to_string(),
                     loc: None,
                 });
             }
@@ -405,10 +410,13 @@ impl MacroExpander {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn expand_macro_as_text(&mut self, name: &str) -> Result<Option<String>, ParseError> {
-        Ok(self.expand_macro(name)?.map(|tokens| {
-            tokens.iter().map(|token| token.text.clone()).collect()
-        }))
+    pub(crate) fn expand_macro_as_text(
+        &mut self,
+        name: &str,
+    ) -> Result<Option<String>, ParseError> {
+        Ok(self
+            .expand_macro(name)?
+            .map(|tokens| tokens.iter().map(|token| token.text.clone()).collect()))
     }
 
     fn lex_macro_body(&mut self, expansion: &str) -> Result<MacroExpansion, ParseError> {
@@ -442,9 +450,7 @@ impl MacroExpander {
     }
 
     fn get_expansion(&mut self, name: &str) -> Result<Option<MacroExpansion>, ParseError> {
-        if name.len() == 1
-            && self.lexer.catcode(name).is_some_and(|code| code != 13)
-        {
+        if name.len() == 1 && self.lexer.catcode(name).is_some_and(|code| code != 13) {
             return Ok(None);
         }
         match self.dynamic_macros.get_current(name) {
@@ -483,9 +489,8 @@ impl MacroExpander {
     pub(crate) fn is_defined(&self, name: &str) -> bool {
         let external_defined = match (self.command_status)(name) {
             ExternalCommandStatus::ExternalUndefined => false,
-            ExternalCommandStatus::ExternalExpandable | ExternalCommandStatus::ExternalUnexpandable => {
-                true
-            }
+            ExternalCommandStatus::ExternalExpandable
+            | ExternalCommandStatus::ExternalUnexpandable => true,
         };
         self.macros.has(name)
             || self.dynamic_macros.has(name)
@@ -519,20 +524,27 @@ impl MacroExpander {
     }
 }
 
-fn delimiter_is_active(delimiters: &[String], match_index: usize, depth: i64, token: &Token) -> bool {
+fn delimiter_is_active(
+    delimiters: &[String],
+    match_index: usize,
+    depth: i64,
+    token: &Token,
+) -> bool {
     delimiters.get(match_index).is_some_and(|delimiter| {
         (depth == 0 || (depth == 1 && delimiter == "{")) && token.text == *delimiter
     })
 }
 
 fn expected_argument_delimiter(delimiters: Option<&[String]>, match_index: usize) -> String {
-    delimiters
-        .map_or_else(|| "}".to_string(), |values| {
+    delimiters.map_or_else(
+        || "}".to_string(),
+        |values| {
             values
                 .get(match_index)
                 .cloned()
                 .unwrap_or_else(|| "}".to_string())
-        })
+        },
+    )
 }
 
 fn normalize_consumed_argument(start: &Token, tokens: Vec<Token>) -> Vec<Token> {

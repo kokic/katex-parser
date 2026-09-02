@@ -573,6 +573,5 @@ fn east_asian_wide_emoji(code : Int) -> Bool {
 ///|
 /// CJK Unified Ideographs Extension B and C (0x20000–0x3FFFD).
 fn east_asian_wide_cjk_ext(code : Int) -> Bool {
-  is_between(code, 0x20000, 0x2FFFD) ||
-  is_between(code, 0x30000, 0x3FFFD)
+  is_between(code, 0x20000, 0x2FFFD) || is_between(code, 0x30000, 0x3FFFD)
 }

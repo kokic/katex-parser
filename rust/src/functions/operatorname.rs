@@ -6,7 +6,10 @@ use super::{ord_argument, require_function_arg};
 
 pub(crate) fn operatorname_spec() -> FunctionSpec {
     FunctionSpec {
-        names: vec!["\\operatorname@".to_string(), "\\operatornamewithlimits".to_string()],
+        names: vec![
+            "\\operatorname@".to_string(),
+            "\\operatornamewithlimits".to_string(),
+        ],
         num_args: 1,
         handler: Some(operatorname_handler),
         ..Default::default()

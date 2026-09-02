@@ -64,10 +64,11 @@ impl std::fmt::Display for ParseError {
                 write!(f, "Expected group after {symbol}")
             }
             ParseError::FunctionNotAllowed {
-                func_name,
-                context,
-                ..
-            } => write!(f, "Function {func_name} is not allowed in {context} context"),
+                func_name, context, ..
+            } => write!(
+                f,
+                "Function {func_name} is not allowed in {context} context"
+            ),
             ParseError::MissingFunctionHandler { func_name, .. } => {
                 write!(f, "No handler defined for function {func_name}")
             }

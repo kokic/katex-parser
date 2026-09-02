@@ -1,6 +1,8 @@
 use crate::ast::{ArrayColumn, ParseNode, StyleLevel};
+use crate::environments::registry::{
+    ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser,
+};
 use crate::error::ParseError;
-use crate::environments::registry::{ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser};
 
 fn cases_columns() -> Vec<ArrayColumn> {
     vec![

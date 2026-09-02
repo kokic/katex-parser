@@ -19,11 +19,7 @@ fn decimal_char_code(text: &str) -> Option<u32> {
             value * 10 + digit
         };
     }
-    if saw_digit {
-        Some(value)
-    } else {
-        None
-    }
+    if saw_digit { Some(value) } else { None }
 }
 
 fn char_argument_text(arg: &ParseNode, func_name: &str) -> Result<String, ParseError> {
@@ -32,7 +28,7 @@ fn char_argument_text(arg: &ParseNode, func_name: &str) -> Result<String, ParseE
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: format!("Expected group argument for {func_name}"),
-            })
+            });
         }
     };
     let mut builder = String::new();
@@ -42,7 +38,7 @@ fn char_argument_text(arg: &ParseNode, func_name: &str) -> Result<String, ParseE
             _ => {
                 return Err(ParseError::InternalInvariant {
                     message: format!("Expected text character for {func_name}"),
-                })
+                });
             }
         }
     }

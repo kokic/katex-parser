@@ -76,7 +76,9 @@ pub(crate) fn char_macro(context: &mut MacroExpander) -> Result<MacroReplacement
         };
         parse_char_number(context, &digit, base)?
     };
-    Ok(MacroReplacement::ReplacementText(format!("\\@char{{{number}}}")))
+    Ok(MacroReplacement::ReplacementText(format!(
+        "\\@char{{{number}}}"
+    )))
 }
 
 pub(crate) fn parse_argument_count(text: &str) -> Option<usize> {
@@ -178,7 +180,9 @@ fn parse_optional_arg_count(context: &mut MacroExpander) -> Result<usize, ParseE
     Ok(value)
 }
 
-pub(crate) fn new_command_macro(context: &mut MacroExpander) -> Result<MacroReplacement, ParseError> {
+pub(crate) fn new_command_macro(
+    context: &mut MacroExpander,
+) -> Result<MacroReplacement, ParseError> {
     define_command_macro(context, false, true, false)
 }
 

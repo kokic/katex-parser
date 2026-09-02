@@ -1,18 +1,22 @@
 use std::rc::Rc;
 
 use crate::anvil::{
-    atom_family_name, cancel_bin_atoms, command_name, em_value, is_null_delimiter,
-    join_with_spacing, math_choice_variant, math_spacing, resolve_symbol, SpacableItem,
+    SpacableItem, atom_family_name, cancel_bin_atoms, command_name, em_value, is_null_delimiter,
+    join_with_spacing, math_choice_variant, math_spacing, resolve_symbol,
 };
 use crate::ast::{ColumnSeparationType, Measurement, OperatorContent, ParseNode, StyleLevel};
-use crate::unicode::block::{display_width, Block};
 use crate::unicode::block::center_text;
+use crate::unicode::block::{Block, display_width};
 use crate::unicode::config::{LineStyle, RenderConfig, RenderState};
-use crate::unicode::unicode_array::{cell_block, render_array_block, render_array_inline, render_leftright_block};
+use crate::unicode::unicode_array::{
+    cell_block, render_array_block, render_array_inline, render_leftright_block,
+};
 use crate::unicode::unicode_cd::render_cd_block;
-use crate::unicode::unicode_frac::{barless_delimited_block, frac_block, render_genfrac_block, wrap_delims};
+use crate::unicode::unicode_frac::{
+    barless_delimited_block, frac_block, render_genfrac_block, wrap_delims,
+};
 use crate::unicode_font::unicode_font_character;
-use crate::unicode_scripts::{unicode_script_character, UnicodeScriptKind};
+use crate::unicode_scripts::{UnicodeScriptKind, unicode_script_character};
 
 use super::atomic::is_atomic_expression;
 
@@ -41,7 +45,11 @@ fn render_internal_block(nodes: &[ParseNode], state: &RenderState) -> Block {
     if cancelled.iter().any(|it| it.text.contains('\n')) {
         join_with_block(&cancelled, state.in_tight, &state.config.spacing)
     } else {
-        Block::from(&join_with_spacing(&cancelled, state.in_tight, &state.config.spacing))
+        Block::from(&join_with_spacing(
+            &cancelled,
+            state.in_tight,
+            &state.config.spacing,
+        ))
     }
 }
 
@@ -51,9 +59,10 @@ fn join_with_block(items: &[SpacableItem], tight: bool, spec: &crate::anvil::Spa
         let prev = &items[i - 1];
         let curr = &items[i];
         if let (Some(left), Some(right)) = (&prev.atom_type, &curr.atom_type)
-            && let Some(space) = math_spacing(left, right, tight, spec) {
-                result = result.beside(&Block::from(&space));
-            }
+            && let Some(space) = math_spacing(left, right, tight, spec)
+        {
+            result = result.beside(&Block::from(&space));
+        }
         result = result.beside(&item_to_block(curr));
     }
     result
@@ -220,14 +229,22 @@ pub(crate) fn render_node_internal(node: &ParseNode, state: &RenderState) -> Str
             state,
         ),
         ParseNode::HorizBrace { label, base, .. } => {
-            format!("{}({})", command_name(label), render_node_internal(base, state))
+            format!(
+                "{}({})",
+                command_name(label),
+                render_node_internal(base, state)
+            )
         }
         ParseNode::XArrow {
             label,
             body,
             below: None,
             ..
-        } => format!("{}({})", command_name(label), render_node_internal(body, state)),
+        } => format!(
+            "{}({})",
+            command_name(label),
+            render_node_internal(body, state)
+        ),
         ParseNode::XArrow {
             label,
             body,
@@ -247,7 +264,9 @@ pub(crate) fn render_node_internal(node: &ParseNode, state: &RenderState) -> Str
         ParseNode::DelimSizing { delim, .. }
         | ParseNode::LeftRightRight { delim, .. }
         | ParseNode::Middle { delim, .. } => render_delimiter(delim),
-        ParseNode::LeftRight { body, left, right, .. } => {
+        ParseNode::LeftRight {
+            body, left, right, ..
+        } => {
             if state.in_display {
                 render_leftright_display_block(body, left, right, state).render()
             } else {
@@ -301,9 +320,7 @@ pub(crate) fn render_node_internal(node: &ParseNode, state: &RenderState) -> Str
         ParseNode::CdLabel { side, label, .. } => {
             format!("{side}({})", render_node_internal(label, state))
         }
-        ParseNode::Cr {
-            new_line: true, ..
-        } => "\n".to_string(),
+        ParseNode::Cr { new_line: true, .. } => "\n".to_string(),
         ParseNode::Cr { .. } => String::new(),
         ParseNode::HtmlMathML { mathml, .. } => render_internal(mathml, state),
         ParseNode::SupSub { base, sup, sub, .. } => render_sup_sub(base, sup, sub, state),
@@ -395,8 +412,7 @@ fn get_outer_atom_type(node: &ParseNode) -> Option<String> {
             Some("mop".to_string())
         }
         ParseNode::SupSub {
-            base: Some(base),
-            ..
+            base: Some(base), ..
         } => {
             if matches!(
                 **base,
@@ -551,7 +567,12 @@ fn inline_atop(numer: &ParseNode, denom: &ParseNode, state: &RenderState) -> Str
     )
 }
 
-fn inline_fraction(numer: &ParseNode, denom: &ParseNode, slash: &str, state: &RenderState) -> String {
+fn inline_fraction(
+    numer: &ParseNode,
+    denom: &ParseNode,
+    slash: &str,
+    state: &RenderState,
+) -> String {
     let num_state = RenderState {
         in_tight: true,
         ..state.clone()
@@ -575,13 +596,15 @@ fn render_leftright_display_block(
     state: &RenderState,
 ) -> Block {
     match body {
-        [ParseNode::Array {
-            body: arr_body,
-            columns,
-            hlines_before_row,
-            column_separation_type,
-            ..
-        }] => render_leftright_block(
+        [
+            ParseNode::Array {
+                body: arr_body,
+                columns,
+                hlines_before_row,
+                column_separation_type,
+                ..
+            },
+        ] => render_leftright_block(
             &render_delimiter(left),
             &render_delimiter(right),
             arr_body,
@@ -612,7 +635,11 @@ fn enclose_box(block: &Block, style: LineStyle) -> Block {
     let top = box_border(style, w, true);
     let bottom = box_border(style, w, false);
     let side = box_side(style);
-    let middle: Vec<String> = block.lines.iter().map(|l| format!("{side}{l}{side}")).collect();
+    let middle: Vec<String> = block
+        .lines
+        .iter()
+        .map(|l| format!("{side}{l}{side}"))
+        .collect();
     let mut lines = Vec::with_capacity(middle.len() + 2);
     lines.push(top);
     lines.extend(middle);
@@ -717,9 +744,10 @@ fn render_sup_sub_block(
     state: &RenderState,
 ) -> Block {
     if let Some(b) = base
-        && operator_uses_limits(b, state) {
-            return render_limits_block(b, sup, sub, state);
-        }
+        && operator_uses_limits(b, state)
+    {
+        return render_limits_block(b, sup, sub, state);
+    }
     let base_block = base
         .as_ref()
         .map(|b| render_operand_block(b, state))
@@ -828,7 +856,9 @@ fn split_prime_prefix(text: &str) -> Option<(String, String)> {
 }
 
 fn render_function_block(name: &str, body: &Block) -> Block {
-    Block::from(&format!("{name}(")).beside(body).beside(&Block::from(")"))
+    Block::from(&format!("{name}("))
+        .beside(body)
+        .beside(&Block::from(")"))
 }
 
 fn render_font_block(font: &str, body: &ParseNode, state: &RenderState) -> Block {
@@ -919,9 +949,9 @@ pub(crate) fn content_block(node: &ParseNode, state: &RenderState) -> Block {
             left_delim.as_deref(),
             right_delim.as_deref(),
         ),
-        ParseNode::LeftRight { body, left, right, .. } if state.in_display => {
-            render_leftright_display_block(body, left, right, state)
-        }
+        ParseNode::LeftRight {
+            body, left, right, ..
+        } if state.in_display => render_leftright_display_block(body, left, right, state),
         ParseNode::Array {
             body,
             column_separation_type: Some(ColumnSeparationType::CdSeparation),
@@ -965,7 +995,9 @@ pub(crate) fn content_block(node: &ParseNode, state: &RenderState) -> Block {
         ParseNode::Phantom { body, .. } => {
             render_function_block("phantom", &content_body_block(body, state))
         }
-        ParseNode::Pmb { body, .. } => render_function_block("bold", &content_body_block(body, state)),
+        ParseNode::Pmb { body, .. } => {
+            render_function_block("bold", &content_body_block(body, state))
+        }
         ParseNode::Enclose { label, body, .. } => {
             render_function_block(&command_name(label), &content_block(body, state))
         }
@@ -989,12 +1021,11 @@ pub(crate) fn content_block(node: &ParseNode, state: &RenderState) -> Block {
                 .beside(&Block::from(","))
                 .beside(&content_block(below, state)),
         ),
-        ParseNode::AccentUnder { label, base, .. } => Block::from(&format!(
-            "underaccent({},",
-            command_name(label)
-        ))
-        .beside(&content_block(base, state))
-        .beside(&Block::from(")")),
+        ParseNode::AccentUnder { label, base, .. } => {
+            Block::from(&format!("underaccent({},", command_name(label)))
+                .beside(&content_block(base, state))
+                .beside(&Block::from(")"))
+        }
         ParseNode::Accent { label, base, .. } => render_accent_block(label, base, state),
         ParseNode::Font { font, body, .. } => render_font_block(font, body, state),
         ParseNode::Op { content, .. } => render_operator_content_block(content, state),
@@ -1069,4 +1100,3 @@ fn render_accent_block(label: &str, base: &ParseNode, state: &RenderState) -> Bl
 fn is_single_character_output(s: &str) -> bool {
     s.chars().count() == 1
 }
-

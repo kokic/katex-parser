@@ -33,7 +33,7 @@ fn render_cd_block(
     guard acc.height() > 0 else { band }
     acc.above(band)
   })
-  { ..result, baseline: result.height() / 2 }
+  { ..result, baseline: result.height() / 2, }
 }
 
 ///|

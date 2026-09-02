@@ -1,6 +1,8 @@
 use crate::ast::{ParseNode, StyleLevel};
+use crate::environments::registry::{
+    ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser,
+};
 use crate::error::ParseError;
-use crate::environments::registry::{ArrayEnvironmentOptions, EnvironmentContext, EnvironmentParser};
 
 pub(crate) fn equation_environment_handler(
     parser: &mut dyn EnvironmentParser,
@@ -10,10 +12,7 @@ pub(crate) fn equation_environment_handler(
 ) -> Result<ParseNode, ParseError> {
     if !context.display_mode {
         return Err(ParseError::InvalidArgument {
-            message: format!(
-                "{{{}}} can be used only in display mode.",
-                context.env_name
-            ),
+            message: format!("{{{}}} can be used only in display mode.", context.env_name),
             loc: None,
         });
     }

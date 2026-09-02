@@ -65,7 +65,7 @@ fn html_handler(
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: format!("Expected raw argument for {}", context.func_name),
-            })
+            });
         }
     };
     parser.report_nonstrict(
@@ -99,7 +99,7 @@ fn html_handler(
         _ => {
             return Err(ParseError::InternalInvariant {
                 message: "Unrecognized html command".to_string(),
-            })
+            });
         }
     };
     let body = ord_argument(require_function_arg(args, 1, &context.func_name)?);

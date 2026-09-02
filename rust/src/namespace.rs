@@ -88,9 +88,10 @@ impl<V> Namespace<V> {
                 changes.insert(key.clone(), value.clone());
             }
         } else if let Some(changes) = self.undo_stack.last_mut()
-            && !changes.contains_key(&key) {
-                changes.insert(key.clone(), self.current.get(&key).cloned());
-            }
+            && !changes.contains_key(&key)
+        {
+            changes.insert(key.clone(), self.current.get(&key).cloned());
+        }
         if let Some(v) = value {
             self.current.insert(key, v);
         } else {

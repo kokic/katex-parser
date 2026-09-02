@@ -9,5 +9,5 @@ mod unicode_frac;
 mod unicode_width;
 
 pub use block::Block;
-pub use config::{line_style_frac_bar, unicode_text_spacing, LineStyle, RenderConfig};
+pub use config::{LineStyle, RenderConfig, line_style_frac_bar, unicode_text_spacing};
 pub use unicode::render;

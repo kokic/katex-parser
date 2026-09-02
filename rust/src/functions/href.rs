@@ -68,16 +68,14 @@ fn url_handler(
     let href = href_argument(args, 0, &context.func_name)?;
     let chars: Vec<ParseNode> = href
         .chars()
-        .map(|c| {
-            ParseNode::TextOrd {
-                mode: crate::ast::Mode::Text,
-                loc: None,
-                text: if c == '~' {
-                    "\\textasciitilde".to_string()
-                } else {
-                    c.to_string()
-                },
-            }
+        .map(|c| ParseNode::TextOrd {
+            mode: crate::ast::Mode::Text,
+            loc: None,
+            text: if c == '~' {
+                "\\textasciitilde".to_string()
+            } else {
+                c.to_string()
+            },
         })
         .collect();
     let body = ParseNode::Text {
