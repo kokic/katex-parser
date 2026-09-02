@@ -8,6 +8,6 @@ license = "AGPL-3.0"
 repository = "https://github.com/kokic/katex-parser"
 readme = "README.md"
 keywords = ["katex", "latex", "math", "parser", "tex"]
-categories = ["parser-implementations", "text-processing"]
+categories = ["mathematics", "parser-implementations"]
 
 [dependencies]
