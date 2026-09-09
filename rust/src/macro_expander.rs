@@ -85,7 +85,7 @@ impl MacroExpander {
     ) -> Self {
         let mut initial_macros = settings.macro_definitions();
         if let Some(macros) = &settings.macro_store {
-            for (name, definition) in macros.0.iter() {
+            for (name, definition) in &macros.0 {
                 initial_macros.insert(name.clone(), definition.clone());
             }
         }
@@ -432,10 +432,9 @@ impl MacroExpander {
                     delimiters: None,
                     unexpandable: false,
                 });
-            } else {
-                tokens.push(token);
-                continue;
             }
+            tokens.push(token);
+            continue;
         }
     }
 

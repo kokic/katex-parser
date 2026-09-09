@@ -11,14 +11,12 @@ pub(crate) fn trim_ascii_spaces(text: &str) -> &str {
     let start = text
         .char_indices()
         .find(|(_, c)| !matches!(c, ' ' | '\t' | '\n' | '\r'))
-        .map(|(i, _)| i)
-        .unwrap_or(text.len());
+        .map_or(text.len(), |(i, _)| i);
     let end = text
         .char_indices()
         .rev()
         .find(|(_, c)| !matches!(c, ' ' | '\t' | '\n' | '\r'))
-        .map(|(i, c)| i + c.len_utf8())
-        .unwrap_or(start);
+        .map_or(start, |(i, c)| i + c.len_utf8());
     &text[start..end]
 }
 

@@ -51,12 +51,8 @@ pub(crate) fn render_genfrac_block(
 /// Wrap a block with single-line delimiters aligned at its baseline row, so
 /// that a delimiter beside a block fraction sits exactly on the fraction bar.
 pub(crate) fn wrap_delims(block: &Block, left: Option<&str>, right: Option<&str>) -> Block {
-    let l = left
-        .map(|d| Block::from(&render_delimiter(d)))
-        .unwrap_or_else(Block::empty);
-    let r = right
-        .map(|d| Block::from(&render_delimiter(d)))
-        .unwrap_or_else(Block::empty);
+    let l = left.map_or_else(Block::empty, |d| Block::from(&render_delimiter(d)));
+    let r = right.map_or_else(Block::empty, |d| Block::from(&render_delimiter(d)));
     l.beside(block).beside(&r)
 }
 

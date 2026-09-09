@@ -81,16 +81,16 @@ impl<V> Namespace<V> {
         V: Clone,
     {
         if global {
-            for changes in self.undo_stack.iter_mut() {
+            for changes in &mut self.undo_stack {
                 changes.remove(&key);
             }
             if let Some(changes) = self.undo_stack.last_mut() {
                 changes.insert(key.clone(), value.clone());
             }
-        } else if let Some(changes) = self.undo_stack.last_mut()
-            && !changes.contains_key(&key)
-        {
-            changes.insert(key.clone(), self.current.get(&key).cloned());
+        } else if let Some(changes) = self.undo_stack.last_mut() {
+            changes
+                .entry(key.clone())
+                .or_insert_with(|| self.current.get(&key).cloned());
         }
         if let Some(v) = value {
             self.current.insert(key, v);

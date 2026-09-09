@@ -247,7 +247,7 @@ fn url_starts_with(url: &[char], offset: usize, prefix: &str) -> bool {
 }
 
 fn encoded_colon_at(url: &[char], offset: usize) -> bool {
-    let lower: Vec<char> = url.iter().map(|c| c.to_ascii_lowercase()).collect();
+    let lower: Vec<char> = url.iter().map(char::to_ascii_lowercase).collect();
     if url_starts_with(&lower, offset, "&colon") {
         return true;
     }

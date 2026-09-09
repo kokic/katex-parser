@@ -48,17 +48,15 @@ impl Lexer {
                 if let Some(offset) = next_line_start(&self.chars, self.offset) {
                     self.offset = offset;
                     continue;
-                } else {
-                    self.offset = self.chars.len();
-                    (self.report_nonstrict)(
-                        "commentAtEnd",
-                        "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)",
-                    )?;
-                    continue;
                 }
-            } else {
-                return Ok(token);
+                self.offset = self.chars.len();
+                (self.report_nonstrict)(
+                    "commentAtEnd",
+                    "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)",
+                )?;
+                continue;
             }
+            return Ok(token);
         }
     }
 

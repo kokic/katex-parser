@@ -50,6 +50,9 @@ fn x_arrow_handler(
         mode: context.mode,
         label: context.func_name.clone(),
         body: Box::new(require_function_arg(args, 0, &context.func_name)?),
-        below: opt_args.first().and_then(|o| o.clone()).map(Box::new),
+        below: opt_args
+            .first()
+            .and_then(std::clone::Clone::clone)
+            .map(Box::new),
     })
 }

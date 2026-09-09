@@ -97,13 +97,12 @@ impl Block {
     pub fn beside(&self, other: &Block) -> Block {
         let self_h = self.lines.len();
         let other_h = other.lines.len();
-        let new_h = self_h.max(other_h);
         let self_bl = self.baseline;
         let other_bl = other.baseline;
         let diff = self_bl.abs_diff(other_bl);
         let top_pad_left = if self_bl < other_bl { diff } else { 0 };
         let top_pad_right = if other_bl < self_bl { diff } else { 0 };
-        let result_h = new_h.max(self_bl).max(other_bl);
+        let result_h = (top_pad_left + self_h).max(top_pad_right + other_h);
         let self_padded = vpad_at(self, result_h, top_pad_left);
         let other_padded = vpad_at(other, result_h, top_pad_right);
         let new_w = self.width + other.width;
@@ -172,7 +171,7 @@ pub fn column_widths(cells: &[Vec<String>]) -> Vec<usize> {
 /// Compute the maximum width per column of any row-shaped table, where each
 /// cell's width comes from `width_of`.
 pub fn column_max_widths<W>(rows: &[Vec<W>], width_of: impl Fn(&W) -> usize) -> Vec<usize> {
-    let max_cols = rows.iter().map(|row| row.len()).max().unwrap_or(0);
+    let max_cols = rows.iter().map(Vec::len).max().unwrap_or(0);
     let mut widths = vec![0usize; max_cols];
     for row in rows {
         for (j, cell) in row.iter().enumerate() {

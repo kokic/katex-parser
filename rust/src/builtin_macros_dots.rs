@@ -50,7 +50,7 @@ fn dots_by_token(name: &str) -> Option<String> {
         "\\DOTSX" => Some("\\dotsx"),
         _ => None,
     };
-    result.map(|s| s.to_string())
+    result.map(ToString::to_string)
 }
 
 fn space_after_dots(name: &str) -> bool {
@@ -85,7 +85,7 @@ pub(crate) fn dots_macro(context: &mut MacroExpander) -> Result<MacroReplacement
         "\\dotsb".to_string()
     } else {
         match (context.math_symbol_group)(&next) {
-            Some(MathSymbolGroup::BinarySymbol) | Some(MathSymbolGroup::RelationSymbol) => {
+            Some(MathSymbolGroup::BinarySymbol | MathSymbolGroup::RelationSymbol) => {
                 "\\dotsb".to_string()
             }
             None => "\\dotso".to_string(),

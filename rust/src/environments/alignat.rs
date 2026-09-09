@@ -76,7 +76,7 @@ pub(crate) fn alignat_environment_handler(
     let array = super::alignment::insert_alignment_empty_groups(array)?;
     let count = super::alignment::array_body(&array)?
         .iter()
-        .map(|r| r.len())
+        .map(Vec::len)
         .max()
         .unwrap_or(0);
     super::alignment::replace_alignment_columns(

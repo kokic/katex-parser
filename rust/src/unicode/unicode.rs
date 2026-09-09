@@ -750,8 +750,7 @@ fn render_sup_sub_block(
     }
     let base_block = base
         .as_ref()
-        .map(|b| render_operand_block(b, state))
-        .unwrap_or_else(Block::empty);
+        .map_or_else(Block::empty, |b| render_operand_block(b, state));
     let sub_text = render_script(sub, UnicodeScriptKind::UnicodeSubscript, "_", state);
     let sup_text = render_script(sup, UnicodeScriptKind::UnicodeSuperscript, "^", state);
     base_block.beside(&Block::from(&format!("{sub_text}{sup_text}")))

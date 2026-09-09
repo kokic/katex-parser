@@ -105,7 +105,7 @@ pub(crate) fn insert_alignment_empty_groups(node: ParseNode) -> Result<ParseNode
             leqno,
         } => {
             let mut body = body;
-            for row in body.iter_mut() {
+            for row in &mut body {
                 let mut index = 1;
                 while index < row.len() {
                     let replacement = alignment_rhs_cell(&row[index])?;

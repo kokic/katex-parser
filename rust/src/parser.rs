@@ -332,26 +332,25 @@ impl Parser {
                 }
                 sup = Some(self.parse_prime_run()?);
                 continue;
-            } else {
-                match lookup_unicode_script(&token.text) {
-                    None => return Ok(make_supsub_or_base(self.mode, base, sup, sub)),
-                    Some(first_script) => {
-                        let (is_subscript, script_tokens) =
-                            self.consume_unicode_script_run(first_script)?;
-                        let body = self.subparse(script_tokens)?;
-                        let group = ParseNode::OrdGroup {
-                            mode: Mode::Math,
-                            loc: None,
-                            body,
-                            semisimple: false,
-                        };
-                        if is_subscript {
-                            sub = Some(group);
-                        } else {
-                            sup = Some(group);
-                        }
-                        continue;
+            }
+            match lookup_unicode_script(&token.text) {
+                None => return Ok(make_supsub_or_base(self.mode, base, sup, sub)),
+                Some(first_script) => {
+                    let (is_subscript, script_tokens) =
+                        self.consume_unicode_script_run(first_script)?;
+                    let body = self.subparse(script_tokens)?;
+                    let group = ParseNode::OrdGroup {
+                        mode: Mode::Math,
+                        loc: None,
+                        body,
+                        semisimple: false,
+                    };
+                    if is_subscript {
+                        sub = Some(group);
+                    } else {
+                        sup = Some(group);
                     }
+                    continue;
                 }
             }
         }
@@ -410,8 +409,7 @@ impl Parser {
         self.consume_spaces()?;
         loop {
             match self.parse_group(name, None)? {
-                Some(AtomResult::EmitAtom(ParseNode::Internal { .. }))
-                | Some(AtomResult::SkipAtom) => {
+                Some(AtomResult::EmitAtom(ParseNode::Internal { .. }) | AtomResult::SkipAtom) => {
                     continue;
                 }
                 Some(AtomResult::EmitAtom(group)) => return Ok(group),
@@ -534,7 +532,7 @@ impl Parser {
             args,
             opt_args,
             Some(token.clone()),
-            break_on_token_text.map(|s| s.to_string()),
+            break_on_token_text.map(ToString::to_string),
         )?)))
     }
 
@@ -586,9 +584,7 @@ impl Parser {
                 None if func_data.primitive_after_missing_optional.is_some_and(
                     |optional_index| {
                         index == func_data.num_optional_args
-                            && opt_args
-                                .get(optional_index)
-                                .is_some_and(|value| value.is_none())
+                            && opt_args.get(optional_index).is_some_and(Option::is_none)
                     },
                 ) =>
                 {
@@ -1217,14 +1213,14 @@ impl Parser {
                     }
                 }
             }
-            if parsed_rows.last().is_some_and(|row| row.is_empty()) {
+            if parsed_rows.last().is_some_and(Vec::is_empty) {
                 parsed_rows.pop();
             }
             let mut body: Vec<Vec<ParseNode>> = Vec::new();
             for (index, row) in parsed_rows.iter().enumerate() {
                 body.push(cd_row(row.clone(), index % 2 == 0)?);
             }
-            let count = body.first().map_or(0, |row| row.len());
+            let count = body.first().map_or(0, Vec::len);
             let columns: Vec<crate::ast::ArrayColumn> = (0..count)
                 .map(|_| crate::ast::ArrayColumn::AlignColumn {
                     alignment: "c".to_string(),

@@ -29,7 +29,7 @@ fn sizing_index(func_name: &str) -> Result<usize, ParseError> {
 
 pub(crate) fn sizing_spec() -> FunctionSpec {
     FunctionSpec {
-        names: SIZING_COMMANDS.iter().map(|s| s.to_string()).collect(),
+        names: SIZING_COMMANDS.iter().map(ToString::to_string).collect(),
         allowed_in_text: true,
         handler: Some(sizing_handler),
         ..Default::default()

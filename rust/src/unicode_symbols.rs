@@ -365,11 +365,7 @@ pub(crate) fn normalize_unicode_symbol(mode: Mode, text: &str) -> String {
     if text.is_empty() {
         return text.to_string();
     }
-    let first = &text[..text
-        .char_indices()
-        .nth(1)
-        .map(|(i, _)| i)
-        .unwrap_or(text.len())];
+    let first = &text[..text.char_indices().nth(1).map_or(text.len(), |(i, _)| i)];
     if let Some(decomposition) = unicode_symbol_decompositions().get(first)
         && lookup_symbol(mode, first).is_none()
     {
@@ -411,5 +407,5 @@ pub(crate) fn unicode_accent_command(mode: Mode, accent: &str) -> Option<String>
         "\u{327}" => Some("\\c"),
         _ => None,
     };
-    result.map(|s| s.to_string())
+    result.map(ToString::to_string)
 }

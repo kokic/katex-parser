@@ -154,7 +154,7 @@ pub(crate) fn named_operator_spec() -> FunctionSpec {
     FunctionSpec {
         names: NAMED_OPERATOR_COMMANDS
             .iter()
-            .map(|s| s.to_string())
+            .map(ToString::to_string)
             .collect(),
         handler: Some(named_operator_handler),
         ..Default::default()
@@ -178,7 +178,7 @@ pub(crate) fn limited_named_operator_spec() -> FunctionSpec {
     FunctionSpec {
         names: LIMITED_NAMED_OPERATOR_COMMANDS
             .iter()
-            .map(|s| s.to_string())
+            .map(ToString::to_string)
             .collect(),
         handler: Some(limited_named_operator_handler),
         ..Default::default()

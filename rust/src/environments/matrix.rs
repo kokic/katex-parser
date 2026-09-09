@@ -5,7 +5,7 @@ use crate::environments::registry::{
 use crate::error::ParseError;
 
 pub(crate) fn matrix_column_count(body: &[Vec<ParseNode>]) -> usize {
-    body.iter().map(|row| row.len()).max().unwrap_or(0)
+    body.iter().map(Vec::len).max().unwrap_or(0)
 }
 
 fn matrix_columns(count: usize, alignment: &str) -> Vec<ArrayColumn> {

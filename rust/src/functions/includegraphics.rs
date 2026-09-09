@@ -73,39 +73,19 @@ fn graphics_size(text: &str) -> Result<Measurement, ParseError> {
     }
 }
 
-fn graphics_option_items(value: &str) -> Vec<&str> {
-    value.split(',').collect()
-}
-
-fn graphics_option_pair(item: &str) -> Option<(String, String)> {
-    let parts: Vec<&str> = item.split('=').collect();
-    if parts.len() != 2 {
-        None
-    } else {
-        Some((
-            trim_ascii_spaces(parts[0]).to_string(),
-            trim_ascii_spaces(parts[1]).to_string(),
-        ))
+fn graphics_option_pair(item: &str) -> Option<(&str, &str)> {
+    let (key, value) = item.split_once('=')?;
+    if value.contains('=') {
+        return None;
     }
+    Some((trim_ascii_spaces(key), trim_ascii_spaces(value)))
 }
 
 fn graphics_default_alt(src: &str) -> String {
-    let chars: Vec<char> = src.chars().collect();
-    let mut name_start = 0usize;
-    let mut extension: isize = -1;
-    for (index, c) in chars.iter().enumerate() {
-        if *c == '/' || *c == '\\' {
-            name_start = index + 1;
-            extension = -1;
-        } else if *c == '.' {
-            extension = index as isize;
-        }
-    }
-    if extension < name_start as isize {
-        String::new()
-    } else {
-        chars[name_start..extension as usize].iter().collect()
-    }
+    src.rsplit(['/', '\\'])
+        .next()
+        .and_then(|name| name.rsplit_once('.'))
+        .map_or_else(String::new, |(stem, _)| stem.to_string())
 }
 
 fn parse_graphics_options(
@@ -124,15 +104,15 @@ fn parse_graphics_options(
         unit: "em".to_string(),
     };
     let mut alt = String::new();
-    for item in graphics_option_items(value) {
+    for item in value.split(',') {
         let Some((key, value)) = graphics_option_pair(item) else {
             continue;
         };
-        match key.as_str() {
-            "alt" => alt = value,
-            "width" => width = graphics_size(&value)?,
-            "height" => height = graphics_size(&value)?,
-            "totalheight" => totalheight = graphics_size(&value)?,
+        match key {
+            "alt" => alt = value.to_string(),
+            "width" => width = graphics_size(value)?,
+            "height" => height = graphics_size(value)?,
+            "totalheight" => totalheight = graphics_size(value)?,
             _ => {
                 return Err(ParseError::InvalidArgument {
                     message: format!("Invalid key: '{key}' in \\includegraphics."),

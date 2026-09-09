@@ -103,7 +103,7 @@ fn pad_gather(block: &Block, separation: Option<ColumnSeparationType>) -> Block 
 /// Computes the display width of every column from the maximum block width in
 /// that column across all rows.
 fn column_block_widths(rows: &[Vec<Block>]) -> Vec<usize> {
-    column_max_widths(rows, |b| b.width())
+    column_max_widths(rows, super::block::Block::width)
 }
 
 fn column_alignments(
@@ -124,9 +124,11 @@ fn column_alignments(
         }
     }
     match separation {
-        Some(ColumnSeparationType::AlignSeparation)
-        | Some(ColumnSeparationType::AlignAtSeparation)
-        | Some(ColumnSeparationType::GatherSeparation) => parsed,
+        Some(
+            ColumnSeparationType::AlignSeparation
+            | ColumnSeparationType::AlignAtSeparation
+            | ColumnSeparationType::GatherSeparation,
+        ) => parsed,
         _ => vec!["l".to_string(); ncols],
     }
 }
@@ -239,15 +241,17 @@ fn vertical_lines(b: &Block, top: usize, row_h: usize) -> Vec<String> {
 fn column_gap(separation: Option<ColumnSeparationType>, boundary: usize) -> String {
     match separation {
         Some(ColumnSeparationType::AlignSeparation) => {
-            if boundary % 2 == 0 {
+            if boundary.is_multiple_of(2) {
                 "  ".to_string()
             } else {
                 String::new()
             }
         }
-        Some(ColumnSeparationType::AlignAtSeparation)
-        | Some(ColumnSeparationType::GatherSeparation)
-        | Some(ColumnSeparationType::CdSeparation) => String::new(),
+        Some(
+            ColumnSeparationType::AlignAtSeparation
+            | ColumnSeparationType::GatherSeparation
+            | ColumnSeparationType::CdSeparation,
+        ) => String::new(),
         Some(ColumnSeparationType::SmallSeparation) => "  ".to_string(),
         None => "  ".to_string(),
     }

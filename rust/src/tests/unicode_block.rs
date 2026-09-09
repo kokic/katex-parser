@@ -6,6 +6,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn beside_preserves_rows_when_baselines_differ() {
+        let top_aligned = Block::from("a\nb\nc");
+        let bottom_aligned = Block {
+            baseline: 2,
+            ..Block::from("x\ny\nz")
+        };
+
+        let result = top_aligned.beside(&bottom_aligned);
+        assert_eq!(result.render(), " x\n y\naz\nb \nc ");
+        assert_eq!(result.height(), 5);
+        assert_eq!(result.baseline(), 2);
+        assert_eq!(result.width(), 2);
+
+        let reversed = bottom_aligned.beside(&top_aligned);
+        assert_eq!(reversed.render(), "x \ny \nza\n b\n c");
+        assert_eq!(reversed.baseline(), 2);
+    }
+
+    #[test]
     fn t0() {
         let b = Block::from("hello");
         assert_eq!(b.render(), "hello");
