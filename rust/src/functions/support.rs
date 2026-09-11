@@ -22,10 +22,10 @@ pub(crate) fn ord_argument(arg: ParseNode) -> Vec<ParseNode> {
 }
 
 pub(crate) fn normalize_argument(arg: ParseNode) -> ParseNode {
-    if let ParseNode::OrdGroup { body, .. } = &arg
-        && body.len() == 1
-    {
-        return body[0].clone();
+    if let ParseNode::OrdGroup { body, .. } = &arg {
+        if body.len() == 1 {
+            return body[0].clone();
+        }
     }
     arg
 }

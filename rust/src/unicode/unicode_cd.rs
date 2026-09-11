@@ -240,10 +240,10 @@ fn cd_node_row_block(
     if cd_row_has_upper(row) {
         let mut cells: Vec<String> = vec![String::new(); n];
         for (col, cell) in row.iter().enumerate() {
-            if col % 2 == 1
-                && let CdCell::CdHArrow(_, upper, _) = cell
-            {
-                cells[col] = center_text(upper, arrow_w[col / 2]);
+            if col % 2 == 1 {
+                if let CdCell::CdHArrow(_, upper, _) = cell {
+                    cells[col] = center_text(upper, arrow_w[col / 2]);
+                }
             }
         }
         lines.insert(0, cd_pad_line(&cells, node_w, arrow_w, offsets));
@@ -251,10 +251,10 @@ fn cd_node_row_block(
     if cd_row_has_lower(row) {
         let mut cells: Vec<String> = vec![String::new(); n];
         for (col, cell) in row.iter().enumerate() {
-            if col % 2 == 1
-                && let CdCell::CdHArrow(_, _, lower) = cell
-            {
-                cells[col] = center_text(lower, arrow_w[col / 2]);
+            if col % 2 == 1 {
+                if let CdCell::CdHArrow(_, _, lower) = cell {
+                    cells[col] = center_text(lower, arrow_w[col / 2]);
+                }
             }
         }
         lines.push(cd_pad_line(&cells, node_w, arrow_w, offsets));
@@ -284,10 +284,10 @@ fn cd_varrow_row_block(
     for h in 0..3 {
         let mut cells: Vec<String> = vec![String::new(); n];
         for (col, cell) in row.iter().enumerate() {
-            if col % 2 == 0
-                && let CdCell::CdVArrow(dir, left, right) = cell
-            {
-                cells[col] = cd_varrow_lines(dir, left, right, vbar, offsets[col / 2])[h].clone();
+            if col % 2 == 0 {
+                if let CdCell::CdVArrow(dir, left, right) = cell {
+                    cells[col] = cd_varrow_lines(dir, left, right, vbar, offsets[col / 2])[h].clone();
+                }
             }
         }
         lines.push(cd_pad_line(&cells, node_w, arrow_w, offsets));

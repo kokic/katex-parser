@@ -4085,15 +4085,15 @@ pub(crate) fn lookup_symbol(mode: Mode, name: &str) -> Option<&'static SymbolSpe
 /// Returns a registered symbol's Unicode replacement, if it has one.
 pub fn unicode_symbol(name: &str) -> Option<String> {
     let builtins = builtin_symbols();
-    if let Some(symbol) = builtins.math.get(name)
-        && !symbol.replacement.is_empty()
-    {
-        return Some(symbol.replacement.clone());
+    if let Some(symbol) = builtins.math.get(name) {
+        if !symbol.replacement.is_empty() {
+            return Some(symbol.replacement.clone());
+        }
     }
-    if let Some(symbol) = builtins.text.get(name)
-        && !symbol.replacement.is_empty()
-    {
-        return Some(symbol.replacement.clone());
+    if let Some(symbol) = builtins.text.get(name) {
+        if !symbol.replacement.is_empty() {
+            return Some(symbol.replacement.clone());
+        }
     }
     None
 }

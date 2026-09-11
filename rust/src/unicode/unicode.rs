@@ -58,10 +58,10 @@ fn join_with_block(items: &[SpacableItem], tight: bool, spec: &crate::anvil::Spa
     for i in 1..items.len() {
         let prev = &items[i - 1];
         let curr = &items[i];
-        if let (Some(left), Some(right)) = (&prev.atom_type, &curr.atom_type)
-            && let Some(space) = math_spacing(left, right, tight, spec)
-        {
-            result = result.beside(&Block::from(&space));
+        if let (Some(left), Some(right)) = (&prev.atom_type, &curr.atom_type) {
+            if let Some(space) = math_spacing(left, right, tight, spec) {
+                result = result.beside(&Block::from(&space));
+            }
         }
         result = result.beside(&item_to_block(curr));
     }
@@ -743,10 +743,10 @@ fn render_sup_sub_block(
     sub: &Option<Box<ParseNode>>,
     state: &RenderState,
 ) -> Block {
-    if let Some(b) = base
-        && operator_uses_limits(b, state)
-    {
-        return render_limits_block(b, sup, sub, state);
+    if let Some(b) = base {
+        if operator_uses_limits(b, state) {
+            return render_limits_block(b, sup, sub, state);
+        }
     }
     let base_block = base
         .as_ref()

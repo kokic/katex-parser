@@ -502,15 +502,14 @@ impl Parser {
             Some(fd) => fd.clone(),
         };
         self.consume();
-        if let Some(context_name) = name
-            && context_name != "atom"
-            && !func_data.allowed_in_argument
-        {
-            return Err(ParseError::FunctionNotAllowed {
-                func_name: token.text.clone(),
-                context: context_name.to_string(),
-                loc: token.loc.clone(),
-            });
+        if let Some(context_name) = name {
+            if context_name != "atom" && !func_data.allowed_in_argument {
+                return Err(ParseError::FunctionNotAllowed {
+                    func_name: token.text.clone(),
+                    context: context_name.to_string(),
+                    loc: token.loc.clone(),
+                });
+            }
         }
         if self.mode == Mode::Text && !func_data.allowed_in_text {
             return Err(ParseError::FunctionNotAllowed {

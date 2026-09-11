@@ -237,24 +237,24 @@ impl MacroExpander {
                     loc: token.loc.clone(),
                 });
             }
-            if let Some(values) = delimiters
-                && is_delimited
-            {
-                if delimiter_is_active(values, delimiter_match, depth, &token) {
-                    delimiter_match += 1;
-                    if delimiter_match == values.len() {
-                        for _ in 0..delimiter_match {
-                            tokens.pop();
+            if let Some(values) = delimiters {
+                if is_delimited {
+                    if delimiter_is_active(values, delimiter_match, depth, &token) {
+                        delimiter_match += 1;
+                        if delimiter_match == values.len() {
+                            for _ in 0..delimiter_match {
+                                tokens.pop();
+                            }
+                            let normalized = normalize_consumed_argument(&start, tokens);
+                            return Ok(MacroArgument {
+                                start,
+                                end: token,
+                                tokens: normalized,
+                            });
                         }
-                        let normalized = normalize_consumed_argument(&start, tokens);
-                        return Ok(MacroArgument {
-                            start,
-                            end: token,
-                            tokens: normalized,
-                        });
+                    } else {
+                        delimiter_match = 0;
                     }
-                } else {
-                    delimiter_match = 0;
                 }
             }
             if depth == 0 && !is_delimited {

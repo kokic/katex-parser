@@ -366,10 +366,10 @@ pub(crate) fn normalize_unicode_symbol(mode: Mode, text: &str) -> String {
         return text.to_string();
     }
     let first = &text[..text.char_indices().nth(1).map_or(text.len(), |(i, _)| i)];
-    if let Some(decomposition) = unicode_symbol_decompositions().get(first)
-        && lookup_symbol(mode, first).is_none()
-    {
-        return format!("{decomposition}{}", &text[first.len()..]);
+    if let Some(decomposition) = unicode_symbol_decompositions().get(first) {
+        if lookup_symbol(mode, first).is_none() {
+            return format!("{decomposition}{}", &text[first.len()..]);
+        }
     }
     text.to_string()
 }
