@@ -10,7 +10,7 @@ pub(all) enum ArgType {
   PrimitiveArg
   MathArg
   TextArg
-}
+} derive(ToJson)
 
 ///|
 pub(all) struct FunctionContext {

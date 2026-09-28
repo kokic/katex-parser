@@ -5,7 +5,7 @@ pub(all) enum CommandKind {
   FunctionCommand
   MacroCommand
   ImplicitCommand
-}
+} derive(ToJson)
 
 ///|
 /// How a command consumes input. Only RegularCommand can be completed by
@@ -20,7 +20,7 @@ pub(all) enum CommandSyntax {
   DefinitionCommand
   TokenCommand
   GroupCommand
-}
+} derive(ToJson)
 
 ///|
 /// An explicit argument, in input order. A missing arg_type means the builtin
@@ -28,7 +28,7 @@ pub(all) enum CommandSyntax {
 pub struct CommandArgument {
   arg_type : ArgType?
   optional : Bool
-}
+} derive(ToJson)
 
 ///|
 /// A snapshot of one public builtin command, including its leading backslash.
@@ -47,83 +47,7 @@ pub struct CommandInfo {
   unicode : String?
   group : String?
   templates : Array[String]
-}
-
-///|
-pub impl ToJson for CommandKind with fn to_json(self) {
-  let name = match self {
-    SymbolCommand => "symbol"
-    FunctionCommand => "function"
-    MacroCommand => "macro"
-    ImplicitCommand => "implicit"
-  }
-  name.to_json()
-}
-
-///|
-pub impl ToJson for CommandSyntax with fn to_json(self) {
-  let name = match self {
-    RegularCommand => "regular"
-    InfixCommand => "infix"
-    DeclarationCommand => "declaration"
-    DelimiterCommand => "delimiter"
-    EnvironmentCommand => "environment"
-    VerbatimCommand => "verbatim"
-    DefinitionCommand => "definition"
-    TokenCommand => "token"
-    GroupCommand => "group"
-  }
-  name.to_json()
-}
-
-///|
-fn command_arg_type_name(kind : ArgType) -> String {
-  match kind {
-    ColorArg => "color"
-    SizeArg => "size"
-    UrlArg => "url"
-    RawArg => "raw"
-    OriginalArg => "original"
-    HboxArg => "hbox"
-    PrimitiveArg => "primitive"
-    MathArg => "math"
-    TextArg => "text"
-  }
-}
-
-///|
-pub impl ToJson for CommandArgument with fn to_json(self) {
-  {
-    "type": self.arg_type.map_or(Json::null(), kind => {
-      command_arg_type_name(kind).to_json()
-    }),
-    "optional": self.optional.to_json(),
-  }
-}
-
-///|
-/// Serializes metadata as ordinary JSON objects and lowercase string tags.
-pub impl ToJson for CommandInfo with fn to_json(self) {
-  {
-    "name": self.name.to_json(),
-    "kind": self.kind.to_json(),
-    "syntax": self.syntax.to_json(),
-    "args": self.args.to_json(),
-    "modes": self.modes.map_or(Json::null(), modes => {
-      modes
-      .map(mode => {
-        match mode {
-          Math => "math"
-          Text => "text"
-        }
-      })
-      .to_json()
-    }),
-    "unicode": self.unicode.map_or(Json::null(), value => value.to_json()),
-    "group": self.group.map_or(Json::null(), value => value.to_json()),
-    "templates": self.templates.to_json(),
-  }
-}
+} derive(ToJson)
 
 ///|
 /// Returns fresh, name-sorted completion metadata for the parser's builtins.

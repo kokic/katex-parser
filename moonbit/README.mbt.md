@@ -26,21 +26,24 @@ Each entry has these fields:
 | Field | Meaning |
 | --- | --- |
 | `name` | Command spelling, including the leading backslash and any star. |
-| `kind` | `symbol`, `function`, `macro`, or `implicit`. |
-| `syntax` | `regular`, `infix`, `declaration`, `delimiter`, `environment`, `verbatim`, `definition`, `token`, or `group`. |
-| `args` | Explicit arguments in input order, each with `type` and `optional`. |
-| `modes` | Known allowed modes (`math`/`text`), or `null` for macros whose restrictions are not declared. |
-| `unicode`, `group` | Registered symbol replacement/category, or `null`. Math metadata is preferred when a symbol has both modes. |
+| `kind` | `SymbolCommand`, `FunctionCommand`, `MacroCommand`, or `ImplicitCommand`. |
+| `syntax` | A `CommandSyntax` constructor name, such as `RegularCommand`, `InfixCommand` or `DelimiterCommand`. |
+| `args` | Explicit arguments in input order, each with `optional` and, when known, `arg_type`. |
+| `modes` | Known allowed modes (`Math`/`Text`); omitted for macros whose restrictions are not declared. |
+| `unicode`, `group` | Registered symbol replacement/category; omitted when unavailable. Math metadata is preferred when a symbol has both modes. |
 | `templates` | Insertion templates with CodeMirror-compatible `${field}` placeholders. |
 
-The MoonBit API uses `CommandKind`, `CommandSyntax`, `ArgType?` and `Mode`;
-JSON uses lowercase strings and `null` for missing values. Argument types are
-`color`, `size`, `url`, `raw`, `original`, `hbox`, `primitive`, `math`, `text`,
-or `null` when a macro does not declare the type. `original` preserves the
-current parsing mode. For functions with optional arguments, the optional
-positions precede the required ones; special syntax can interleave them.
+The metadata types use `derive(ToJson)` directly. JSON keys match the MoonBit
+fields and enum values retain their constructor names. Optional struct fields
+are omitted for `None`; `Some(value)` serializes as `value`.
 
-Only `regular` commands can be completed by simply appending bracketed
+Argument types are `ColorArg`, `SizeArg`, `UrlArg`, `RawArg`, `OriginalArg`,
+`HboxArg`, `PrimitiveArg`, `MathArg` and `TextArg`. A macro without a declared
+type omits `arg_type`. `OriginalArg` preserves the current parsing mode.
+For functions with optional arguments, the optional positions precede the
+required ones; special syntax can interleave them.
+
+Only `RegularCommand` commands can be completed by simply appending bracketed
 arguments. Other commands may consume tokens, delimiters, infix operands or
 the rest of a group. Their templates describe usable editing forms. For
 example, `\color` has one explicit color argument but its template also
@@ -52,15 +55,13 @@ Example JSON entry:
 ```json
 {
   "name": "\\sqrt",
-  "kind": "function",
-  "syntax": "regular",
+  "kind": "FunctionCommand",
+  "syntax": "RegularCommand",
   "args": [
-    { "type": "original", "optional": true },
-    { "type": "original", "optional": false }
+    { "arg_type": "OriginalArg", "optional": true },
+    { "arg_type": "OriginalArg", "optional": false }
   ],
-  "modes": ["math"],
-  "unicode": null,
-  "group": null,
+  "modes": ["Math"],
   "templates": ["\\sqrt{${arg2}}", "\\sqrt[${arg1}]{${arg2}}"]
 }
 ```

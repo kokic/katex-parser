@@ -111,3 +111,6 @@ pub extend UnicodeScriptKind with Eq::{not_equal, equal}
 
 ///|
 pub extend Settings with Default::{default}
+
+///|
+pub extend ArgType with ToJson::{to_json}
