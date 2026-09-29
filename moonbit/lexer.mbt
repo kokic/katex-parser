@@ -31,21 +31,6 @@ fn Lexer::catcode(self : Lexer, char : String) -> Int? {
 }
 
 ///|
-fn is_space_code_unit(c : UInt16) -> Bool {
-  c == ' ' || c == '\r' || c == '\n' || c == '\t'
-}
-
-///|
-fn is_horizontal_space_code_unit(c : UInt16) -> Bool {
-  c == ' ' || c == '\r' || c == '\t'
-}
-
-///|
-fn is_ascii_letter(c : UInt16) -> Bool {
-  (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '@'
-}
-
-///|
 fn is_ascii_alphabetic(c : UInt16) -> Bool {
   (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
@@ -56,77 +41,8 @@ fn is_combining_diacritical_mark(c : UInt16) -> Bool {
 }
 
 ///|
-fn is_regular_code_unit(c : UInt16) -> Bool {
-  (c >= 0x0021 && c <= 0x005b) ||
-  (c >= 0x005d && c <= 0x2027) ||
-  (c >= 0x202a && c <= 0xd7ff) ||
-  (c >= 0xf900 && c <= 0xffff)
-}
-
-///|
 fn is_js_line_terminator(c : UInt16) -> Bool {
   c == '\n' || c == '\r' || c == 0x2028 || c == 0x2029
-}
-
-///|
-fn token_at(input : String, start : Int, end : Int, text : String) -> Token {
-  Token::make(text, loc=SourceLocation::make(input, start~, end~))
-}
-
-///|
-fn combining_marks_end(input : String, offset : Int) -> Int {
-  let len = input.length()
-  for i = offset; i < len; i = i + 1 {
-    if !is_combining_diacritical_mark(input[i]) {
-      break i
-    }
-  } nobreak {
-    len
-  }
-}
-
-///|
-fn whitespace_end(input : String, offset : Int) -> Int {
-  let len = input.length()
-  for i = offset; i < len; i = i + 1 {
-    if !is_space_code_unit(input[i]) {
-      break i
-    }
-  } nobreak {
-    len
-  }
-}
-
-///|
-fn horizontal_space_end(input : String, offset : Int) -> Int {
-  let len = input.length()
-  for i = offset; i < len; i = i + 1 {
-    if !is_horizontal_space_code_unit(input[i]) {
-      break i
-    }
-  } nobreak {
-    len
-  }
-}
-
-///|
-fn control_space_end(input : String, start : Int) -> Int? {
-  let len = input.length()
-  if start + 1 >= len {
-    None
-  } else if input[start + 1] == '\n' {
-    Some(horizontal_space_end(input, start + 2))
-  } else if is_horizontal_space_code_unit(input[start + 1]) {
-    let spaces_end = horizontal_space_end(input, start + 1)
-    let after_newline = if spaces_end < len && input[spaces_end] == '\n' {
-      spaces_end + 1
-    } else {
-      spaces_end
-    }
-    Some(horizontal_space_end(input, after_newline))
-  } else {
-    None
-  }
 }
 
 ///|
@@ -156,23 +72,6 @@ fn verb_end(input : String, start : Int, starred : Bool) -> Int? {
 }
 
 ///|
-fn control_word_end(input : String, start : Int) -> (Int, Int)? {
-  let len = input.length()
-  if start + 1 >= len || !is_ascii_letter(input[start + 1]) {
-    None
-  } else {
-    let raw_end = for i = start + 2; i < len; i = i + 1 {
-      if !is_ascii_letter(input[i]) {
-        break i
-      }
-    } nobreak {
-      len
-    }
-    Some((raw_end, whitespace_end(input, raw_end)))
-  }
-}
-
-///|
 fn next_line_start(input : String, offset : Int) -> Int? {
   for i = offset; i < input.length(); i = i + 1 {
     if input[i] == '\n' {
@@ -195,70 +94,36 @@ fn unexpected_character(input : String, offset : Int) -> ParseFailure {
 ///|
 fn Lexer::match_token(self : Lexer) -> Token raise ParseFailure {
   let input = self.input
-  let len = input.length()
   let start = self.offset
-  let c = input[start]
-  if is_space_code_unit(c) {
-    let end = whitespace_end(input, start + 1)
-    self.offset = end
-    token_at(input, start, end, " ")
-  } else if c == '\\' {
-    self.match_backslash_token(input, len, start)
-  } else if is_regular_code_unit(c) {
-    let end = combining_marks_end(input, start + 1)
-    self.offset = end
-    token_at(input, start, end, input.unsafe_substring(start~, end~))
-  } else if c.is_leading_surrogate() &&
-    start + 1 < len &&
-    input[start + 1].is_trailing_surrogate() {
-    let end = combining_marks_end(input, start + 2)
-    self.offset = end
-    token_at(input, start, end, input.unsafe_substring(start~, end~))
-  } else {
+  // A verb delimiter can leave the cursor inside a UTF-16 surrogate pair.
+  // Reject that position instead of snapping it forward with a clamped slice.
+  guard input.get_view(start~) is Some(remaining) else {
     raise unexpected_character(input, start)
   }
-}
-
-///|
-/// Matches a token beginning with `\`: a `\ ` control space, a `\verb`/
-/// `\verb*` verbatim run, a control word, or a single control symbol (the
-/// backslash plus one code unit that is not part of an astral pair). Fails
-/// with `UnexpectedCharacter` when none of these apply.
-fn Lexer::match_backslash_token(
-  self : Lexer,
-  input : String,
-  len : Int,
-  start : Int,
-) -> Token raise ParseFailure {
-  if control_space_end(input, start) is Some(end) {
-    self.offset = end
-    return token_at(input, start, end, "\\ ")
+  // The closing verb delimiter depends on the input and needs a manual scan.
+  let (text, end) = if verb_end(input, start, true) is Some(end) {
+    (input.unsafe_substring(start~, end~), end)
+  } else if verb_end(input, start, false) is Some(end) {
+    (input.unsafe_substring(start~, end~), end)
+  } else {
+    // Preserve KaTeX's ordered alternatives, all anchored at the current offset.
+    lexmatch remaining {
+      (re"^[ \r\n\t]+", after=rest) => (" ", rest.start_offset())
+      (re"^\\(\n|[ \r\t]+\n?)[ \r\t]*", after=rest) =>
+        ("\\ ", rest.start_offset())
+      (
+        re"^[\u{0021}-\u{005b}\u{005d}-\u{2027}\u{202a}-\u{d7ff}\u{f900}-\u{10ffff}][\u{0300}-\u{036f}]*" as text,
+        after=rest,
+      ) => (text.to_owned(), rest.start_offset())
+      ((re"^\\[a-zA-Z@]+" as text) + re"[ \r\n\t]*", after=rest) =>
+        (text.to_owned(), rest.start_offset())
+      (re"^\\[\u{0000}-\u{d7ff}\u{e000}-\u{ffff}]" as text, after=rest) =>
+        (text.to_owned(), rest.start_offset())
+      _ => raise unexpected_character(input, start)
+    }
   }
-  if verb_end(input, start, true) is Some(end) {
-    self.offset = end
-    return token_at(input, start, end, input.unsafe_substring(start~, end~))
-  }
-  if verb_end(input, start, false) is Some(end) {
-    self.offset = end
-    return token_at(input, start, end, input.unsafe_substring(start~, end~))
-  }
-  if control_word_end(input, start) is Some((raw_end, end)) {
-    self.offset = end
-    return token_at(
-      input,
-      start,
-      end,
-      input.unsafe_substring(start~, end=raw_end),
-    )
-  }
-  if start + 1 < len &&
-    !input[start + 1].is_leading_surrogate() &&
-    !input[start + 1].is_trailing_surrogate() {
-    let end = start + 2
-    self.offset = end
-    return token_at(input, start, end, input.unsafe_substring(start~, end~))
-  }
-  raise unexpected_character(input, start)
+  self.offset = end
+  Token::make(text, loc=SourceLocation::make(input, start~, end~))
 }
 
 ///|
