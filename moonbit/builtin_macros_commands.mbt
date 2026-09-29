@@ -3,15 +3,8 @@ fn digit_value(text : String) -> Int? {
   if text.length() != 1 {
     None
   } else {
-    let code = text[0]
-    if code >= '0' && code <= '9' {
-      Some(code.to_int() - ('0' : UInt16).to_int())
-    } else if code >= 'a' && code <= 'f' {
-      Some(code.to_int() - ('a' : UInt16).to_int() + 10)
-    } else if code >= 'A' && code <= 'F' {
-      Some(code.to_int() - ('A' : UInt16).to_int() + 10)
-    } else {
-      None
+    Some(@string.parse_int(text[:], base=16)) catch {
+      _ => None
     }
   }
 }

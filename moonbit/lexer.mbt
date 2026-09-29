@@ -56,16 +56,6 @@ fn is_combining_diacritical_mark(c : UInt16) -> Bool {
 }
 
 ///|
-fn is_high_surrogate(c : UInt16) -> Bool {
-  c >= 0xd800 && c <= 0xdbff
-}
-
-///|
-fn is_low_surrogate(c : UInt16) -> Bool {
-  c >= 0xdc00 && c <= 0xdfff
-}
-
-///|
 fn is_regular_code_unit(c : UInt16) -> Bool {
   (c >= 0x0021 && c <= 0x005b) ||
   (c >= 0x005d && c <= 0x2027) ||
@@ -76,11 +66,6 @@ fn is_regular_code_unit(c : UInt16) -> Bool {
 ///|
 fn is_js_line_terminator(c : UInt16) -> Bool {
   c == '\n' || c == '\r' || c == 0x2028 || c == 0x2029
-}
-
-///|
-fn token_text(input : String, start : Int, end : Int) -> String {
-  input.unsafe_substring(start~, end~)
 }
 
 ///|
@@ -145,16 +130,9 @@ fn control_space_end(input : String, start : Int) -> Int? {
 }
 
 ///|
-fn starts_with_at(input : String, offset : Int, prefix : String) -> Bool {
-  let prefix_len = prefix.length()
-  offset + prefix_len <= input.length() &&
-  input.unsafe_substring(start=offset, end=offset + prefix_len) == prefix
-}
-
-///|
 fn verb_end(input : String, start : Int, starred : Bool) -> Int? {
   let prefix = if starred { "\\verb*" } else { "\\verb" }
-  if !starts_with_at(input, start, prefix) {
+  if !input[start:].has_prefix(prefix[:]) {
     return None
   }
   let delimiter_offset = start + prefix.length()
@@ -207,7 +185,7 @@ fn next_line_start(input : String, offset : Int) -> Int? {
 
 ///|
 fn unexpected_character(input : String, offset : Int) -> ParseFailure {
-  let text = token_text(input, offset, offset + 1)
+  let text = input.unsafe_substring(start=offset, end=offset + 1)
   UnexpectedCharacter(
     message="Unexpected character: '\{text}'",
     loc=Some(SourceLocation::make(input, start=offset, end=offset + 1)),
@@ -229,13 +207,13 @@ fn Lexer::match_token(self : Lexer) -> Token raise ParseFailure {
   } else if is_regular_code_unit(c) {
     let end = combining_marks_end(input, start + 1)
     self.offset = end
-    token_at(input, start, end, token_text(input, start, end))
-  } else if is_high_surrogate(c) &&
+    token_at(input, start, end, input.unsafe_substring(start~, end~))
+  } else if c.is_leading_surrogate() &&
     start + 1 < len &&
-    is_low_surrogate(input[start + 1]) {
+    input[start + 1].is_trailing_surrogate() {
     let end = combining_marks_end(input, start + 2)
     self.offset = end
-    token_at(input, start, end, token_text(input, start, end))
+    token_at(input, start, end, input.unsafe_substring(start~, end~))
   } else {
     raise unexpected_character(input, start)
   }
@@ -258,22 +236,27 @@ fn Lexer::match_backslash_token(
   }
   if verb_end(input, start, true) is Some(end) {
     self.offset = end
-    return token_at(input, start, end, token_text(input, start, end))
+    return token_at(input, start, end, input.unsafe_substring(start~, end~))
   }
   if verb_end(input, start, false) is Some(end) {
     self.offset = end
-    return token_at(input, start, end, token_text(input, start, end))
+    return token_at(input, start, end, input.unsafe_substring(start~, end~))
   }
   if control_word_end(input, start) is Some((raw_end, end)) {
     self.offset = end
-    return token_at(input, start, end, token_text(input, start, raw_end))
+    return token_at(
+      input,
+      start,
+      end,
+      input.unsafe_substring(start~, end=raw_end),
+    )
   }
   if start + 1 < len &&
-    !is_high_surrogate(input[start + 1]) &&
-    !is_low_surrogate(input[start + 1]) {
+    !input[start + 1].is_leading_surrogate() &&
+    !input[start + 1].is_trailing_surrogate() {
     let end = start + 2
     self.offset = end
-    return token_at(input, start, end, token_text(input, start, end))
+    return token_at(input, start, end, input.unsafe_substring(start~, end~))
   }
   raise unexpected_character(input, start)
 }

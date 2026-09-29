@@ -1,57 +1,17 @@
 ///|
-fn trim_ascii_spaces(text : String) -> String {
-  let mut start = 0
-  let mut end = text.length()
-  while start < end &&
-        (
-          text[start] == ' ' ||
-          text[start] == '\t' ||
-          text[start] == '\n' ||
-          text[start] == '\r'
-        ) {
-    start = start + 1
-  }
-  while end > start &&
-        (
-          text[end - 1] == ' ' ||
-          text[end - 1] == '\t' ||
-          text[end - 1] == '\n' ||
-          text[end - 1] == '\r'
-        ) {
-    end = end - 1
-  }
-  text.unsafe_substring(start~, end~)
-}
-
-///|
 fn html_data_attributes(
   value : String,
 ) -> Map[String, String] raise ParseFailure {
   let attributes : Map[String, String] = Map([])
-  let mut start = 0
-  for index = 0; index <= value.length(); index = index + 1 {
-    if index == value.length() || value[index] == ',' {
-      let item = value.unsafe_substring(start~, end=index)
-      let mut equals = -1
-      for offset = 0; offset < item.length(); offset = offset + 1 {
-        if item[offset] == '=' && equals < 0 {
-          equals = offset
-        }
-      }
-      guard equals >= 0 else {
-        raise InvalidArgument(
-          message="\\htmlData key/value '\{item}' missing equals sign",
-          loc=None,
-        )
-      }
-      let key = trim_ascii_spaces(item.unsafe_substring(start=0, end=equals))
-      let data_value = item.unsafe_substring(
-        start=equals + 1,
-        end=item.length(),
+  for item in value.split(",") {
+    guard item.split_once("=") is Some((key, data_value)) else {
+      raise InvalidArgument(
+        message="\\htmlData key/value '\{item}' missing equals sign",
+        loc=None,
       )
-      attributes["data-\{key}"] = data_value
-      start = index + 1
     }
+    let key = key.trim(chars=" \t\n\r")
+    attributes["data-\{key}"] = data_value.to_owned()
   }
   attributes
 }

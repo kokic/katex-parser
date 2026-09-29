@@ -43,7 +43,7 @@ fn graphics_number(text : String) -> String? {
 
 ///|
 fn graphics_size(text : String) -> Measurement raise ParseFailure {
-  let text = trim_ascii_spaces(text)
+  let text = text.trim(chars=" \t\n\r").to_owned()
   if graphics_number(text) is Some(number_text) {
     return { number: parse_decimal(number_text), unit: "bp", }
   }
@@ -63,26 +63,13 @@ fn graphics_size(text : String) -> Measurement raise ParseFailure {
 }
 
 ///|
-fn graphics_option_items(value : String) -> Array[String] {
-  let items : Array[String] = []
-  let mut start = 0
-  for index = 0; index <= value.length(); index = index + 1 {
-    if index == value.length() || value[index] == ',' {
-      items.push(value.unsafe_substring(start~, end=index))
-      start = index + 1
-    }
-  }
-  items
-}
-
-///|
-fn graphics_option_pair(item : String) -> (String, String)? {
+fn graphics_option_pair(item : StringView) -> (String, String)? {
   let parts = item.split("=").to_array()
   guard parts.length() == 2 else { None }
   Some(
     (
-      trim_ascii_spaces(parts[0].to_owned()),
-      trim_ascii_spaces(parts[1].to_owned()),
+      parts[0].trim(chars=" \t\n\r").to_owned(),
+      parts[1].trim(chars=" \t\n\r").to_owned(),
     ),
   )
 }
@@ -116,7 +103,7 @@ fn parse_graphics_options(
   let mut height = { number: 0.9, unit: "em", }
   let mut totalheight = { number: 0.0, unit: "em", }
   let mut alt = ""
-  for item in graphics_option_items(value) {
+  for item in value.split(",") {
     guard graphics_option_pair(item) is Some((key, value)) else { continue }
     match key {
       "alt" => alt = value

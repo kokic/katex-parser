@@ -138,38 +138,23 @@ fn Settings::use_strict_behavior(
 }
 
 ///|
-fn ascii_lower(text : String) -> String {
-  let builder = StringBuilder()
-  for _, code in text {
-    builder.write_char(code.to_ascii_lowercase())
-  }
-  builder.to_string()
-}
-
-///|
-fn url_starts_with(url : String, offset : Int, prefix : String) -> Bool {
-  offset + prefix.length() <= url.length() &&
-  url.unsafe_substring(start=offset, end=offset + prefix.length()) == prefix
-}
-
-///|
 fn encoded_colon_at(url : String, offset : Int) -> Bool {
-  if url_starts_with(ascii_lower(url), offset, "&colon") {
+  if url.to_lower()[offset:].has_prefix("&colon") {
     return true
   }
-  guard url_starts_with(url, offset, "&#") else { false }
+  guard url[offset:].has_prefix("&#") else { false }
   let mut index = offset + 2
   if index < url.length() && (url[index] == 'x' || url[index] == 'X') {
     index = index + 1
     while index < url.length() && url[index] == '0' {
       index = index + 1
     }
-    url_starts_with(ascii_lower(url), index, "3a")
+    url.to_lower()[index:].has_prefix("3a")
   } else {
     while index < url.length() && url[index] == '0' {
       index = index + 1
     }
-    url_starts_with(url, index, "58")
+    url[index:].has_prefix("58")
   }
 }
 
@@ -199,7 +184,7 @@ fn url_protocol(url : String) -> String? {
           return None
         }
       }
-      return Some(ascii_lower(scheme))
+      return Some(scheme.to_lower())
     }
     if code == '/' || code == '#' || code == '?' {
       return Some("_relative")

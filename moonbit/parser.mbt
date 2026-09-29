@@ -839,7 +839,7 @@ fn is_non_ascii(text : String) -> Bool {
 ///|
 fn is_verb_token(text : String) -> Bool {
   text.length() > 5 &&
-  starts_with_at(text, 0, "\\verb") &&
+  text.has_prefix("\\verb") &&
   !is_ascii_alphabetic(text[5])
 }
 

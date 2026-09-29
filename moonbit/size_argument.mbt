@@ -4,17 +4,6 @@ fn is_ascii_digit_code_unit(code : UInt16) -> Bool {
 }
 
 ///|
-fn skip_ascii_spaces(text : String, start : Int) -> Int {
-  for index = start; index < text.length(); index = index + 1 {
-    if text[index] != ' ' {
-      break index
-    }
-  } nobreak {
-    text.length()
-  }
-}
-
-///|
 fn size_scan_candidate(text : String) -> Bool {
   // Mirrors KaTeX's anchored regex for every intermediate token prefix.
   let len = text.length()
@@ -22,7 +11,7 @@ fn size_scan_candidate(text : String) -> Bool {
   if index < len && (text[index] == '+' || text[index] == '-') {
     index = index + 1
   }
-  index = skip_ascii_spaces(text, index)
+  index = text[index:].trim_start(chars=" ").start_offset()
   guard index < len else { true }
   if is_ascii_digit_code_unit(text[index]) {
     while index < len && is_ascii_digit_code_unit(text[index]) {
@@ -42,13 +31,13 @@ fn size_scan_candidate(text : String) -> Bool {
   } else {
     return false
   }
-  index = skip_ascii_spaces(text, index)
+  index = text[index:].trim_start(chars=" ").start_offset()
   let unit_start = index
   while index < len && text[index] >= 'a' && text[index] <= 'z' {
     index = index + 1
   }
   guard index - unit_start <= 2 else { false }
-  index = skip_ascii_spaces(text, index)
+  index = text[index:].trim_start(chars=" ").start_offset()
   index == len
 }
 
@@ -98,7 +87,7 @@ fn parse_size_measurement(text : String) -> Measurement? raise ParseFailure {
         text.unsafe_substring(start=index, end=index + 1),
       )
       index = index + 1
-      index = skip_ascii_spaces(text, index)
+      index = text[index:].trim_start(chars=" ").start_offset()
     }
     let number_start = index
     while index < len && is_ascii_digit_code_unit(text[index]) {
@@ -122,7 +111,7 @@ fn parse_size_measurement(text : String) -> Measurement? raise ParseFailure {
       digits_after_dot = index - fraction_start
     }
     guard digits_before_dot > 0 || digits_after_dot > 0 else { continue }
-    index = skip_ascii_spaces(text, index)
+    index = text[index:].trim_start(chars=" ").start_offset()
     guard index + 2 <= len else { continue }
     let first = text[index]
     let second = text[index + 1]

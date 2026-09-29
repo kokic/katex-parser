@@ -46,11 +46,6 @@ fn SymbolRegistry::define_symbol(
 }
 
 ///|
-fn codepoint_string(codepoint : Int) -> String {
-  String::from_array([codepoint.to_char().unwrap()])
-}
-
-///|
 fn build_builtin_symbols() -> SymbolRegistry {
   let registry : SymbolRegistry = { math: Map([]), text: Map([]), }
   registry.define_symbol(
@@ -2486,25 +2481,25 @@ fn build_builtin_symbols() -> SymbolRegistry {
       start in [
         0x1D400, 0x1D434, 0x1D468, 0x1D504, 0x1D56C, 0x1D5A0, 0x1D5D4, 0x1D608, 0x1D670,
       ] {
-      let wide = codepoint_string(start + index)
+      let wide = (start + index).to_char().unwrap().to_string()
       registry.define_symbol(Math, MathOrdGroup, text, wide)
       registry.define_symbol(Text, TextOrdGroup, text, wide)
     }
     if index < 26 {
       for start in [0x1D538, 0x1D49C] {
-        let wide = codepoint_string(start + index)
+        let wide = (start + index).to_char().unwrap().to_string()
         registry.define_symbol(Math, MathOrdGroup, text, wide)
         registry.define_symbol(Text, TextOrdGroup, text, wide)
       }
     }
   }
-  let double_struck_k = codepoint_string(0x1D55C)
+  let double_struck_k = (0x1D55C).to_char().unwrap().to_string()
   registry.define_symbol(Math, MathOrdGroup, "k", double_struck_k)
   registry.define_symbol(Text, TextOrdGroup, "k", double_struck_k)
   for index, ch in "0123456789" {
     let text = String::from_array([ch])
     for start in [0x1D7CE, 0x1D7E2, 0x1D7EC, 0x1D7F6] {
-      let wide = codepoint_string(start + index)
+      let wide = (start + index).to_char().unwrap().to_string()
       registry.define_symbol(Math, MathOrdGroup, text, wide)
       registry.define_symbol(Text, TextOrdGroup, text, wide)
     }

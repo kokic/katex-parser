@@ -83,7 +83,7 @@ fn dots_macro(context : MacroExpander) -> MacroReplacement raise ParseFailure {
   let next = context.expand_after_future().text
   let result = match dots_by_token(next) {
     Some(value) => value
-    None if starts_with_at(next, 0, "\\not") => "\\dotsb"
+    None if next.has_prefix("\\not") => "\\dotsb"
     None =>
       match (context.math_symbol_group)(next) {
         Some(BinarySymbol) | Some(RelationSymbol) => "\\dotsb"
