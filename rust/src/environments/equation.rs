@@ -18,11 +18,12 @@ pub(crate) fn equation_environment_handler(
     }
     parser.parse_array(ArrayEnvironmentOptions {
         columns: None,
-        array_stretch: 1.0,
+        array_stretch: None,
         hskip_before_and_after: false,
         cell_style: StyleLevel::DisplayStyle,
         max_columns: Some(1),
         single_row: true,
+        empty_single_row: true,
         auto_tag: Some(context.env_name == "equation"),
         leqno: context.leqno,
         add_jot: false,

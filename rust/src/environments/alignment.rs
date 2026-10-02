@@ -26,8 +26,8 @@ pub(crate) fn alignment_columns(count: usize, aligned: bool) -> Vec<ArrayColumn>
             };
             ArrayColumn::AlignColumn {
                 alignment: alignment.to_string(),
-                pre_gap,
-                post_gap: 0.0,
+                pre_gap: Some(pre_gap),
+                post_gap: Some(0.0),
             }
         })
         .collect()
@@ -159,11 +159,12 @@ pub(crate) fn aligned_environment_handler(
     };
     let array = parser.parse_array(ArrayEnvironmentOptions {
         columns: None,
-        array_stretch: 1.0,
+        array_stretch: None,
         hskip_before_and_after: false,
         cell_style: StyleLevel::DisplayStyle,
         max_columns: if is_split { Some(2) } else { None },
         single_row: false,
+        empty_single_row: true,
         auto_tag,
         leqno: context.leqno,
         add_jot: true,
@@ -201,14 +202,15 @@ pub(crate) fn gather_environment_handler(
     parser.parse_array(ArrayEnvironmentOptions {
         columns: Some(vec![ArrayColumn::AlignColumn {
             alignment: "c".to_string(),
-            pre_gap: 0.0,
-            post_gap: 0.0,
+            pre_gap: None,
+            post_gap: None,
         }]),
-        array_stretch: 1.0,
+        array_stretch: None,
         hskip_before_and_after: false,
         cell_style: StyleLevel::DisplayStyle,
         max_columns: Some(1),
         single_row: false,
+        empty_single_row: true,
         auto_tag,
         leqno: context.leqno,
         add_jot: true,

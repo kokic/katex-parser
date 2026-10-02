@@ -207,6 +207,8 @@ pub(crate) fn render_node_internal(node: &ParseNode, state: &RenderState) -> Str
         | ParseNode::VCenter { body, .. }
         | ParseNode::RaiseBox { body, .. }
         | ParseNode::Lap { body, .. } => render_node_internal(body, state),
+        // Unicode cannot mirror arbitrary glyphs; preserve the unreflected body.
+        ParseNode::ReflectBox { body, .. } => render_node_internal(body, state),
         ParseNode::VPhantom { body, .. } => {
             format!("vphantom({})", render_node_internal(body, state))
         }
@@ -905,6 +907,7 @@ pub(crate) fn content_block(node: &ParseNode, state: &RenderState) -> Block {
         ParseNode::Smash { body, .. }
         | ParseNode::VCenter { body, .. }
         | ParseNode::RaiseBox { body, .. }
+        | ParseNode::ReflectBox { body, .. }
         | ParseNode::Lap { body, .. } => content_block(body, state),
         ParseNode::CdParent { fragment, .. } => content_block(fragment, state),
         ParseNode::GenFrac {

@@ -12,8 +12,8 @@ fn matrix_columns(count: usize, alignment: &str) -> Vec<ArrayColumn> {
     (0..count)
         .map(|_| ArrayColumn::AlignColumn {
             alignment: alignment.to_string(),
-            pre_gap: 0.0,
-            post_gap: 0.0,
+            pre_gap: None,
+            post_gap: None,
         })
         .collect()
 }
@@ -88,11 +88,12 @@ pub(crate) fn matrix_environment_handler(
     let alignment = requested_alignment.unwrap_or_else(|| "c".to_string());
     let array = parser.parse_array(ArrayEnvironmentOptions {
         columns: None,
-        array_stretch: 1.0,
+        array_stretch: None,
         hskip_before_and_after: false,
         cell_style: StyleLevel::TextStyle,
         max_columns: None,
         single_row: false,
+        empty_single_row: false,
         auto_tag: None,
         leqno: false,
         add_jot: false,
@@ -128,11 +129,12 @@ pub(crate) fn smallmatrix_environment_handler(
 ) -> Result<ParseNode, ParseError> {
     let array = parser.parse_array(ArrayEnvironmentOptions {
         columns: None,
-        array_stretch: 0.5,
+        array_stretch: Some(0.5),
         hskip_before_and_after: false,
         cell_style: StyleLevel::ScriptStyle,
         max_columns: None,
         single_row: false,
+        empty_single_row: false,
         auto_tag: None,
         leqno: false,
         add_jot: false,

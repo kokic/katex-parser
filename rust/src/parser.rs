@@ -1019,9 +1019,38 @@ impl Parser {
         }
     }
 
+    fn array_stretch(&mut self, explicit: Option<f64>) -> Result<f64, ParseError> {
+        if let Some(stretch) = explicit {
+            return Ok(stretch);
+        }
+        let Some(text) = self.gullet.expand_macro_as_text("\\arraystretch")? else {
+            return Ok(1.0);
+        };
+        parse_array_stretch_number(&text)
+            .filter(|stretch| *stretch > 0.0)
+            .ok_or_else(|| ParseError::InvalidArgument {
+                message: format!("Invalid \\arraystretch: {text}"),
+                loc: None,
+            })
+    }
+
+    fn begin_array_row(&mut self, auto_tag: Option<bool>) {
+        if auto_tag == Some(true) {
+            self.gullet.macros.set(
+                "\\@eqnsw".to_string(),
+                Some(MacroDefinition::text("1")),
+                true,
+            );
+        }
+    }
+
     fn consume_array_hlines(&mut self) -> Result<Vec<bool>, ParseError> {
         let mut lines: Vec<bool> = Vec::new();
         self.consume_spaces()?;
+        if self.fetch()?.text == "\\relax" {
+            self.consume();
+            self.consume_spaces()?;
+        }
         while self.fetch()?.text == "\\hline" || self.fetch()?.text == "\\hdashline" {
             let dashed = self.fetch()?.text == "\\hdashline";
             self.consume();
@@ -1039,7 +1068,11 @@ impl Parser {
             return Ok((None, false));
         };
         if self.gullet.macros.get("\\df@tag").is_none() {
-            return Ok((None, automatic));
+            let enabled = matches!(
+                self.gullet.macros.get("\\@eqnsw"),
+                Some(MacroDefinition::Text(text)) if text == "1"
+            );
+            return Ok((None, automatic && enabled));
         }
         let tag = self.subparse(vec![Token::new("\\df@tag", None)])?;
         self.gullet.macros.set("\\df@tag".to_string(), None, true);
@@ -1079,13 +1112,17 @@ impl Parser {
         options: ArrayEnvironmentOptions,
     ) -> Result<ParseNode, ParseError> {
         self.gullet.begin_group();
-        self.gullet.macros.set(
-            "\\cr".to_string(),
-            Some(MacroDefinition::text("\\\\\\relax")),
-            false,
-        );
+        if !options.single_row {
+            self.gullet.macros.set(
+                "\\cr".to_string(),
+                Some(MacroDefinition::text("\\\\\\relax")),
+                false,
+            );
+        }
         self.gullet.begin_group();
         let result: Result<ParseNode, ParseError> = (|| {
+            let array_stretch = self.array_stretch(options.array_stretch)?;
+            self.begin_array_row(options.auto_tag);
             let mut body: Vec<Vec<ParseNode>> = vec![Vec::new()];
             let mut row_gaps: Vec<Option<Measurement>> = Vec::new();
             let mut hlines_before_row: Vec<Vec<bool>> = vec![self.consume_array_hlines()?];
@@ -1093,6 +1130,7 @@ impl Parser {
             let mut auto_tags: Vec<bool> = Vec::new();
             loop {
                 let cell_body = self.parse_expression(false, Some("\\\\"))?;
+                let empty_cell = cell_body.is_empty();
                 let cell = ParseNode::Styling {
                     mode: self.mode,
                     body: vec![ParseNode::OrdGroup {
@@ -1125,6 +1163,14 @@ impl Parser {
                     }
                     "\\end" => {
                         self.push_array_tag(&mut tags, &mut auto_tags, options.auto_tag)?;
+                        if row.len() == 1
+                            && empty_cell
+                            && (body.len() > 1 || !options.empty_single_row)
+                            && !tags.last().is_some_and(Option::is_some)
+                            && auto_tags.last() != Some(&true)
+                        {
+                            body.pop();
+                        }
                         break;
                     }
                     "\\\\" => {
@@ -1139,6 +1185,7 @@ impl Parser {
                         self.push_array_tag(&mut tags, &mut auto_tags, options.auto_tag)?;
                         hlines_before_row.push(self.consume_array_hlines()?);
                         body.push(Vec::new());
+                        self.begin_array_row(options.auto_tag);
                     }
                     _ => {
                         return Err(ParseError::InvalidArgument {
@@ -1155,7 +1202,7 @@ impl Parser {
                 mode: self.mode,
                 body,
                 add_jot: options.add_jot,
-                array_stretch: options.array_stretch,
+                array_stretch,
                 columns: options.columns.clone(),
                 row_gaps,
                 hskip_before_and_after: options.hskip_before_and_after,
@@ -1188,43 +1235,39 @@ impl Parser {
         );
         self.gullet.begin_group();
         let result: Result<ParseNode, ParseError> = (|| {
-            let mut parsed_rows: Vec<Vec<ParseNode>> = vec![Vec::new()];
+            let mut parsed_rows: Vec<Vec<ParseNode>> = Vec::new();
             loop {
-                let part = self.parse_expression(false, Some("\\\\"))?;
-                let Some(row) = parsed_rows.last_mut() else {
-                    return Err(ParseError::InternalInvariant {
-                        message: "Missing CD row".to_string(),
-                    });
-                };
-                row.extend(part);
+                parsed_rows.push(self.parse_expression(false, Some("\\\\"))?);
+                self.gullet.end_group()?;
+                self.gullet.begin_group();
                 match self.fetch()?.text.as_str() {
-                    "&" => self.consume(),
-                    "\\\\" => {
-                        self.consume();
-                        parsed_rows.push(Vec::new());
+                    "&" | "\\\\" => self.consume(),
+                    "\\end" => {
+                        if parsed_rows.last().is_some_and(Vec::is_empty) {
+                            parsed_rows.pop();
+                        }
+                        break;
                     }
-                    "\\end" => break,
                     token => {
                         return Err(ParseError::InvalidArgument {
-                            message: format!("Expected \\ or \\end, got {token}"),
+                            message: format!("Expected \\ or \\cr or \\end, got {token}"),
                             loc: None,
                         });
                     }
                 }
             }
-            if parsed_rows.last().is_some_and(Vec::is_empty) {
-                parsed_rows.pop();
-            }
             let mut body: Vec<Vec<ParseNode>> = Vec::new();
-            for (index, row) in parsed_rows.iter().enumerate() {
-                body.push(cd_row(row.clone(), index % 2 == 0)?);
+            for (index, row) in parsed_rows.into_iter().enumerate() {
+                body.push(cd_row(row, index % 2 == 0)?);
             }
+            // KaTeX parseCD keeps a final structural empty row.
+            body.push(Vec::new());
             let count = body.first().map_or(0, Vec::len);
             let columns: Vec<crate::ast::ArrayColumn> = (0..count)
                 .map(|_| crate::ast::ArrayColumn::AlignColumn {
                     alignment: "c".to_string(),
-                    pre_gap: 0.25,
-                    post_gap: 0.25,
+                    pre_gap: Some(0.25),
+                    post_gap: Some(0.25),
                 })
                 .collect();
             let row_gap_count = body.len() + 1;
@@ -1672,6 +1715,59 @@ fn format_unsupported_command(mode: Mode, settings: &Settings, text: &str) -> Pa
         color: settings.error_color.clone(),
         body,
     }
+}
+
+/// Reads the longest decimal prefix accepted by JavaScript's parseFloat.
+fn parse_array_stretch_number(text: &str) -> Option<f64> {
+    let text = text.trim_start_matches(|ch| {
+        matches!(ch,
+            '\u{0009}'..='\u{000d}' | ' ' | '\u{00a0}' | '\u{1680}' |
+            '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' |
+            '\u{205f}' | '\u{3000}' | '\u{feff}'
+        )
+    });
+    let bytes = text.as_bytes();
+    let mut index = usize::from(matches!(bytes.first(), Some(b'+' | b'-')));
+    if text[index..].starts_with("Infinity") {
+        return Some(if bytes.first() == Some(&b'-') {
+            f64::NEG_INFINITY
+        } else {
+            f64::INFINITY
+        });
+    }
+    let integer_start = index;
+    while bytes.get(index).is_some_and(u8::is_ascii_digit) {
+        index += 1;
+    }
+    let integer_digits = index - integer_start;
+    let mut fraction_digits = 0;
+    if bytes.get(index) == Some(&b'.') {
+        index += 1;
+        let fraction_start = index;
+        while bytes.get(index).is_some_and(u8::is_ascii_digit) {
+            index += 1;
+        }
+        fraction_digits = index - fraction_start;
+    }
+    if integer_digits == 0 && fraction_digits == 0 {
+        return None;
+    }
+    if matches!(bytes.get(index), Some(b'e' | b'E')) {
+        let exponent_start = index;
+        index += 1;
+        if matches!(bytes.get(index), Some(b'+' | b'-')) {
+            index += 1;
+        }
+        let digits_start = index;
+        while bytes.get(index).is_some_and(u8::is_ascii_digit) {
+            index += 1;
+        }
+        if index == digits_start {
+            index = exponent_start;
+        }
+    }
+    // Rust's decimal conversion also maps overflow to signed infinity.
+    text[..index].parse().ok()
 }
 
 fn array_row_at_max(body: &[Vec<ParseNode>], max_columns: Option<usize>) -> bool {

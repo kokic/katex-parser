@@ -4,6 +4,8 @@ A Rust port of the [KaTeX](https://katex.org) parser: lexes and parses LaTeX
 math expressions with full macro expansion into a typed [`ParseNode`] AST, and
 renders that AST to Unicode text.
 
+See the [changelog](../CHANGELOG.md) for release notes and migration guidance.
+
 ## Usage
 
 ```rust

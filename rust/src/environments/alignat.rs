@@ -63,11 +63,12 @@ pub(crate) fn alignat_environment_handler(
     };
     let array = parser.parse_array(ArrayEnvironmentOptions {
         columns: None,
-        array_stretch: 1.0,
+        array_stretch: None,
         hskip_before_and_after: false,
         cell_style: StyleLevel::DisplayStyle,
         max_columns: Some(pairs * 2),
         single_row: false,
+        empty_single_row: true,
         auto_tag,
         leqno: context.leqno,
         add_jot: true,

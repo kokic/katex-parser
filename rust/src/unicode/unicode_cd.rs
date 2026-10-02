@@ -17,10 +17,15 @@ enum CdCell {
 /// nodes and horizontal arrows; odd rows hold the vertical arrows connecting
 /// them.
 pub(crate) fn render_cd_block(body: &[Vec<ParseNode>], state: &RenderState) -> Block {
-    let grid: Vec<Vec<CdCell>> = body
+    let mut grid: Vec<Vec<CdCell>> = body
         .iter()
         .map(|row| row.iter().map(|c| classify_cd_cell(c, state)).collect())
         .collect();
+    // The parser keeps KaTeX's terminal structural row for HTML layout.
+    // It has no cell content to display in the plain-text diagram.
+    if grid.last().is_some_and(Vec::is_empty) {
+        grid.pop();
+    }
     if grid.is_empty() || grid[0].is_empty() {
         return Block::empty();
     }

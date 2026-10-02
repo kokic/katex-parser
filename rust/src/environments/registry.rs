@@ -17,11 +17,12 @@ use super::subarray::subarray_environment_handler;
 /// Options controlling how an array environment is parsed.
 pub struct ArrayEnvironmentOptions {
     pub columns: Option<Vec<ArrayColumn>>,
-    pub array_stretch: f64,
+    pub array_stretch: Option<f64>,
     pub hskip_before_and_after: bool,
     pub cell_style: StyleLevel,
     pub max_columns: Option<usize>,
     pub single_row: bool,
+    pub empty_single_row: bool,
     pub auto_tag: Option<bool>,
     pub leqno: bool,
     pub add_jot: bool,
@@ -100,8 +101,8 @@ pub fn array_columns(arg: &ParseNode, name: &str) -> Result<Vec<ArrayColumn>, Pa
         match text.as_str() {
             "l" | "c" | "r" => columns.push(ArrayColumn::AlignColumn {
                 alignment: text,
-                pre_gap: 0.0,
-                post_gap: 0.0,
+                pre_gap: None,
+                post_gap: None,
             }),
             "|" | ":" => columns.push(ArrayColumn::SeparatorColumn { separator: text }),
             _ => {
@@ -127,7 +128,7 @@ fn array_environment_handler(
     )?;
     parser.parse_array(ArrayEnvironmentOptions {
         columns: Some(columns.clone()),
-        array_stretch: 1.0,
+        array_stretch: None,
         hskip_before_and_after: true,
         cell_style: if context.env_name == "darray" {
             StyleLevel::DisplayStyle
@@ -136,6 +137,7 @@ fn array_environment_handler(
         },
         max_columns: Some(columns.len()),
         single_row: false,
+        empty_single_row: false,
         auto_tag: None,
         leqno: false,
         add_jot: false,

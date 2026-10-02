@@ -53,6 +53,7 @@ pub(crate) fn is_atomic_expression(node: &ParseNode) -> bool {
         ParseNode::Smash { body, .. }
         | ParseNode::VCenter { body, .. }
         | ParseNode::RaiseBox { body, .. }
+        | ParseNode::ReflectBox { body, .. }
         | ParseNode::Lap { body, .. } => is_atomic_expression(body),
         ParseNode::CdParent { fragment, .. } => is_atomic_expression(fragment),
         _ => false,

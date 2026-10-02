@@ -59,8 +59,8 @@ pub enum LapAlignment {
 pub enum ArrayColumn {
     AlignColumn {
         alignment: String,
-        pre_gap: f64,
-        post_gap: f64,
+        pre_gap: Option<f64>,
+        post_gap: Option<f64>,
     },
     SeparatorColumn {
         separator: String,
@@ -198,6 +198,10 @@ pub enum ParseNode {
     RaiseBox {
         mode: Mode,
         dy: Measurement,
+        body: Box<ParseNode>,
+    },
+    ReflectBox {
+        mode: Mode,
         body: Box<ParseNode>,
     },
     HBox {
@@ -422,6 +426,7 @@ impl ParseNode {
             | ParseNode::VCenter { mode, .. }
             | ParseNode::Rule { mode, .. }
             | ParseNode::RaiseBox { mode, .. }
+            | ParseNode::ReflectBox { mode, .. }
             | ParseNode::HBox { mode, .. }
             | ParseNode::Lap { mode, .. }
             | ParseNode::MathChoice { mode, .. }

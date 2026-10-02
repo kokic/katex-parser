@@ -104,6 +104,8 @@ pub(crate) fn builtin_static_macros() -> HashMap<String, MacroDefinition> {
     ("\\enskip".to_string(), MacroDefinition::text("\\hskip.5em\\relax".to_string())),
     ("\\quad".to_string(), MacroDefinition::text("\\hskip1em\\relax".to_string())),
     ("\\qquad".to_string(), MacroDefinition::text("\\hskip2em\\relax".to_string())),
+    ("\\nonumber".to_string(), MacroDefinition::text("\\gdef\\@eqnsw{0}")),
+    ("\\notag".to_string(), MacroDefinition::text("\\nonumber")),
     ("\\tag".to_string(), MacroDefinition::text("\\@ifstar\\tag@literal\\tag@paren".to_string())),
     ("\\tag@paren".to_string(), MacroDefinition::text("\\tag@literal{({#1})}".to_string())),
     ("\\bmod".to_string(), MacroDefinition::text("\\mathchoice{\\mskip1mu}{\\mskip1mu}{\\mskip5mu}{\\mskip5mu}\\mathbin{\\rm mod}\\mathchoice{\\mskip1mu}{\\mskip1mu}{\\mskip5mu}{\\mskip5mu}".to_string())),

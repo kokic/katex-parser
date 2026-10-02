@@ -8,13 +8,13 @@ fn cases_columns() -> Vec<ArrayColumn> {
     vec![
         ArrayColumn::AlignColumn {
             alignment: "l".to_string(),
-            pre_gap: 0.0,
-            post_gap: 1.0,
+            pre_gap: Some(0.0),
+            post_gap: Some(1.0),
         },
         ArrayColumn::AlignColumn {
             alignment: "l".to_string(),
-            pre_gap: 0.0,
-            post_gap: 0.0,
+            pre_gap: Some(0.0),
+            post_gap: Some(0.0),
         },
     ]
 }
@@ -27,7 +27,7 @@ pub(crate) fn cases_environment_handler(
 ) -> Result<ParseNode, ParseError> {
     let array = parser.parse_array(ArrayEnvironmentOptions {
         columns: Some(cases_columns()),
-        array_stretch: 1.2,
+        array_stretch: Some(1.2),
         hskip_before_and_after: false,
         cell_style: if context.env_name == "dcases" || context.env_name == "drcases" {
             StyleLevel::DisplayStyle
@@ -36,6 +36,7 @@ pub(crate) fn cases_environment_handler(
         },
         max_columns: None,
         single_row: false,
+        empty_single_row: false,
         auto_tag: None,
         leqno: false,
         add_jot: false,
