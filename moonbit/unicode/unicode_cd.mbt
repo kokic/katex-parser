@@ -16,6 +16,11 @@ fn render_cd_block(
   state : RenderState,
 ) -> Block {
   let grid = body.map(row => row.map(c => classify_cd_cell(c, state)))
+  // The parser retains KaTeX's terminal structural row for HTML layout.
+  // It has no cell content to display in the plain-text diagram.
+  if grid.last() is Some([]) {
+    let _ = grid.pop()
+  }
   guard grid.length() > 0 && grid[0].length() > 0 else { return Block::empty() }
   let n_nodes = grid[0].length() / 2 + 1
   let hbar = line_style_frac_bar(state.config.line_style)

@@ -201,6 +201,8 @@ let builtin_function_specs : Array[FunctionSpec] = [
   vcenter_spec(),
   rule_spec(),
   raisebox_spec(),
+  reflectbox_spec(),
+  mathreflectbox_spec(),
   hbox_spec(),
   lap_spec(),
   mathchoice_spec(),

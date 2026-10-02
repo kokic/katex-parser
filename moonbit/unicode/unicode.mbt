@@ -160,6 +160,8 @@ fn render_node_internal(node : @katex.ParseNode, state : RenderState) -> String 
     | VCenter(body~, ..)
     | RaiseBox(body~, ..)
     | Lap(body~, ..) => render_node_internal(body, state)
+    // Unicode cannot mirror arbitrary glyphs; preserve the unreflected body.
+    ReflectBox(body~, ..) => render_node_internal(body, state)
     VPhantom(body~, ..) => "vphantom(\{render_node_internal(body, state)})"
     CdParent(fragment~, ..) => render_node_internal(fragment, state)
     Phantom(body~, ..) => "phantom(\{render_internal(body, state)})"
@@ -354,6 +356,7 @@ fn get_outer_atom_type(node : @katex.ParseNode) -> String? {
     | Underline(..)
     | Phantom(..)
     | VPhantom(..)
+    | ReflectBox(..)
     | Rule(..)
     | Kern(..)
     | Enclose(..)
@@ -896,6 +899,7 @@ fn content_block(node : @katex.ParseNode, state : RenderState) -> Block {
     @katex.ParseNode::Smash(body~, ..)
     | @katex.ParseNode::VCenter(body~, ..)
     | @katex.ParseNode::RaiseBox(body~, ..)
+    | @katex.ParseNode::ReflectBox(body~, ..)
     | @katex.ParseNode::Lap(body~, ..) => content_block(body, state)
     @katex.ParseNode::CdParent(fragment~, ..) => content_block(fragment, state)
     // --- Multi-line block producers in display mode ---

@@ -207,6 +207,8 @@ let builtin_static_macro_definitions : Map[String, MacroDefinition] = Map::from_
     ("\\enskip", MacroDefinition::text("\\hskip.5em\\relax")),
     ("\\quad", MacroDefinition::text("\\hskip1em\\relax")),
     ("\\qquad", MacroDefinition::text("\\hskip2em\\relax")),
+    ("\\nonumber", MacroDefinition::text("\\gdef\\@eqnsw{0}")),
+    ("\\notag", MacroDefinition::text("\\nonumber")),
     ("\\tag", MacroDefinition::text("\\@ifstar\\tag@literal\\tag@paren")),
     ("\\tag@paren", MacroDefinition::text("\\tag@literal{({#1})}")),
     (

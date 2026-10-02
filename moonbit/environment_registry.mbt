@@ -1,11 +1,12 @@
 ///|
 pub(all) struct ArrayEnvironmentOptions {
   columns : Array[ArrayColumn]?
-  array_stretch : Double
+  array_stretch : Double?
   hskip_before_and_after : Bool
   cell_style : StyleLevel
   max_columns : Int?
   single_row : Bool
+  empty_single_row : Bool
   auto_tag : Bool?
   leqno : Bool
   add_jot : Bool
@@ -72,7 +73,8 @@ fn array_columns(
         )
     }
     match text {
-      "l" | "c" | "r" => AlignColumn(alignment=text, pre_gap=0.0, post_gap=0.0)
+      "l" | "c" | "r" =>
+        AlignColumn(alignment=text, pre_gap=None, post_gap=None)
       "|" | ":" => SeparatorColumn(separator=text)
       _ =>
         raise InvalidArgument(
@@ -95,7 +97,7 @@ fn array_environment_handler(
   )
   (context.parse_array)({
     columns: Some(columns),
-    array_stretch: 1.0,
+    array_stretch: None,
     hskip_before_and_after: true,
     cell_style: if context.env_name == "darray" {
       DisplayStyle
@@ -104,6 +106,7 @@ fn array_environment_handler(
     },
     max_columns: Some(columns.length()),
     single_row: false,
+    empty_single_row: false,
     auto_tag: None,
     leqno: false,
     add_jot: false,

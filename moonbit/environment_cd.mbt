@@ -102,9 +102,8 @@ fn scan_cd_label(
 ///|
 /// Splits one parsed CD row into cells: `@` starts an arrow cell (arrow
 /// character, optional labels above/below), everything else accumulates into
-/// the current node cell. On even rows the leading blank cell (the empty
-/// corner before the first arrow) is dropped; on odd rows the trailing cell
-/// is kept to preserve the column grid.
+/// the current node cell. Even rows keep the trailing node cell; odd rows
+/// drop the leading blank cell before their first vertical arrow.
 fn cd_row(
   nodes : Array[ParseNode],
   even : Bool,
@@ -169,38 +168,36 @@ fn Parser::parse_cd_environment(self : Parser) -> ParseNode raise ParseFailure {
   self.gullet.macros.set("\\cr", Some(MacroDefinition::text("\\\\\\relax")))
   self.gullet.begin_group()
   let result : Result[ParseNode, ParseFailure] = capture_parse_result(() => {
-    let parsed_rows : Array[Array[ParseNode]] = [[]]
+    let parsed_rows : Array[Array[ParseNode]] = []
     for ;; {
-      let part = self.parse_expression(false, Some("\\\\"))
-      guard parsed_rows.last() is Some(row) else {
-        raise InternalInvariant(message="Missing CD row")
-      }
-      row.append(part)
+      parsed_rows.push(self.parse_expression(false, Some("\\\\")))
+      self.gullet.end_group()
+      self.gullet.begin_group()
       match self.fetch().text {
-        "&" => self.consume()
-        "\\\\" => {
-          self.consume()
-          parsed_rows.push([])
+        "&" | "\\\\" => self.consume()
+        "\\end" => {
+          if parsed_rows.last() is Some([]) {
+            let _ = parsed_rows.pop()
+          }
+          break
         }
-        "\\end" => break
         token =>
           raise InvalidArgument(
-            message="Expected \\ or \\end, got \{token}",
+            message="Expected \\ or \\cr or \\end, got \{token}",
             loc=None,
           )
       }
-    }
-    if parsed_rows.last() is Some([]) {
-      let _ = parsed_rows.pop()
     }
     let body : Array[Array[ParseNode]] = []
     for index, row in parsed_rows {
       body.push(cd_row(row, index % 2 == 0))
     }
+    // KaTeX parseCD always keeps the final structural empty row.
+    body.push([])
     let count = body.get(0).map_or(0, row => row.length())
     let columns = Array::make(
       count,
-      AlignColumn(alignment="c", pre_gap=0.25, post_gap=0.25),
+      AlignColumn(alignment="c", pre_gap=Some(0.25), post_gap=Some(0.25)),
     )
     let row_gap_count = body.length() + 1
     let hlines_before_row = Array::makei(row_gap_count, _ => [])

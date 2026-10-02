@@ -1,9 +1,91 @@
 ///|
+/// Reads the longest decimal prefix accepted by JavaScript's parseFloat.
+fn parse_array_stretch_number(text : String) -> Double? {
+  let start = text
+    .trim_start(
+      chars=" \t\n\r\u{000b}\u{000c}\u{00a0}\u{1680}\u{2000}\u{2001}\u{2002}\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}",
+    )
+    .start_offset()
+  let len = text.length()
+  let mut index = start
+  if index < len && (text[index] == '+' || text[index] == '-') {
+    index = index + 1
+  }
+  if index + 8 <= len &&
+    text.unsafe_substring(start=index, end=index + 8) == "Infinity" {
+    return Some(if text[start] == '-' { -1.0 / 0.0 } else { 1.0 / 0.0 })
+  }
+  let integer_start = index
+  while index < len && is_ascii_digit_code_unit(text[index]) {
+    index = index + 1
+  }
+  let integer_digits = index - integer_start
+  let mut fraction_digits = 0
+  if index < len && text[index] == '.' {
+    index = index + 1
+    let fraction_start = index
+    while index < len && is_ascii_digit_code_unit(text[index]) {
+      index = index + 1
+    }
+    fraction_digits = index - fraction_start
+  }
+  guard integer_digits > 0 || fraction_digits > 0 else { None }
+  if index < len && (text[index] == 'e' || text[index] == 'E') {
+    let exponent_start = index
+    index = index + 1
+    if index < len && (text[index] == '+' || text[index] == '-') {
+      index = index + 1
+    }
+    let digits_start = index
+    while index < len && is_ascii_digit_code_unit(text[index]) {
+      index = index + 1
+    }
+    if index == digits_start {
+      index = exponent_start
+    }
+  }
+  // The prefix has valid decimal syntax. MoonBit reports overflow as an error,
+  // whereas JavaScript parseFloat returns the corresponding infinity.
+  let value = @string.parse_double(text[start:index]) catch {
+    _ => if text[start] == '-' { -1.0 / 0.0 } else { 1.0 / 0.0 }
+  }
+  Some(value)
+}
+
+///|
+fn Parser::array_stretch(
+  self : Parser,
+  explicit : Double?,
+) -> Double raise ParseFailure {
+  if explicit is Some(stretch) {
+    return stretch
+  }
+  guard self.gullet.expand_macro_as_text("\\arraystretch") is Some(text) else {
+    1.0
+  }
+  guard parse_array_stretch_number(text) is Some(stretch) && stretch > 0.0 else {
+    raise InvalidArgument(message="Invalid \\arraystretch: \{text}", loc=None)
+  }
+  stretch
+}
+
+///|
+fn Parser::begin_array_row(self : Parser, auto_tag : Bool?) -> Unit {
+  if auto_tag is Some(true) {
+    self.gullet.macros.set("\\@eqnsw", Some(Text("1")), global=true)
+  }
+}
+
+///|
 fn Parser::consume_array_hlines(
   self : Parser,
 ) -> Array[Bool] raise ParseFailure {
   let lines : Array[Bool] = []
   self.consume_spaces()
+  if self.fetch().text == "\\relax" {
+    self.consume()
+    self.consume_spaces()
+  }
   while self.fetch().text == "\\hline" || self.fetch().text == "\\hdashline" {
     let dashed = self.fetch().text == "\\hdashline"
     self.consume()
@@ -19,7 +101,9 @@ fn Parser::take_array_tag(
   auto_tag : Bool?,
 ) -> (Array[ParseNode]?, Bool) raise ParseFailure {
   guard auto_tag is Some(automatic) else { (None, false) }
-  guard self.gullet.macros.get("\\df@tag") is Some(_) else { (None, automatic) }
+  guard self.gullet.macros.get("\\df@tag") is Some(_) else {
+    (None, automatic && self.gullet.macros.get("\\@eqnsw") is Some(Text("1")))
+  }
   let tag = self.subparse([Token::make("\\df@tag")])
   self.gullet.macros.set("\\df@tag", None, global=true)
   (Some(tag), false)
@@ -96,9 +180,13 @@ fn Parser::parse_array_environment(
   options : ArrayEnvironmentOptions,
 ) -> ParseNode raise ParseFailure {
   self.gullet.begin_group()
-  self.gullet.macros.set("\\cr", Some(MacroDefinition::text("\\\\\\relax")))
+  if !options.single_row {
+    self.gullet.macros.set("\\cr", Some(MacroDefinition::text("\\\\\\relax")))
+  }
   self.gullet.begin_group()
   let result : Result[ParseNode, ParseFailure] = capture_parse_result(() => {
+    let array_stretch = self.array_stretch(options.array_stretch)
+    self.begin_array_row(options.auto_tag)
     let body : Array[Array[ParseNode]] = [[]]
     let row_gaps : Array[Measurement?] = []
     let hlines_before_row : Array[Array[Bool]] = [self.consume_array_hlines()]
@@ -106,6 +194,7 @@ fn Parser::parse_array_environment(
     let auto_tags : Array[Bool] = []
     for ;; {
       let cell_body = self.parse_expression(false, Some("\\\\"))
+      let empty_cell = cell_body.is_empty()
       let cell : ParseNode = Styling(
         mode=self.mode,
         body=[
@@ -132,6 +221,13 @@ fn Parser::parse_array_environment(
         }
         "\\end" => {
           self.push_array_tag(tags, auto_tags, options.auto_tag)
+          if row.length() == 1 &&
+            empty_cell &&
+            (body.length() > 1 || !options.empty_single_row) &&
+            !(tags.last() is Some(Some(_))) &&
+            !(auto_tags.last() is Some(true)) {
+            let _ = body.pop()
+          }
           break
         }
         "\\\\" => {
@@ -143,6 +239,7 @@ fn Parser::parse_array_environment(
           self.push_array_tag(tags, auto_tags, options.auto_tag)
           hlines_before_row.push(self.consume_array_hlines())
           body.push([])
+          self.begin_array_row(options.auto_tag)
         }
         token =>
           raise InvalidArgument(
@@ -158,7 +255,7 @@ fn Parser::parse_array_environment(
       mode=self.mode,
       body~,
       add_jot=options.add_jot,
-      array_stretch=options.array_stretch,
+      array_stretch~,
       columns=options.columns,
       row_gaps~,
       hskip_before_and_after=options.hskip_before_and_after,

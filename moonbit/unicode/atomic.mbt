@@ -52,6 +52,7 @@ fn is_atomic_expression(node : @katex.ParseNode) -> Bool {
     Smash(body~, ..)
     | VCenter(body~, ..)
     | RaiseBox(body~, ..)
+    | ReflectBox(body~, ..)
     | Lap(body~, ..) => is_atomic_expression(body)
     CdParent(fragment~, ..) => is_atomic_expression(fragment)
     _ => false

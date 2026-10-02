@@ -11,7 +11,7 @@ fn alignment_columns(count : Int, aligned : Bool) -> Array[ArrayColumn] {
   Array::makei(count, index => {
     let alignment = if index % 2 == 0 { "r" } else { "l" }
     let pre_gap = if index % 2 == 0 && index > 0 && aligned { 1.0 } else { 0.0 }
-    AlignColumn(alignment~, pre_gap~, post_gap=0.0)
+    AlignColumn(alignment~, pre_gap=Some(pre_gap), post_gap=Some(0.0))
   })
 }
 
@@ -91,7 +91,7 @@ fn aligned_environment_handler(
   }
   let array = (context.parse_array)({
     columns: None,
-    array_stretch: 1.0,
+    array_stretch: None,
     hskip_before_and_after: false,
     cell_style: DisplayStyle,
     max_columns: if is_split {
@@ -100,6 +100,7 @@ fn aligned_environment_handler(
       None
     },
     single_row: false,
+    empty_single_row: true,
     auto_tag,
     leqno: context.leqno,
     add_jot: true,
@@ -136,12 +137,13 @@ fn gather_environment_handler(
     _ => None
   }
   (context.parse_array)({
-    columns: Some([AlignColumn(alignment="c", pre_gap=0.0, post_gap=0.0)]),
-    array_stretch: 1.0,
+    columns: Some([AlignColumn(alignment="c", pre_gap=None, post_gap=None)]),
+    array_stretch: None,
     hskip_before_and_after: false,
     cell_style: DisplayStyle,
     max_columns: Some(1),
     single_row: false,
+    empty_single_row: true,
     auto_tag,
     leqno: context.leqno,
     add_jot: true,

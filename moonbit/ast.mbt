@@ -46,7 +46,7 @@ pub(all) enum LapAlignment {
 
 ///|
 pub(all) enum ArrayColumn {
-  AlignColumn(alignment~ : String, pre_gap~ : Double, post_gap~ : Double)
+  AlignColumn(alignment~ : String, pre_gap~ : Double?, post_gap~ : Double?)
   SeparatorColumn(separator~ : String)
 } derive(Debug, ToJson, Eq)
 
@@ -132,6 +132,7 @@ pub(all) enum ParseNode {
   )
   RaiseBox(mode~ : Mode, dy~ : Measurement, body~ : ParseNode)
   HBox(mode~ : Mode, body~ : Array[ParseNode])
+  ReflectBox(mode~ : Mode, body~ : ParseNode)
   Lap(mode~ : Mode, alignment~ : LapAlignment, body~ : ParseNode)
   MathChoice(
     mode~ : Mode,
@@ -253,6 +254,7 @@ pub fn ParseNode::mode(self : ParseNode) -> Mode {
     Rule(mode~, ..) => mode
     RaiseBox(mode~, ..) => mode
     HBox(mode~, ..) => mode
+    ReflectBox(mode~, ..) => mode
     Lap(mode~, ..) => mode
     MathChoice(mode~, ..) => mode
     Sizing(mode~, ..) => mode

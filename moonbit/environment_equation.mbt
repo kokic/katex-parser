@@ -12,11 +12,12 @@ fn equation_environment_handler(
   }
   (context.parse_array)({
     columns: None,
-    array_stretch: 1.0,
+    array_stretch: None,
     hskip_before_and_after: false,
     cell_style: DisplayStyle,
     max_columns: Some(1),
     single_row: true,
+    empty_single_row: true,
     auto_tag: Some(context.env_name == "equation"),
     leqno: context.leqno,
     add_jot: false,

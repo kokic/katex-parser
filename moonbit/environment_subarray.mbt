@@ -28,11 +28,12 @@ fn subarray_environment_handler(
     columns: Some(
       subarray_columns(require_function_arg(args, 0, "\\begin{subarray}")),
     ),
-    array_stretch: 0.5,
+    array_stretch: Some(0.5),
     hskip_before_and_after: false,
     cell_style: ScriptStyle,
     max_columns: Some(1),
     single_row: false,
+    empty_single_row: false,
     auto_tag: None,
     leqno: false,
     add_jot: false,

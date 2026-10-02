@@ -11,7 +11,7 @@ fn matrix_column_count(body : Array[Array[ParseNode]]) -> Int {
 
 ///|
 fn matrix_columns(count : Int, alignment : String) -> Array[ArrayColumn] {
-  Array::make(count, AlignColumn(alignment~, pre_gap=0.0, post_gap=0.0))
+  Array::make(count, AlignColumn(alignment~, pre_gap=None, post_gap=None))
 }
 
 ///|
@@ -89,11 +89,12 @@ fn matrix_environment_handler(
   let alignment = requested_alignment.unwrap_or("c")
   let array = (context.parse_array)({
     columns: None,
-    array_stretch: 1.0,
+    array_stretch: None,
     hskip_before_and_after: false,
     cell_style: TextStyle,
     max_columns: None,
     single_row: false,
+    empty_single_row: false,
     auto_tag: None,
     leqno: false,
     add_jot: false,
@@ -121,11 +122,12 @@ fn smallmatrix_environment_handler(
 ) -> ParseNode raise ParseFailure {
   let array = (context.parse_array)({
     columns: None,
-    array_stretch: 0.5,
+    array_stretch: Some(0.5),
     hskip_before_and_after: false,
     cell_style: ScriptStyle,
     max_columns: None,
     single_row: false,
+    empty_single_row: false,
     auto_tag: None,
     leqno: false,
     add_jot: false,

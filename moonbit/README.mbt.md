@@ -2,6 +2,40 @@
 
 A port of the KaTeX parser, lexing LaTeX math expressions into a typed AST with macro expansion support.
 
+## 0.6.0: array fidelity and reflection
+
+This release fixes [scoped array stretch](https://github.com/kokic/katex-parser/issues/1),
+[reflection boxes](https://github.com/kokic/katex-parser/issues/2),
+[optional column gaps](https://github.com/kokic/katex-parser/issues/3), and
+[array row/tag normalization](https://github.com/kokic/katex-parser/issues/4).
+
+Arrays now expand the current `\arraystretch` macro before leaving its scope,
+using KaTeX's numeric-prefix parsing and positive-value validation. Environments
+with an explicit stretch, such as `cases` and `smallmatrix`, retain that value.
+Trailing empty rows, AMS automatic numbering, `\nonumber` / `\notag`, manual tags,
+and CD's final structural empty row follow KaTeX's parser behavior. Row-gap,
+horizontal-line, and tag metadata are retained even when a trailing body row
+is removed; consumers must not assume their lengths equal the body length.
+
+The public AST/API changes require consumer updates:
+
+- `ArrayColumn::AlignColumn.pre_gap` and `post_gap` are now `Double?`. `None` means
+  the renderer chooses the default gap; `Some(0.0)` means explicitly no gap.
+  JSON consumers must preserve this distinction too.
+- `ArrayEnvironmentOptions.array_stretch` is now `Double?`: `None` reads the current
+  macro (default `1.0`), while `Some(value)` specifies the environment's stretch.
+  The resolved `ParseNode::Array.array_stretch` remains a `Double`.
+- `ArrayEnvironmentOptions` adds `empty_single_row`. Set it to `true` for AMS-style
+  environments that retain a single empty row, or `false` for ordinary arrays.
+- `ParseNode` adds `ReflectBox(mode~, body~)`. Exhaustive AST consumers must handle
+  it. `\reflectbox` parses its body as a text box and is also allowed in text;
+  `\mathreflectbox` takes a math argument and is only allowed in math mode.
+  Both commands are included in the builtin completion catalogue.
+
+The Unicode backend accepts `ReflectBox` and renders its body without mirroring:
+plain text cannot mirror arbitrary glyphs. It also omits CD's structural empty
+row when drawing text diagrams.
+
 ## Builtin command completions
 
 `builtin_commands()` returns a fresh `Array[CommandInfo]`, sorted by command name.
