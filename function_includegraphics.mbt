@@ -1,0 +1,155 @@
+///|
+fn includegraphics_spec() -> FunctionSpec {
+  FunctionSpec::make(
+    ["\\includegraphics"],
+    1,
+    num_optional_args=1,
+    arg_types=[RawArg, UrlArg],
+    handler=includegraphics_handler,
+  )
+}
+
+///|
+fn graphics_number(text : String) -> String? {
+  let mut index = 0
+  let mut sign = ""
+  if index < text.length() && (text[index] == '+' || text[index] == '-') {
+    sign = text.unsafe_substring(start=0, end=1)
+    index = 1
+    while index < text.length() && text[index] == ' ' {
+      index = index + 1
+    }
+  }
+  let start = index
+  while index < text.length() && text[index] >= '0' && text[index] <= '9' {
+    index = index + 1
+  }
+  let before = index - start
+  let mut after = 0
+  if index < text.length() && text[index] == '.' {
+    index = index + 1
+    let fraction_start = index
+    while index < text.length() && text[index] >= '0' && text[index] <= '9' {
+      index = index + 1
+    }
+    after = index - fraction_start
+  }
+  if index != text.length() || (before == 0 && after == 0) {
+    None
+  } else {
+    Some(sign + text.unsafe_substring(start~, end=text.length()))
+  }
+}
+
+///|
+fn graphics_size(text : String) -> Measurement raise ParseFailure {
+  let text = text.trim(chars=" \t\n\r").to_owned()
+  if graphics_number(text) is Some(number_text) {
+    return { number: parse_decimal(number_text), unit: "bp", }
+  }
+  match parse_size_measurement(text) {
+    Some(size) if valid_size_unit(size.unit) => size
+    Some(size) =>
+      raise InvalidArgument(
+        message="Invalid unit: '\{size.unit}' in \\includegraphics.",
+        loc=None,
+      )
+    None =>
+      raise InvalidArgument(
+        message="Invalid size: '\{text}' in \\includegraphics",
+        loc=None,
+      )
+  }
+}
+
+///|
+fn graphics_option_pair(item : StringView) -> (String, String)? {
+  let parts = item.split("=").to_array()
+  guard parts.length() == 2 else { None }
+  Some(
+    (
+      parts[0].trim(chars=" \t\n\r").to_owned(),
+      parts[1].trim(chars=" \t\n\r").to_owned(),
+    ),
+  )
+}
+
+///|
+fn graphics_default_alt(src : String) -> String {
+  let mut name_start = 0
+  let mut extension = -1
+  for index = 0; index < src.length(); index = index + 1 {
+    if src[index] == '/' || src[index] == '\\' {
+      name_start = index + 1
+      extension = -1
+    } else if src[index] == '.' {
+      extension = index
+    }
+  }
+  if extension < name_start {
+    ""
+  } else {
+    src.unsafe_substring(start=name_start, end=extension)
+  }
+}
+
+///|
+/// Parses the `[alt=..., width=..., ...]` option list into the concrete
+/// graphics sizes (in em units by default) and the alt text.
+fn parse_graphics_options(
+  value : String,
+) -> (Measurement, Measurement, Measurement, String) raise ParseFailure {
+  let mut width = { number: 0.0, unit: "em", }
+  let mut height = { number: 0.9, unit: "em", }
+  let mut totalheight = { number: 0.0, unit: "em", }
+  let mut alt = ""
+  for item in value.split(",") {
+    guard graphics_option_pair(item) is Some((key, value)) else { continue }
+    match key {
+      "alt" => alt = value
+      "width" => width = graphics_size(value)
+      "height" => height = graphics_size(value)
+      "totalheight" => totalheight = graphics_size(value)
+      _ =>
+        raise InvalidArgument(
+          message="Invalid key: '\{key}' in \\includegraphics.",
+          loc=None,
+        )
+    }
+  }
+  (width, height, totalheight, alt)
+}
+
+///|
+fn includegraphics_handler(
+  context : FunctionContext,
+  args : Array[ParseNode],
+  opt_args : Array[ParseNode?],
+) -> ParseNode raise ParseFailure {
+  let (width, height, totalheight, alt) = match opt_args.get(0) {
+    Some(Some(Raw(string=value, ..))) => parse_graphics_options(value)
+    Some(Some(_)) =>
+      raise InternalInvariant(message="Expected raw graphics options")
+    Some(None) | None => parse_graphics_options("")
+  }
+  guard require_function_arg(args, 0, context.func_name) is Url(url=src, ..) else {
+    raise InternalInvariant(
+      message="Expected URL argument for \\includegraphics",
+    )
+  }
+  let alt = if alt == "" { graphics_default_alt(src) } else { alt }
+  if (context.is_trusted)(
+      UrlTrust(command="\\includegraphics", url=src, protocol=None),
+    ) {
+    IncludeGraphics(
+      mode=context.mode,
+      alt~,
+      width~,
+      height~,
+      totalheight~,
+      src~,
+    )
+  } else {
+    TextOrd(mode=Text, loc=None, text=alt)
+  }
+}
