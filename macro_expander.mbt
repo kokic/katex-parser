@@ -9,7 +9,7 @@ priv enum MacroReplacement {
 #warnings("-unused_field")
 priv enum ExpansionStep {
   NotExpanded
-  Expanded(Int)
+  Expanded(Int32)
 }
 
 ///|
@@ -47,7 +47,7 @@ fn default_command_status(name : String) -> ExternalCommandStatus {
 ///|
 priv struct MacroExpander {
   settings : Settings
-  mut expansion_count : Int
+  mut expansion_count : Int32
   mut lexer : Lexer
   macros : Namespace[MacroDefinition]
   dynamic_macros : Namespace[MacroHandler]
@@ -63,13 +63,13 @@ priv struct MacroExpander {
 fn MacroExpander::make(
   input : String,
   settings : Settings,
-  mode? : Mode = Math,
-  builtins? : Map[String, MacroDefinition] = builtin_static_macros(),
-  dynamic_macros? : Map[String, MacroHandler] = builtin_dynamic_macros(),
-  report_nonstrict? : LexerReporter = (_code, _message) => (),
-  command_status? : CommandStatusResolver = default_command_status,
-  math_symbol_group? : MathSymbolGroupResolver = default_math_symbol_group,
-  macro_reporter? : MacroReporter = default_macro_reporter,
+  mode~ : Mode = Math,
+  builtins~ : Map[String, MacroDefinition] = builtin_static_macros(),
+  dynamic_macros~ : Map[String, MacroHandler] = builtin_dynamic_macros(),
+  report_nonstrict~ : LexerReporter = (_code, _message) => (),
+  command_status~ : CommandStatusResolver = default_command_status,
+  math_symbol_group~ : MathSymbolGroupResolver = default_math_symbol_group,
+  macro_reporter~ : MacroReporter = default_macro_reporter,
 ) -> MacroExpander {
   let initial_macros = settings.macro_definitions()
   match settings.macro_store {
@@ -216,8 +216,8 @@ fn MacroExpander::push_argument_job(
 /// a delimiter inside a braced argument never closes the argument early.
 fn delimiter_is_active(
   delimiters : Array[String],
-  match_index : Int,
-  depth : Int,
+  match_index : Int32,
+  depth : Int32,
   token : Token,
 ) -> Bool {
   delimiters
@@ -230,7 +230,7 @@ fn delimiter_is_active(
 ///|
 fn expected_argument_delimiter(
   delimiters : Array[String]?,
-  match_index : Int,
+  match_index : Int32,
 ) -> String {
   delimiters.map_or("}", values => values.get(match_index).unwrap_or("}"))
 }
@@ -313,7 +313,7 @@ fn MacroExpander::consume_arg(
 ///|
 fn MacroExpander::consume_args(
   self : MacroExpander,
-  num_args : Int,
+  num_args : Int32,
   delimiters : Array[Array[String]]?,
 ) -> Array[Array[Token]] raise ParseFailure {
   if delimiters is Some(values) && values.length() != num_args + 1 {
@@ -344,7 +344,7 @@ fn MacroExpander::consume_args(
 ///|
 fn MacroExpander::count_expansion(
   self : MacroExpander,
-  amount : Int,
+  amount : Int32,
 ) -> Unit raise ParseFailure {
   self.expansion_count = self.expansion_count + amount
   if self.expansion_count > self.settings.max_expand {
@@ -353,7 +353,7 @@ fn MacroExpander::count_expansion(
 }
 
 ///|
-fn placeholder_number(text : String) -> Int? {
+fn placeholder_number(text : String) -> Int32? {
   if text.length() == 1 && text[0] >= '1' && text[0] <= '9' {
     Some(text[0].to_int() - ('0' : UInt16).to_int())
   } else {
@@ -405,7 +405,7 @@ fn substitute_macro_arguments(
 ///|
 fn MacroExpander::expand_once(
   self : MacroExpander,
-  expandable_only? : Bool = false,
+  expandable_only~ : Bool = false,
 ) -> ExpansionStep raise ParseFailure {
   let top_token = self.pop_token()
   let expansion = if top_token.noexpand {
@@ -528,7 +528,7 @@ fn MacroExpander::expand_macro_as_text(
 }
 
 ///|
-fn inferred_argument_count(expansion : String) -> Int {
+fn inferred_argument_count(expansion : String) -> Int32 {
   let seen : FixedArray[Bool] = FixedArray::make(10, false)
   for index = 0; index < expansion.length(); {
     if expansion[index] != '#' || index + 1 >= expansion.length() {

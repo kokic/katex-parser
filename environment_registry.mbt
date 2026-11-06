@@ -4,7 +4,7 @@ pub(all) struct ArrayEnvironmentOptions {
   array_stretch : Double?
   hskip_before_and_after : Bool
   cell_style : StyleLevel
-  max_columns : Int?
+  max_columns : Int32?
   single_row : Bool
   empty_single_row : Bool
   auto_tag : Bool?
@@ -34,8 +34,8 @@ pub type EnvironmentHandler = (
 ///|
 pub(all) struct EnvironmentSpec {
   names : Array[String]
-  num_args : Int
-  num_optional_args : Int
+  num_args : Int32
+  num_optional_args : Int32
   arg_types : Array[ArgType]
   handler : EnvironmentHandler
 }
@@ -43,9 +43,9 @@ pub(all) struct EnvironmentSpec {
 ///|
 pub fn EnvironmentSpec::make(
   names : Array[String],
-  num_args : Int,
-  num_optional_args? : Int = 0,
-  arg_types? : Array[ArgType] = [],
+  num_args : Int32,
+  num_optional_args~ : Int32 = 0,
+  arg_types~ : Array[ArgType] = [],
   handler~ : EnvironmentHandler,
 ) -> EnvironmentSpec {
   { names, num_args, num_optional_args, arg_types, handler, }

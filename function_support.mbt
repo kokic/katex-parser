@@ -1,7 +1,7 @@
 ///|
 fn require_function_arg(
   args : Array[ParseNode],
-  index : Int,
+  index : Int32,
   func_name : String,
 ) -> ParseNode raise ParseFailure {
   guard args.get(index) is Some(arg) else {

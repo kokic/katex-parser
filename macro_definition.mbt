@@ -1,7 +1,7 @@
 ///|
 pub(all) struct MacroExpansion {
   tokens : Array[Token]
-  num_args : Int
+  num_args : Int32
   delimiters : Array[Array[String]]?
   unexpandable : Bool
 }
@@ -26,9 +26,9 @@ fn MacroDefinition::expansion(expansion : MacroExpansion) -> MacroDefinition {
 ///|
 fn MacroExpansion::make(
   tokens : Array[Token],
-  num_args? : Int = 0,
+  num_args~ : Int32 = 0,
   delimiters? : Array[Array[String]],
-  unexpandable? : Bool = false,
+  unexpandable~ : Bool = false,
 ) -> MacroExpansion {
   { tokens, num_args, delimiters, unexpandable, }
 }

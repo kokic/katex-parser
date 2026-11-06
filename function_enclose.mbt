@@ -112,7 +112,7 @@ fn enclose_handler(
 fn enclose_node(
   context : FunctionContext,
   args : Array[ParseNode],
-  body_index : Int,
+  body_index : Int32,
 ) -> ParseNode raise ParseFailure {
   Enclose(
     mode=context.mode,

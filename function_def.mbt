@@ -101,7 +101,7 @@ fn definition_handler(
 /// `\def\foo#{...}`).
 fn scan_definition_parameters(
   context : FunctionContext,
-) -> (Array[Array[String]], Int, Token?) raise ParseFailure {
+) -> (Array[Array[String]], Int32, Token?) raise ParseFailure {
   let delimiters : Array[Array[String]] = [[]]
   let mut count = 0
   let mut insert : Token? = None

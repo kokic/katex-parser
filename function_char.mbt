@@ -1,5 +1,5 @@
 ///|
-fn decimal_char_code(text : String) -> Int? {
+fn decimal_char_code(text : String) -> Int32? {
   let mut value = 0
   let mut saw_digit = false
   for code in text {

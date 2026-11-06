@@ -17,7 +17,7 @@ fn token_location(token : Token?) -> SourceLocation? {
 }
 
 ///|
-fn Token::eof(input : String, offset : Int) -> Token {
+fn Token::eof(input : String, offset : Int32) -> Token {
   Token::make("EOF", loc=SourceLocation::make(input, start=offset, end=offset))
 }
 

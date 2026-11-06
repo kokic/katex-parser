@@ -1,17 +1,19 @@
 ///|
 /// Configuration for the Unicode renderer.
+#derive(Eq)
 pub(all) struct RenderConfig {
   fraction_slash : String
   spacing : @anvil.SpacingSpec
   line_style : LineStyle
-} derive(Eq)
+}
 
 ///|
 /// Glyph style for drawn lines: fraction bars, boxes, tables, etc.
+#derive(Eq)
 pub(all) enum LineStyle {
   Ascii
   Unicode
-} derive(Eq)
+}
 
 ///|
 pub impl Default for LineStyle with fn default() {
@@ -27,9 +29,9 @@ pub fn unicode_text_spacing() -> @anvil.SpacingSpec {
 
 ///|
 pub fn RenderConfig::make(
-  fraction_slash? : String = "∕",
-  spacing? : @anvil.SpacingSpec = unicode_text_spacing(),
-  line_style? : LineStyle = Unicode,
+  fraction_slash~ : String = "∕",
+  spacing~ : @anvil.SpacingSpec = unicode_text_spacing(),
+  line_style~ : LineStyle = Unicode,
 ) -> RenderConfig {
   { fraction_slash, spacing, line_style, }
 }

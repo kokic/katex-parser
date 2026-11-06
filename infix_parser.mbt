@@ -11,7 +11,7 @@ fn Parser::handle_infix_nodes(
   self : Parser,
   body : Array[ParseNode],
 ) -> Array[ParseNode] raise ParseFailure {
-  let mut infix : (Int, String)? = None
+  let mut infix : (Int32, String)? = None
   for index, node in body {
     match node {
       Infix(replace_with~, loc~, ..) => {

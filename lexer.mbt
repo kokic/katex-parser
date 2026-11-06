@@ -4,15 +4,15 @@ type LexerReporter = (String, String) -> Unit raise ParseFailure
 ///|
 priv struct Lexer {
   input : String
-  mut offset : Int
-  catcodes : Map[String, Int]
+  mut offset : Int32
+  catcodes : Map[String, Int32]
   report_nonstrict : LexerReporter
 }
 
 ///|
 fn Lexer::make(
   input : String,
-  report_nonstrict? : LexerReporter = (_code, _message) => (),
+  report_nonstrict~ : LexerReporter = (_code, _message) => (),
 ) -> Lexer {
   let lexer : Lexer = { input, offset: 0, catcodes: Map([]), report_nonstrict, }
   lexer.set_catcode("%", 14)
@@ -21,12 +21,12 @@ fn Lexer::make(
 }
 
 ///|
-fn Lexer::set_catcode(self : Lexer, char : String, code : Int) -> Unit {
+fn Lexer::set_catcode(self : Lexer, char : String, code : Int32) -> Unit {
   self.catcodes[char] = code
 }
 
 ///|
-fn Lexer::catcode(self : Lexer, char : String) -> Int? {
+fn Lexer::catcode(self : Lexer, char : String) -> Int32? {
   self.catcodes.get(char)
 }
 
@@ -46,7 +46,7 @@ fn is_js_line_terminator(c : UInt16) -> Bool {
 }
 
 ///|
-fn verb_end(input : String, start : Int, starred : Bool) -> Int? {
+fn verb_end(input : String, start : Int32, starred : Bool) -> Int32? {
   let prefix = if starred { "\\verb*" } else { "\\verb" }
   if !input[start:].has_prefix(prefix[:]) {
     return None
@@ -72,7 +72,7 @@ fn verb_end(input : String, start : Int, starred : Bool) -> Int? {
 }
 
 ///|
-fn next_line_start(input : String, offset : Int) -> Int? {
+fn next_line_start(input : String, offset : Int32) -> Int32? {
   for i = offset; i < input.length(); i = i + 1 {
     if input[i] == '\n' {
       break Some(i + 1)
@@ -83,7 +83,7 @@ fn next_line_start(input : String, offset : Int) -> Int? {
 }
 
 ///|
-fn unexpected_character(input : String, offset : Int) -> ParseFailure {
+fn unexpected_character(input : String, offset : Int32) -> ParseFailure {
   let text = input.unsafe_substring(start=offset, end=offset + 1)
   UnexpectedCharacter(
     message="Unexpected character: '\{text}'",

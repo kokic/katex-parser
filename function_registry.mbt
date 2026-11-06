@@ -1,4 +1,5 @@
 ///|
+#derive(ToJson)
 #warnings("-unused_constructor")
 pub(all) enum ArgType {
   ColorArg
@@ -10,7 +11,7 @@ pub(all) enum ArgType {
   PrimitiveArg
   MathArg
   TextArg
-} derive(ToJson)
+}
 
 ///|
 pub(all) struct FunctionContext {
@@ -53,30 +54,30 @@ pub type FunctionHandler = (
 #warnings("-unused_field")
 pub(all) struct FunctionSpec {
   names : Array[String]
-  num_args : Int
-  num_optional_args : Int
+  num_args : Int32
+  num_optional_args : Int32
   arg_types : Array[ArgType]
   allowed_in_argument : Bool
   allowed_in_text : Bool
   allowed_in_math : Bool
   infix : Bool
   primitive : Bool
-  primitive_after_missing_optional : Int?
+  primitive_after_missing_optional : Int32?
   handler : FunctionHandler?
 }
 
 ///|
 pub fn FunctionSpec::make(
   names : Array[String],
-  num_args : Int,
-  num_optional_args? : Int = 0,
-  arg_types? : Array[ArgType] = [],
-  allowed_in_argument? : Bool = false,
-  allowed_in_text? : Bool = false,
-  allowed_in_math? : Bool = true,
-  infix? : Bool = false,
-  primitive? : Bool = false,
-  primitive_after_missing_optional? : Int,
+  num_args : Int32,
+  num_optional_args~ : Int32 = 0,
+  arg_types~ : Array[ArgType] = [],
+  allowed_in_argument~ : Bool = false,
+  allowed_in_text~ : Bool = false,
+  allowed_in_math~ : Bool = true,
+  infix~ : Bool = false,
+  primitive~ : Bool = false,
+  primitive_after_missing_optional? : Int32,
   handler? : FunctionHandler,
 ) -> FunctionSpec {
   {

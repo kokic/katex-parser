@@ -146,7 +146,10 @@ fn Parser::parse_array_row_gap(
 ///|
 /// True when the current row already holds `max_columns` cells, so the next
 /// `&` would exceed the declared column limit.
-fn array_row_at_max(body : Array[Array[ParseNode]], max_columns : Int?) -> Bool {
+fn array_row_at_max(
+  body : Array[Array[ParseNode]],
+  max_columns : Int32?,
+) -> Bool {
   max_columns.map_or(false, maximum => {
     body.last() is Some(row) && row.length() >= maximum
   })

@@ -5,7 +5,7 @@ let sizing_commands : Array[String] = [
 ]
 
 ///|
-fn sizing_index(func_name : String) -> Int raise ParseFailure {
+fn sizing_index(func_name : String) -> Int32 raise ParseFailure {
   for index, command in sizing_commands {
     guard command == func_name else { continue }
     return index + 1

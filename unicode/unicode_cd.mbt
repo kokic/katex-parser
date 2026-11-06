@@ -118,7 +118,7 @@ fn cd_vbar(style : LineStyle) -> String {
 }
 
 ///|
-fn cd_harrow_line(dir : String, w : Int, hbar : String) -> String {
+fn cd_harrow_line(dir : String, w : Int32, hbar : String) -> String {
   match dir {
     ">" => "\{hbar.repeat(w - 1)}→"
     "<" => "←\{hbar.repeat(w - 1)}"
@@ -132,7 +132,7 @@ fn cd_varrow_lines(
   left : String,
   right : String,
   vbar : String,
-  offset : Int,
+  offset : Int32,
 ) -> Array[String] {
   let pad = " ".repeat(offset)
   let labels = pad_right(left, offset) + vbar + right
@@ -154,9 +154,9 @@ fn cd_varrow_lines(
 /// therefore extended by the target column's offset at the end.
 fn cd_column_widths(
   grid : Array[Array[CdCell]],
-  n_nodes : Int,
+  n_nodes : Int32,
   vbar : String,
-) -> (Array[Int], Array[Int], Array[Int]) {
+) -> (Array[Int32], Array[Int32], Array[Int32]) {
   let offsets = cd_shaft_offsets(grid, n_nodes)
   let (node_w, arrow_w) = cd_cell_widths(grid, n_nodes, offsets, vbar)
   let arrow_w = Array::makei(arrow_w.length(), k => arrow_w[k] + offsets[k + 1])
@@ -166,7 +166,10 @@ fn cd_column_widths(
 ///|
 /// Pass 1: the shaft offset of each node column, i.e. the widest left label
 /// among the vertical arrows in that column.
-fn cd_shaft_offsets(grid : Array[Array[CdCell]], n_nodes : Int) -> Array[Int] {
+fn cd_shaft_offsets(
+  grid : Array[Array[CdCell]],
+  n_nodes : Int32,
+) -> Array[Int32] {
   let offsets = Array::make(n_nodes, 0)
   for row_index, row in grid {
     guard row_index % 2 == 1 else { continue }
@@ -187,10 +190,10 @@ fn cd_shaft_offsets(grid : Array[Array[CdCell]], n_nodes : Int) -> Array[Int] {
 /// v-arrow lines; arrow widths from h-arrow labels and cell node text.
 fn cd_cell_widths(
   grid : Array[Array[CdCell]],
-  n_nodes : Int,
-  offsets : Array[Int],
+  n_nodes : Int32,
+  offsets : Array[Int32],
   vbar : String,
-) -> (Array[Int], Array[Int]) {
+) -> (Array[Int32], Array[Int32]) {
   let node_w = Array::make(n_nodes, 0)
   let arrow_w = Array::make(n_nodes - 1, 4)
   for row_index, row in grid {
@@ -246,9 +249,9 @@ fn cd_cell_widths(
 /// any arrow carries an upper/lower label.
 fn cd_node_row_block(
   row : Array[CdCell],
-  node_w : Array[Int],
-  arrow_w : Array[Int],
-  offsets : Array[Int],
+  node_w : Array[Int32],
+  arrow_w : Array[Int32],
+  offsets : Array[Int32],
   hbar : String,
 ) -> Block {
   let n = row.length()
@@ -318,9 +321,9 @@ fn cd_row_has_lower(row : Array[CdCell]) -> Bool {
 ///|
 fn cd_varrow_row_block(
   row : Array[CdCell],
-  node_w : Array[Int],
-  arrow_w : Array[Int],
-  offsets : Array[Int],
+  node_w : Array[Int32],
+  arrow_w : Array[Int32],
+  offsets : Array[Int32],
   vbar : String,
 ) -> Block {
   let n = row.length()
@@ -344,9 +347,9 @@ fn cd_varrow_row_block(
 ///|
 fn cd_pad_line(
   cells : Array[String],
-  node_w : Array[Int],
-  arrow_w : Array[Int],
-  offsets : Array[Int],
+  node_w : Array[Int32],
+  arrow_w : Array[Int32],
+  offsets : Array[Int32],
 ) -> String {
   let mut result = ""
   for j = 0; j < cells.length(); j = j + 1 {

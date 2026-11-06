@@ -1,15 +1,17 @@
 ///|
 /// The builtin table from which a completion command originates.
+#derive(ToJson)
 pub(all) enum CommandKind {
   SymbolCommand
   FunctionCommand
   MacroCommand
   ImplicitCommand
-} derive(ToJson)
+}
 
 ///|
 /// How a command consumes input. Only RegularCommand can be completed by
 /// appending bracketed args alone; use templates for the other forms.
+#derive(ToJson)
 pub(all) enum CommandSyntax {
   RegularCommand
   InfixCommand
@@ -20,15 +22,16 @@ pub(all) enum CommandSyntax {
   DefinitionCommand
   TokenCommand
   GroupCommand
-} derive(ToJson)
+}
 
 ///|
 /// An explicit argument, in input order. A missing arg_type means the builtin
 /// macro's argument type is not declared. Optional arguments use square brackets.
+#derive(ToJson)
 pub struct CommandArgument {
   arg_type : ArgType?
   optional : Bool
-} derive(ToJson)
+}
 
 ///|
 /// A snapshot of one public builtin command, including its leading backslash.
@@ -38,6 +41,7 @@ pub struct CommandArgument {
 /// templates use named ${field} placeholders, as accepted by CodeMirror's
 /// snippetCompletion. Regular commands list the form without optional args first.
 /// Templates are editing skeletons, not necessarily valid until fields are filled.
+#derive(ToJson)
 pub struct CommandInfo {
   name : String
   kind : CommandKind
@@ -47,7 +51,7 @@ pub struct CommandInfo {
   unicode : String?
   group : String?
   templates : Array[String]
-} derive(ToJson)
+}
 
 ///|
 /// Returns fresh, name-sorted completion metadata for the parser's builtins.

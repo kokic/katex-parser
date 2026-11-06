@@ -5,8 +5,8 @@
 /// Unicode rendering of matrices, fractions, delimited expressions, etc.
 pub(all) struct Block {
   lines : Array[String]
-  width : Int
-  baseline : Int
+  width : Int32
+  baseline : Int32
 }
 
 ///|
@@ -28,29 +28,29 @@ pub fn Block::render(self : Block) -> String {
 }
 
 ///|
-pub fn Block::height(self : Block) -> Int {
+pub fn Block::height(self : Block) -> Int32 {
   self.lines.length()
 }
 
 ///|
-pub fn Block::width(self : Block) -> Int {
+pub fn Block::width(self : Block) -> Int32 {
   self.width
 }
 
 ///|
-pub fn Block::baseline(self : Block) -> Int {
+pub fn Block::baseline(self : Block) -> Int32 {
   self.baseline
 }
 
 ///|
-pub fn Block::pad_to(self : Block, target_width : Int) -> Block {
+pub fn Block::pad_to(self : Block, target_width : Int32) -> Block {
   guard target_width > self.width else { self }
   let lines = self.lines.map(l => pad_right(l, target_width))
   { lines, width: target_width, baseline: self.baseline, }
 }
 
 ///|
-pub fn Block::center(self : Block, target_width : Int) -> Block {
+pub fn Block::center(self : Block, target_width : Int32) -> Block {
   guard self.lines.length() > 0 && target_width > self.width else { self }
   let lines = self.lines.map(l => center_text(l, target_width))
   { lines, width: target_width, baseline: self.baseline, }
@@ -113,7 +113,7 @@ pub fn Block::enclose(self : Block, left : String, right : String) -> Block {
 /// corresponding column width, then joined by `gap`.
 pub fn Block::row(
   cells : Array[String],
-  widths : Array[Int],
+  widths : Array[Int32],
   gap : String,
 ) -> Block {
   Block::from(
@@ -126,7 +126,7 @@ pub fn Block::row(
 // ---------------------------------------------------------------------------
 
 ///|
-pub fn pad_right(s : String, width : Int) -> String {
+pub fn pad_right(s : String, width : Int32) -> String {
   let need = width - display_width(s)
   guard need > 0 else { s }
   "\{s}\{" ".repeat(need)}"
@@ -134,7 +134,7 @@ pub fn pad_right(s : String, width : Int) -> String {
 
 ///|
 /// Compute the maximum width per column across all rows of cell strings.
-pub fn column_widths(cells : Array[Array[String]]) -> Array[Int] {
+pub fn column_widths(cells : Array[Array[String]]) -> Array[Int32] {
   column_max_widths(cells, display_width)
 }
 
@@ -143,8 +143,8 @@ pub fn column_widths(cells : Array[Array[String]]) -> Array[Int] {
 /// cell's width comes from `width_of`.
 fn[W] column_max_widths(
   rows : Array[Array[W]],
-  width_of : (W) -> Int,
-) -> Array[Int] {
+  width_of : (W) -> Int32,
+) -> Array[Int32] {
   let max_cols = rows.fold(init=0, (m, row) => m.max(row.length()))
   let widths = Array::make(max_cols, 0)
   for row in rows {
@@ -159,7 +159,7 @@ fn[W] column_max_widths(
 }
 
 ///|
-fn center_text(s : String, width : Int) -> String {
+fn center_text(s : String, width : Int32) -> String {
   let need = width - display_width(s)
   guard need > 0 else { s }
   let left = need / 2
@@ -176,7 +176,7 @@ fn center_text(s : String, width : Int) -> String {
 /// characters as 2 and combining/zero-width marks as 0. Unlike `length()`,
 /// this is based on Unicode code points, so astral-plane characters (e.g.
 /// math alphanumerics like 𝟙) count as their on-screen width of 1.
-pub fn display_width(s : String) -> Int {
+pub fn display_width(s : String) -> Int32 {
   let mut w = 0
   for c in s.iter() {
     w = w + char_width(c)
@@ -185,7 +185,7 @@ pub fn display_width(s : String) -> Int {
 }
 
 ///|
-fn char_width(c : Char) -> Int {
+fn char_width(c : Char) -> Int32 {
   let code = c.to_int()
   guard code > 0 else { 0 }
   if is_zero_width_mark(code) {
@@ -200,7 +200,7 @@ fn char_width(c : Char) -> Int {
 ///|
 /// Vertically pad a block so it has exactly `target` rows, inserting blank
 /// lines at the top so the block's content starts at row `top_offset`.
-fn vpad_at(b : Block, target : Int, top_offset : Int) -> Array[String] {
+fn vpad_at(b : Block, target : Int32, top_offset : Int32) -> Array[String] {
   let h = b.lines.length()
   guard h < target else { b.lines }
   let empty = " ".repeat(b.width)

@@ -9,7 +9,7 @@ fn require_color_argument(
 ///|
 fn require_color_argument_at(
   args : Array[ParseNode],
-  index : Int,
+  index : Int32,
   func_name : String,
 ) -> String raise ParseFailure {
   guard require_function_arg(args, index, func_name) is ColorToken(color~, ..) else {

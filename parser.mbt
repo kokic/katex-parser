@@ -6,7 +6,7 @@ priv struct Parser {
   function_registry : FunctionRegistry
   environment_registry : EnvironmentRegistry
   mut next_token : Token?
-  mut leftright_depth : Int
+  mut leftright_depth : Int32
 }
 
 ///|
@@ -19,8 +19,8 @@ priv enum AtomResult {
 fn Parser::make(
   input : String,
   settings : Settings,
-  extra_specs? : Array[FunctionSpec] = [],
-  extra_env_specs? : Array[EnvironmentSpec] = [],
+  extra_specs~ : Array[FunctionSpec] = [],
+  extra_env_specs~ : Array[EnvironmentSpec] = [],
 ) -> Parser {
   let registry = build_function_registry(extra_specs)
   {
@@ -59,9 +59,9 @@ fn Parser::make(
 ///|
 pub fn parse(
   input : String,
-  settings? : Settings = Default::default(),
-  extra_specs? : Array[FunctionSpec] = [],
-  extra_env_specs? : Array[EnvironmentSpec] = [],
+  settings~ : Settings = Default::default(),
+  extra_specs~ : Array[FunctionSpec] = [],
+  extra_env_specs~ : Array[EnvironmentSpec] = [],
 ) -> Array[ParseNode] raise ParseFailure {
   let parser = Parser::make(input, settings, extra_specs~, extra_env_specs~)
   parser.gullet.macros.set("\\df@tag", None)
@@ -105,7 +105,7 @@ fn Parser::consume(self : Parser) -> Unit {
 fn Parser::expect(
   self : Parser,
   text : String,
-  consume? : Bool = true,
+  consume~ : Bool = true,
 ) -> Unit raise ParseFailure {
   let token = self.fetch()
   guard token.text == text else {

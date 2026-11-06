@@ -35,7 +35,7 @@ fn SymbolRegistry::define_symbol(
   group : SymbolGroup,
   replacement : String,
   name : String,
-  accept_unicode? : Bool = false,
+  accept_unicode~ : Bool = false,
 ) -> Unit {
   let table = if mode == Math { self.math } else { self.text }
   let spec = { group, replacement, }

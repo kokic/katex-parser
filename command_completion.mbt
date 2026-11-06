@@ -28,8 +28,8 @@ fn command_symbol_group_name(group : SymbolGroup) -> String {
 
 ///|
 fn command_arguments(
-  count : Int,
-  optional : Int,
+  count : Int32,
+  optional : Int32,
   types : Array[ArgType],
   fallback : ArgType,
 ) -> Array[CommandArgument] {

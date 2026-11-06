@@ -1,5 +1,5 @@
 ///|
-fn delimiter_size(func_name : String) -> Int raise ParseFailure {
+fn delimiter_size(func_name : String) -> Int32 raise ParseFailure {
   match func_name {
     "\\bigl" | "\\bigr" | "\\bigm" | "\\big" => 1
     "\\Bigl" | "\\Bigr" | "\\Bigm" | "\\Big" => 2

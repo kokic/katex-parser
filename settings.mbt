@@ -42,7 +42,7 @@ pub(all) enum TrustPolicy {
 pub struct Macros(Map[String, MacroDefinition])
 
 ///|
-pub fn Macros::make(macros? : Map[String, String] = Map([])) -> Macros {
+pub fn Macros::make(macros~ : Map[String, String] = Map([])) -> Macros {
   let definitions : Map[String, MacroDefinition] = Map([])
   for name, expansion in macros {
     definitions[name] = MacroDefinition::text(expansion)
@@ -57,7 +57,7 @@ pub struct Settings {
   leqno : Bool
   error_color : String
   color_is_text_color : Bool
-  max_expand : Int
+  max_expand : Int32
   global_group : Bool
   macros : Map[String, String]
   macro_store : Macros?
@@ -68,18 +68,18 @@ pub struct Settings {
 
 ///|
 pub fn Settings::make(
-  throw_on_error? : Bool = true,
-  display_mode? : Bool = false,
-  leqno? : Bool = false,
-  error_color? : String = "#cc0000",
-  color_is_text_color? : Bool = false,
-  max_expand? : Int = 1000,
-  global_group? : Bool = false,
-  macros? : Map[String, String] = Map([]),
+  throw_on_error~ : Bool = true,
+  display_mode~ : Bool = false,
+  leqno~ : Bool = false,
+  error_color~ : String = "#cc0000",
+  color_is_text_color~ : Bool = false,
+  max_expand~ : Int32 = 1000,
+  global_group~ : Bool = false,
+  macros~ : Map[String, String] = Map([]),
   macro_store? : Macros,
-  strict? : Strictness = Ignore,
+  strict~ : Strictness = Ignore,
   strict_warning_handler? : StrictWarningHandler,
-  trust? : TrustPolicy = Untrusted,
+  trust~ : TrustPolicy = Untrusted,
 ) -> Settings {
   {
     throw_on_error,
@@ -138,7 +138,7 @@ fn Settings::use_strict_behavior(
 }
 
 ///|
-fn encoded_colon_at(url : String, offset : Int) -> Bool {
+fn encoded_colon_at(url : String, offset : Int32) -> Bool {
   if url.to_lower()[offset:].has_prefix("&colon") {
     return true
   }

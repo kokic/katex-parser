@@ -104,7 +104,7 @@ fn pad_gather(
 ///|
 /// Computes the display width of every column from the maximum block width in
 /// that column across all rows.
-fn column_block_widths(rows : Array[Array[Block]]) -> Array[Int] {
+fn column_block_widths(rows : Array[Array[Block]]) -> Array[Int32] {
   column_max_widths(rows, b => b.width())
 }
 
@@ -114,7 +114,7 @@ fn column_block_widths(rows : Array[Array[Block]]) -> Array[Int] {
 /// keep their cells left-aligned to preserve the existing plain-text look.
 fn column_alignments(
   columns : Array[@katex.ArrayColumn]?,
-  ncols : Int,
+  ncols : Int32,
   separation : @katex.ColumnSeparationType?,
 ) -> Array[String] {
   let parsed : Array[String] = Array::make(ncols, "l")
@@ -146,7 +146,7 @@ fn column_alignments(
 /// full-height bars between the columns.
 fn row_block(
   cells : Array[Block],
-  widths : Array[Int],
+  widths : Array[Int32],
   aligns : Array[String],
   vlines : Array[String?],
   separation : @katex.ColumnSeparationType?,
@@ -159,7 +159,7 @@ fn row_block(
   for j in 0..<ncols {
     row_bl = row_bl.max(padded[j].baseline)
   }
-  let tops : Array[Int] = Array::makei(ncols, j => row_bl - padded[j].baseline)
+  let tops : Array[Int32] = Array::makei(ncols, j => row_bl - padded[j].baseline)
   let mut row_h = row_bl + 1
   for j in 0..<ncols {
     row_h = row_h.max(tops[j] + padded[j].lines.length())
@@ -205,7 +205,7 @@ fn row_block(
 ///|
 /// Pads a cell block to a column width according to its alignment. Empty
 /// cells grow to the width without any lines.
-fn pad_cell(b : Block, width : Int, align : String) -> Block {
+fn pad_cell(b : Block, width : Int32, align : String) -> Block {
   guard b.lines.length() > 0 else { { lines: [], width, baseline: 0, } }
   guard width > b.width else { b }
   match align {
@@ -233,7 +233,7 @@ fn pad_cell(b : Block, width : Int, align : String) -> Block {
 ///|
 /// Vertically positions a cell's lines inside a row of height `row_h` so its
 /// baseline sits on row `top`.
-fn vertical_lines(b : Block, top : Int, row_h : Int) -> Array[String] {
+fn vertical_lines(b : Block, top : Int32, row_h : Int32) -> Array[String] {
   let h = b.lines.length()
   let empty = " ".repeat(b.width)
   let top_lines = Array::make(top, empty)
@@ -244,7 +244,7 @@ fn vertical_lines(b : Block, top : Int, row_h : Int) -> Array[String] {
 ///|
 fn column_gap(
   separation : @katex.ColumnSeparationType?,
-  boundary : Int,
+  boundary : Int32,
 ) -> String {
   match separation {
     Some(@katex.ColumnSeparationType::AlignSeparation) =>
@@ -267,7 +267,7 @@ fn column_gap(
 /// inter-column gap.
 fn boundary_gap(
   vlines : Array[String?],
-  boundary : Int,
+  boundary : Int32,
   separation : @katex.ColumnSeparationType?,
 ) -> String {
   match vlines[boundary] {
@@ -283,11 +283,11 @@ fn boundary_gap(
 fn render_array_lines(
   row_blocks : Array[Block],
   hlines_before_row : Array[Array[Bool]],
-  vbar_pos : Array[Int?],
-  line_width : Int,
-  hline_kind : Array[Array[Int]],
+  vbar_pos : Array[Int32?],
+  line_width : Int32,
+  hline_kind : Array[Array[Int32]],
   style : LineStyle,
-  last : Int,
+  last : Int32,
 ) -> Array[String] {
   let lines : Array[String] = []
   for k in 0..<=last {
@@ -327,9 +327,9 @@ fn render_array_lines(
 /// the last kept row are the bottom border.
 fn hline_band_kinds(
   hlines_before_row : Array[Array[Bool]],
-  last : Int,
-) -> Array[Array[Int]] {
-  let kinds : Array[Array[Int]] = []
+  last : Int32,
+) -> Array[Array[Int32]] {
+  let kinds : Array[Array[Int32]] = []
   for k in 0..<hlines_before_row.length() {
     let kind = if k == 0 { 0 } else if k <= last { 1 } else { 2 }
     kinds.push(hlines_before_row.get(k).unwrap_or([]).map(_ => kind))
@@ -338,7 +338,7 @@ fn hline_band_kinds(
 }
 
 ///|
-fn band_of(kinds : Array[Array[Int]], k : Int, band : Int) -> Int {
+fn band_of(kinds : Array[Array[Int32]], k : Int32, band : Int32) -> Int32 {
   match kinds.get(k) {
     Some(arr) => arr.get(band).unwrap_or(1)
     None => 1
@@ -349,12 +349,12 @@ fn band_of(kinds : Array[Array[Int]], k : Int, band : Int) -> Int {
 /// Computes the total display width of a row and the character position of
 /// every vertical separator within it.
 fn row_geometry(
-  widths : Array[Int],
+  widths : Array[Int32],
   vlines : Array[String?],
   separation : @katex.ColumnSeparationType?,
-) -> (Int, Array[Int?]) {
+) -> (Int32, Array[Int32?]) {
   let n = widths.length()
-  let vbar_pos : Array[Int?] = Array::make(n + 1, None)
+  let vbar_pos : Array[Int32?] = Array::make(n + 1, None)
   let mut cursor = 0
   match vlines[0] {
     Some(_) => {
@@ -392,7 +392,7 @@ fn row_geometry(
 /// after every column) from the array column spec.
 fn separator_glyphs(
   columns : Array[@katex.ArrayColumn]?,
-  ncols : Int,
+  ncols : Int32,
   style : LineStyle,
 ) -> Array[String?] {
   let result : Array[String?] = Array::make(ncols + 1, None)
@@ -422,11 +422,11 @@ fn array_vbar(style : LineStyle, dashed : Bool) -> String {
 /// A horizontal rule line spanning the array width, with tee/corner glyphs at
 /// the vertical separator positions.
 fn hline_rule(
-  width : Int,
-  vbar_pos : Array[Int?],
+  width : Int32,
+  vbar_pos : Array[Int32?],
   style : LineStyle,
   dashed : Bool,
-  kind : Int,
+  kind : Int32,
 ) -> String {
   let hbar = match style {
     Ascii => "-"
@@ -447,7 +447,7 @@ fn hline_rule(
 }
 
 ///|
-fn is_vbar_position(vbar_pos : Array[Int?], i : Int) -> Bool {
+fn is_vbar_position(vbar_pos : Array[Int32?], i : Int32) -> Bool {
   vbar_pos.any(pos => pos is Some(p) && p == i)
 }
 
@@ -457,10 +457,10 @@ fn is_vbar_position(vbar_pos : Array[Int?], i : Int) -> Bool {
 /// 2 = bottom.
 fn hline_junction(
   style : LineStyle,
-  kind : Int,
-  left_pos : Int?,
-  right_pos : Int?,
-  i : Int,
+  kind : Int32,
+  left_pos : Int32?,
+  right_pos : Int32?,
+  i : Int32,
 ) -> String {
   match style {
     Ascii => "+"

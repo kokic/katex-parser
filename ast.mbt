@@ -1,10 +1,12 @@
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) enum Mode {
   Math
   Text
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) enum AtomFamily {
   Mord
   Mop
@@ -14,52 +16,59 @@ pub(all) enum AtomFamily {
   Mclose
   Mpunct
   Minner
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) struct Measurement {
   number : Double
   unit : String
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) enum StyleLevel {
   DisplayStyle
   TextStyle
   ScriptStyle
   ScriptScriptStyle
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) enum OperatorContent {
   SymbolOperator(String)
   BodyOperator(Array[ParseNode])
   NamedOperator(String)
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) enum LapAlignment {
   LLap
   RLap
   CLap
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) enum ArrayColumn {
   AlignColumn(alignment~ : String, pre_gap~ : Double?, post_gap~ : Double?)
   SeparatorColumn(separator~ : String)
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) enum ColumnSeparationType {
   AlignSeparation
   AlignAtSeparation
   GatherSeparation
   SmallSeparation
   CdSeparation
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) enum ParseNode {
   Internal(mode~ : Mode)
   Raw(mode~ : Mode, string~ : String)
@@ -141,11 +150,16 @@ pub(all) enum ParseNode {
     script~ : Array[ParseNode],
     scriptscript~ : Array[ParseNode]
   )
-  Sizing(mode~ : Mode, size~ : Int, body~ : Array[ParseNode])
+  Sizing(mode~ : Mode, size~ : Int32, body~ : Array[ParseNode])
   HorizBrace(mode~ : Mode, label~ : String, is_over~ : Bool, base~ : ParseNode)
   XArrow(mode~ : Mode, label~ : String, body~ : ParseNode, below~ : ParseNode?)
   AccentUnder(mode~ : Mode, label~ : String, base~ : ParseNode)
-  DelimSizing(mode~ : Mode, size~ : Int, mclass~ : AtomFamily, delim~ : String)
+  DelimSizing(
+    mode~ : Mode,
+    size~ : Int32,
+    mclass~ : AtomFamily,
+    delim~ : String
+  )
   LeftRightRight(mode~ : Mode, delim~ : String, color~ : String?)
   LeftRight(
     mode~ : Mode,
@@ -225,7 +239,7 @@ pub(all) enum ParseNode {
     text~ : String
   )
   Color(mode~ : Mode, color~ : String, body~ : Array[ParseNode])
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
 pub fn ParseNode::mode(self : ParseNode) -> Mode {

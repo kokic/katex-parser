@@ -1,5 +1,5 @@
 ///|
-fn is_between(code : Int, lo : Int, hi : Int) -> Bool {
+fn is_between(code : Int32, lo : Int32, hi : Int32) -> Bool {
   lo <= code && code <= hi
 }
 
@@ -7,7 +7,7 @@ fn is_between(code : Int, lo : Int, hi : Int) -> Bool {
 /// Zero-width marks: combining diacritics (Mn/Me), variation selectors, and
 /// zero-width format characters. Split into per-block predicates to keep each
 /// expression shallow (avoids MSVC "expression too complex" parse errors).
-fn is_zero_width_mark(code : Int) -> Bool {
+fn is_zero_width_mark(code : Int32) -> Bool {
   zero_width_marks_basic(code) ||
   zero_width_marks_indic_a(code) ||
   zero_width_marks_indic_b(code) ||
@@ -25,7 +25,7 @@ fn is_zero_width_mark(code : Int) -> Bool {
 ///|
 /// Control characters, Combining Diacritical Marks, Cyrillic, Hebrew, Arabic,
 /// and Syriac combining marks (0x0000–0x074A).
-fn zero_width_marks_basic(code : Int) -> Bool {
+fn zero_width_marks_basic(code : Int32) -> Bool {
   code <= 0x1F ||
   code == 0x7F ||
   is_between(code, 0x80, 0x9F) ||
@@ -50,7 +50,7 @@ fn zero_width_marks_basic(code : Int) -> Bool {
 ///|
 /// NKo, Samaritan, Mandaic, Devanagari, and Bengali combining marks
 /// (0x07A6–0x09E3).
-fn zero_width_marks_indic_a(code : Int) -> Bool {
+fn zero_width_marks_indic_a(code : Int32) -> Bool {
   is_between(code, 0x07A6, 0x07B0) ||
   is_between(code, 0x07EB, 0x07F3) ||
   is_between(code, 0x0816, 0x0819) ||
@@ -77,7 +77,7 @@ fn zero_width_marks_indic_a(code : Int) -> Bool {
 ///|
 /// Gurmukhi, Gujarati, Oriya, Telugu, Kannada, and Malayalam combining marks
 /// (0x0A01–0x0D63).
-fn zero_width_marks_indic_b(code : Int) -> Bool {
+fn zero_width_marks_indic_b(code : Int32) -> Bool {
   is_between(code, 0x0A01, 0x0A03) ||
   code == 0x0A3C ||
   is_between(code, 0x0A3E, 0x0A42) ||
@@ -129,7 +129,7 @@ fn zero_width_marks_indic_b(code : Int) -> Bool {
 
 ///|
 /// Sinhala, Thai, Lao, and Tibetan combining marks (0x0D82–0x0FC6).
-fn zero_width_marks_indic_c(code : Int) -> Bool {
+fn zero_width_marks_indic_c(code : Int32) -> Bool {
   code == 0x0D82 ||
   code == 0x0D83 ||
   is_between(code, 0x0DCA, 0x0DCA) ||
@@ -156,7 +156,7 @@ fn zero_width_marks_indic_c(code : Int) -> Bool {
 ///|
 /// Myanmar, Ethiopic, Tagalog, Hanunoo, Buginese, Tai Tham, and Sundanese
 /// combining marks (0x102D–0x1B81).
-fn zero_width_marks_myanmar(code : Int) -> Bool {
+fn zero_width_marks_myanmar(code : Int32) -> Bool {
   is_between(code, 0x102D, 0x1030) ||
   is_between(code, 0x1032, 0x1037) ||
   is_between(code, 0x1039, 0x103A) ||
@@ -208,7 +208,7 @@ fn zero_width_marks_myanmar(code : Int) -> Bool {
 ///|
 /// Balinese, Lepcha, Vedic, and Combining Diacritical Marks Supplement and
 /// Extended (0x1BA2–0x20F0).
-fn zero_width_marks_balinese(code : Int) -> Bool {
+fn zero_width_marks_balinese(code : Int32) -> Bool {
   is_between(code, 0x1BA2, 0x1BA5) ||
   is_between(code, 0x1BA8, 0x1BA9) ||
   is_between(code, 0x1BAB, 0x1BAD) ||
@@ -239,7 +239,7 @@ fn zero_width_marks_balinese(code : Int) -> Bool {
 
 ///|
 /// Combining marks in the CJK and A-block ranges (0x2CEF–0xA6F1).
-fn zero_width_marks_cjk(code : Int) -> Bool {
+fn zero_width_marks_cjk(code : Int32) -> Bool {
   is_between(code, 0x2CEF, 0x2CF1) ||
   code == 0x2D7F ||
   is_between(code, 0x2DE0, 0x2DFF) ||
@@ -254,7 +254,7 @@ fn zero_width_marks_cjk(code : Int) -> Bool {
 ///|
 /// A-block combining marks, Devanagari Extended, Javanese, Myanmar Extended-B,
 /// Tai Viet, Meetei Mayek, Hebrew, and variation selectors (0xA802–0xFEFF).
-fn zero_width_marks_aaa(code : Int) -> Bool {
+fn zero_width_marks_aaa(code : Int32) -> Bool {
   code == 0xA802 ||
   code == 0xA806 ||
   code == 0xA80B ||
@@ -298,7 +298,7 @@ fn zero_width_marks_aaa(code : Int) -> Bool {
 ///|
 /// Supplementary-plane combining marks from the musical, Kharoshthi, Brahmi,
 /// and Newa blocks (0x101FD–0x1145E).
-fn zero_width_marks_smp_a(code : Int) -> Bool {
+fn zero_width_marks_smp_a(code : Int32) -> Bool {
   is_between(code, 0x101FD, 0x101FD) ||
   is_between(code, 0x102E0, 0x102E0) ||
   is_between(code, 0x10376, 0x1037A) ||
@@ -342,7 +342,7 @@ fn zero_width_marks_smp_a(code : Int) -> Bool {
 ///|
 /// Supplementary-plane combining marks from the Tirhuta, Siddham, Modi, and
 /// Takri blocks (0x114B3–0x11D47).
-fn zero_width_marks_smp_b(code : Int) -> Bool {
+fn zero_width_marks_smp_b(code : Int32) -> Bool {
   is_between(code, 0x114B3, 0x114B8) ||
   is_between(code, 0x114BA, 0x114BA) ||
   is_between(code, 0x114BF, 0x114C0) ||
@@ -390,7 +390,7 @@ fn zero_width_marks_smp_b(code : Int) -> Bool {
 ///|
 /// Supplementary-plane combining marks from the Bassa Vah, Mro, and musical
 /// blocks (0x16AF0–0x1DAFF).
-fn zero_width_marks_smp_c(code : Int) -> Bool {
+fn zero_width_marks_smp_c(code : Int32) -> Bool {
   is_between(code, 0x16AF0, 0x16AF4) ||
   is_between(code, 0x16B30, 0x16B36) ||
   is_between(code, 0x16F8F, 0x16F92) ||
@@ -412,7 +412,7 @@ fn zero_width_marks_smp_c(code : Int) -> Bool {
 ///|
 /// Supplementary-plane combining marks from the Adlam, and supplementary
 /// variation selectors (0x1E000–0xE01EF).
-fn zero_width_marks_smp_d(code : Int) -> Bool {
+fn zero_width_marks_smp_d(code : Int32) -> Bool {
   is_between(code, 0x1E000, 0x1E006) ||
   is_between(code, 0x1E008, 0x1E018) ||
   is_between(code, 0x1E01B, 0x1E021) ||
@@ -426,7 +426,7 @@ fn zero_width_marks_smp_d(code : Int) -> Bool {
 ///|
 /// East Asian Wide or Fullwidth code points, displayed as two columns wide.
 /// Split into per-block predicates to keep each expression shallow.
-fn is_east_asian_wide(code : Int) -> Bool {
+fn is_east_asian_wide(code : Int32) -> Bool {
   east_asian_wide_symbols(code) ||
   east_asian_wide_cjk(code) ||
   east_asian_wide_fullwidth(code) ||
@@ -438,7 +438,7 @@ fn is_east_asian_wide(code : Int) -> Bool {
 ///|
 /// Hangul Jamo, CJK symbols, and punctuation/miscellaneous symbols
 /// (0x1100–0x2B55).
-fn east_asian_wide_symbols(code : Int) -> Bool {
+fn east_asian_wide_symbols(code : Int32) -> Bool {
   is_between(code, 0x1100, 0x115F) ||
   is_between(code, 0x231A, 0x231B) ||
   is_between(code, 0x2329, 0x232A) ||
@@ -478,7 +478,7 @@ fn east_asian_wide_symbols(code : Int) -> Bool {
 
 ///|
 /// CJK radicals, ideographs, and compatibility characters (0x2E80–0xA4C6).
-fn east_asian_wide_cjk(code : Int) -> Bool {
+fn east_asian_wide_cjk(code : Int32) -> Bool {
   is_between(code, 0x2E80, 0x2E99) ||
   is_between(code, 0x2E9B, 0x2EF3) ||
   is_between(code, 0x2F00, 0x2FD5) ||
@@ -498,7 +498,7 @@ fn east_asian_wide_cjk(code : Int) -> Bool {
 
 ///|
 /// Hangul Jamo Extended, compatibility, and fullwidth forms (0xA960–0xFFE6).
-fn east_asian_wide_fullwidth(code : Int) -> Bool {
+fn east_asian_wide_fullwidth(code : Int32) -> Bool {
   is_between(code, 0xA960, 0xA97C) ||
   is_between(code, 0xAC00, 0xD7A3) ||
   is_between(code, 0xF900, 0xFAFF) ||
@@ -512,7 +512,7 @@ fn east_asian_wide_fullwidth(code : Int) -> Bool {
 
 ///|
 /// Tangut, Nushu, and Khitan characters (0x16FE0–0x1B2FB).
-fn east_asian_wide_tangut(code : Int) -> Bool {
+fn east_asian_wide_tangut(code : Int32) -> Bool {
   is_between(code, 0x16FE0, 0x16FE4) ||
   is_between(code, 0x17000, 0x187F7) ||
   is_between(code, 0x18800, 0x18CD5) ||
@@ -521,7 +521,7 @@ fn east_asian_wide_tangut(code : Int) -> Bool {
 
 ///|
 /// Emoji and enclosed/geometric symbols (0x1F004–0x1FAD6).
-fn east_asian_wide_emoji(code : Int) -> Bool {
+fn east_asian_wide_emoji(code : Int32) -> Bool {
   code == 0x1F004 ||
   code == 0x1F0CF ||
   code == 0x1F18E ||
@@ -572,6 +572,6 @@ fn east_asian_wide_emoji(code : Int) -> Bool {
 
 ///|
 /// CJK Unified Ideographs Extension B and C (0x20000–0x3FFFD).
-fn east_asian_wide_cjk_ext(code : Int) -> Bool {
+fn east_asian_wide_cjk_ext(code : Int32) -> Bool {
   is_between(code, 0x20000, 0x2FFFD) || is_between(code, 0x30000, 0x3FFFD)
 }

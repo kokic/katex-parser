@@ -6,7 +6,7 @@ fn frac_block(
   numer : @katex.ParseNode,
   denom : @katex.ParseNode,
   state : RenderState,
-  has_bar_line? : Bool = true,
+  has_bar_line~ : Bool = true,
 ) -> Block {
   // Fraction children are typeset at style+1: text for a display-style
   // fraction, script/scriptscript otherwise. The numerator and denominator
@@ -33,7 +33,7 @@ fn render_genfrac_block(
   numer : @katex.ParseNode,
   denom : @katex.ParseNode,
   state : RenderState,
-  has_bar_line? : Bool = true,
+  has_bar_line~ : Bool = true,
 ) -> String {
   frac_block(numer, denom, state, has_bar_line~).render()
 }

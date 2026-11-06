@@ -23,7 +23,7 @@ fn url_spec() -> FunctionSpec {
 ///|
 fn href_argument(
   args : Array[ParseNode],
-  index : Int,
+  index : Int32,
   func_name : String,
 ) -> String raise ParseFailure {
   guard require_function_arg(args, index, func_name) is Url(url~, ..) else {

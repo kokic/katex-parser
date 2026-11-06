@@ -74,9 +74,9 @@ fn cd_arrow(
 /// `@` interrupts the label.
 fn scan_cd_label(
   nodes : Array[ParseNode],
-  index : Int,
+  index : Int32,
   arrow : String,
-) -> (Array[ParseNode], Int) raise ParseFailure {
+) -> (Array[ParseNode], Int32) raise ParseFailure {
   let label : Array[ParseNode] = []
   let mut index = index
   while index < nodes.length() {

@@ -1,4 +1,5 @@
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) suberror ParseFailure {
   UnexpectedCharacter(message~ : String, loc~ : SourceLocation?)
   ExpectedToken(expected~ : String, actual~ : Diagnostic)
@@ -13,9 +14,9 @@ pub(all) suberror ParseFailure {
     loc~ : SourceLocation?
   )
   MissingFunctionHandler(func_name~ : String, loc~ : SourceLocation?)
-  TooManyExpansions(limit~ : Int)
+  TooManyExpansions(limit~ : Int32)
   InternalInvariant(message~ : String)
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
 fn[T] capture_parse_result(
@@ -27,10 +28,11 @@ fn[T] capture_parse_result(
 }
 
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) struct Diagnostic {
   text : String
   loc : SourceLocation?
-} derive(Debug, ToJson, Eq)
+}
 
 ///|
 fn Diagnostic::from_token(token : Token) -> Diagnostic {

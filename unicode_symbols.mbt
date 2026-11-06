@@ -358,7 +358,7 @@ fn normalize_unicode_symbol(mode : Mode, text : String) -> String {
 }
 
 ///|
-fn trailing_combining_mark_start(text : String) -> Int? {
+fn trailing_combining_mark_start(text : String) -> Int32? {
   let mut start = text.length()
   while start > 0 && is_combining_diacritical_mark(text[start - 1]) {
     start = start - 1

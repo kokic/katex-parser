@@ -4,7 +4,7 @@
 /// retained in plain text.
 pub fn render(
   nodes : Array[@katex.ParseNode],
-  config? : RenderConfig = Default::default(),
+  config~ : RenderConfig = Default::default(),
 ) -> String {
   render_internal(nodes, {
     style: @katex.StyleLevel::TextStyle,
@@ -608,7 +608,7 @@ fn enclose_box(block : Block, style : LineStyle) -> Block {
 
 ///|
 /// The top or bottom border line of a box of inner width `w`.
-fn box_border(style : LineStyle, w : Int, is_top : Bool) -> String {
+fn box_border(style : LineStyle, w : Int32, is_top : Bool) -> String {
   match style {
     Ascii => "-".repeat(w + 2)
     Unicode =>

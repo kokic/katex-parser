@@ -1,5 +1,5 @@
 ///|
-fn digit_value(text : String) -> Int? {
+fn digit_value(text : String) -> Int32? {
   if text.length() != 1 {
     None
   } else {
@@ -10,7 +10,7 @@ fn digit_value(text : String) -> Int? {
 }
 
 ///|
-fn char_code_from_token(token : Token) -> Int raise ParseFailure {
+fn char_code_from_token(token : Token) -> Int32 raise ParseFailure {
   if token.text == "EOF" {
     raise InvalidArgument(message="\\char` missing argument", loc=token.loc)
   } else if token.text.length() > 1 && token.text[0] == '\\' {
@@ -24,8 +24,8 @@ fn char_code_from_token(token : Token) -> Int raise ParseFailure {
 fn parse_char_number(
   context : MacroExpander,
   first : Token,
-  base : Int,
-) -> Int raise ParseFailure {
+  base : Int32,
+) -> Int32 raise ParseFailure {
   guard digit_value(first.text) is Some(value) && value < base else {
     raise InvalidArgument(
       message="Invalid base-\{base} digit \{first.text}",
@@ -69,7 +69,7 @@ fn char_macro(context : MacroExpander) -> MacroReplacement raise ParseFailure {
 }
 
 ///|
-fn parse_argument_count(text : String) -> Int? {
+fn parse_argument_count(text : String) -> Int32? {
   let mut number = 0
   let mut saw_digit = false
   let mut trailing_space = false
@@ -144,7 +144,9 @@ fn define_command_macro(
 ///|
 /// Expands tokens until `]` (or EOF) and parses them as the optional
 /// `[number of arguments]` declaration of `\newcommand`.
-fn parse_optional_arg_count(context : MacroExpander) -> Int raise ParseFailure {
+fn parse_optional_arg_count(
+  context : MacroExpander,
+) -> Int32 raise ParseFailure {
   let builder = StringBuilder()
   for ;; {
     let token = context.expand_next_token()

@@ -1,5 +1,5 @@
 ///|
-fn matrix_column_count(body : Array[Array[ParseNode]]) -> Int {
+fn matrix_column_count(body : Array[Array[ParseNode]]) -> Int32 {
   let mut count = 0
   for row in body {
     if row.length() > count {
@@ -10,7 +10,7 @@ fn matrix_column_count(body : Array[Array[ParseNode]]) -> Int {
 }
 
 ///|
-fn matrix_columns(count : Int, alignment : String) -> Array[ArrayColumn] {
+fn matrix_columns(count : Int32, alignment : String) -> Array[ArrayColumn] {
   Array::make(count, AlignColumn(alignment~, pre_gap=None, post_gap=None))
 }
 

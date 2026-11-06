@@ -25,12 +25,12 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
       let greek_small = if font == "boldsymbol" { 0x1D736 } else { 0x1D6C2 }
       let greek_symbols = if font == "boldsymbol" { 0x1D750 } else { 0x1D6DC }
       match c {
-        'A'..='Z' => Some(base + c.to_int() - ('A' : Char).to_int())
-        'a'..='z' => Some(base + 26 + c.to_int() - ('a' : Char).to_int())
-        '0'..='9' if font != "boldsymbol" =>
+        'A'..<='Z' => Some(base + c.to_int() - ('A' : Char).to_int())
+        'a'..<='z' => Some(base + 26 + c.to_int() - ('a' : Char).to_int())
+        '0'..<='9' if font != "boldsymbol" =>
           Some(0x1D7CE + c.to_int() - ('0' : Char).to_int())
-        'Α'..='Ω' => Some(greek_cap + c.to_int() - ('Α' : Char).to_int())
-        'α'..='ω' => Some(greek_small + c.to_int() - ('α' : Char).to_int())
+        'Α'..<='Ω' => Some(greek_cap + c.to_int() - ('Α' : Char).to_int())
+        'α'..<='ω' => Some(greek_small + c.to_int() - ('α' : Char).to_int())
         'ϵ' => Some(greek_symbols + 0)
         'ϑ' => Some(greek_symbols + 1)
         'ϰ' => Some(greek_symbols + 2)
@@ -44,10 +44,10 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
     }
     "mathit" | "mathnormal" =>
       match c {
-        'A'..='Z' => Some(0x1D434 + c.to_int() - ('A' : Char).to_int())
-        'a'..='z' => Some(0x1D44E + c.to_int() - ('a' : Char).to_int())
-        'Α'..='Ω' => Some(0x1D6E2 + c.to_int() - ('Α' : Char).to_int())
-        'α'..='ω' => Some(0x1D6FC + c.to_int() - ('α' : Char).to_int())
+        'A'..<='Z' => Some(0x1D434 + c.to_int() - ('A' : Char).to_int())
+        'a'..<='z' => Some(0x1D44E + c.to_int() - ('a' : Char).to_int())
+        'Α'..<='Ω' => Some(0x1D6E2 + c.to_int() - ('Α' : Char).to_int())
+        'α'..<='ω' => Some(0x1D6FC + c.to_int() - ('α' : Char).to_int())
         'ϵ' => Some(0x1D716)
         'ϑ' => Some(0x1D717)
         'ϰ' => Some(0x1D718)
@@ -60,16 +60,16 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
       }
     "mathsf" =>
       match c {
-        'A'..='Z' => Some(0x1D5A0 + c.to_int() - ('A' : Char).to_int())
-        'a'..='z' => Some(0x1D5BA + c.to_int() - ('a' : Char).to_int())
-        '0'..='9' => Some(0x1D7E2 + c.to_int() - ('0' : Char).to_int())
+        'A'..<='Z' => Some(0x1D5A0 + c.to_int() - ('A' : Char).to_int())
+        'a'..<='z' => Some(0x1D5BA + c.to_int() - ('a' : Char).to_int())
+        '0'..<='9' => Some(0x1D7E2 + c.to_int() - ('0' : Char).to_int())
         _ => None
       }
     "mathtt" =>
       match c {
-        'A'..='Z' => Some(0x1D670 + c.to_int() - ('A' : Char).to_int())
-        'a'..='z' => Some(0x1D68A + c.to_int() - ('a' : Char).to_int())
-        '0'..='9' => Some(0x1D7F6 + c.to_int() - ('0' : Char).to_int())
+        'A'..<='Z' => Some(0x1D670 + c.to_int() - ('A' : Char).to_int())
+        'a'..<='z' => Some(0x1D68A + c.to_int() - ('a' : Char).to_int())
+        '0'..<='9' => Some(0x1D7F6 + c.to_int() - ('0' : Char).to_int())
         _ => None
       }
     "mathbb" =>
@@ -100,8 +100,8 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
         'X' => Some(0x1D54F)
         'Y' => Some(0x1D550)
         'Z' => Some(0x2124)
-        'a'..='z' => Some(0x1D552 + c.to_int() - ('a' : Char).to_int())
-        '0'..='9' => Some(0x1D7D8 + c.to_int() - ('0' : Char).to_int())
+        'a'..<='z' => Some(0x1D552 + c.to_int() - ('a' : Char).to_int())
+        '0'..<='9' => Some(0x1D7D8 + c.to_int() - ('0' : Char).to_int())
         _ => None
       }
     "mathcal" =>
@@ -162,22 +162,22 @@ pub fn unicode_font_character(font : String, char : String) -> String? {
         'X' => Some(0x1D51B)
         'Y' => Some(0x1D51C)
         'Z' => Some(0x2128)
-        'a'..='z' => Some(0x1D51E + c.to_int() - ('a' : Char).to_int())
+        'a'..<='z' => Some(0x1D51E + c.to_int() - ('a' : Char).to_int())
         _ => None
       }
     "mathscr" =>
       match c {
-        'A'..='Z' => Some(0x1D4D0 + c.to_int() - ('A' : Char).to_int())
-        'a'..='z' => Some(0x1D4EA + c.to_int() - ('a' : Char).to_int())
+        'A'..<='Z' => Some(0x1D4D0 + c.to_int() - ('A' : Char).to_int())
+        'a'..<='z' => Some(0x1D4EA + c.to_int() - ('a' : Char).to_int())
         _ => None
       }
     "mathsfit" =>
       match c {
-        'A'..='Z' => Some(0x1D608 + c.to_int() - ('A' : Char).to_int())
-        'a'..='z' => Some(0x1D622 + c.to_int() - ('a' : Char).to_int())
+        'A'..<='Z' => Some(0x1D608 + c.to_int() - ('A' : Char).to_int())
+        'a'..<='z' => Some(0x1D622 + c.to_int() - ('a' : Char).to_int())
         _ => None
       }
     _ => None
   }
-  cp.map(cp => String::from_array([Int::unsafe_to_char(cp)]))
+  cp.map(cp => String::from_array([Int32::unsafe_to_char(cp)]))
 }

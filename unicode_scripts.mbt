@@ -1,8 +1,9 @@
 ///|
+#derive(Eq)
 pub(all) enum UnicodeScriptKind {
   UnicodeSubscript
   UnicodeSuperscript
-} derive(Eq)
+}
 
 ///|
 pub struct UnicodeScript {
@@ -140,7 +141,7 @@ pub fn unicode_script_character(
 ///|
 /// True when the codepoint falls within one of the supported Unicode script
 /// blocks. Mirrors KaTeX's `supportedCodepoint` (unicodeScripts.ts).
-pub fn supported_codepoint(code : Int) -> Bool {
+pub fn supported_codepoint(code : Int32) -> Bool {
   (0x0100 <= code && code <= 0x024F) || // Latin Extended-A/B
   (0x0300 <= code && code <= 0x036F) || // Combining Diacritical marks
   (0x0400 <= code && code <= 0x04FF) || // Cyrillic

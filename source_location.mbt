@@ -1,15 +1,16 @@
 ///|
+#derive(Debug, ToJson, Eq)
 pub(all) struct SourceLocation {
   input : String
-  start : Int
-  end : Int
-} derive(Debug, ToJson, Eq)
+  start : Int32
+  end : Int32
+}
 
 ///|
 pub fn SourceLocation::make(
   input : String,
-  start~ : Int,
-  end~ : Int,
+  start~ : Int32,
+  end~ : Int32,
 ) -> SourceLocation {
   { input, start, end, }
 }

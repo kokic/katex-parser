@@ -90,7 +90,7 @@ fn[V] Namespace::set(
   self : Namespace[V],
   key : String,
   value : V?,
-  global? : Bool = false,
+  global~ : Bool = false,
 ) -> Unit {
   if global {
     for changes in self.undo_stack {
