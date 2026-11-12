@@ -162,7 +162,7 @@ pub fn builtin_commands() -> Array[CommandInfo] {
 ///|
 /// Exports the builtin completion catalogue as a JSON array.
 pub fn builtin_commands_json() -> Json {
-  builtin_commands().to_json()
+  builtin_commands() |> Json()
 }
 
 ///|

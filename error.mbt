@@ -19,15 +19,6 @@ pub(all) suberror ParseFailure {
 }
 
 ///|
-fn[T] capture_parse_result(
-  operation : () -> T raise ParseFailure,
-) -> Result[T, ParseFailure] {
-  Ok(operation()) catch {
-    err => Err(err)
-  }
-}
-
-///|
 #derive(Debug, ToJson, Eq)
 pub(all) struct Diagnostic {
   text : String
