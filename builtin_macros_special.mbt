@@ -127,16 +127,20 @@ fn braket_helper(
       ),
     )
   }
-  let expanded : Result[Array[Token], ParseFailure] = capture_parse_result(() => {
-    let argument = context.consume_arg(None).tokens
-    let input = right.copy()
-    input.append(argument)
-    input.append(left)
-    context.expand_tokens(input)
-  })
-  let close_result : Result[Unit, ParseFailure] = capture_parse_result(() => {
-    context.end_group()
-  })
+  let expanded : Result[Array[Token], ParseFailure] = Ok(
+    {
+      let argument = context.consume_arg(None).tokens
+      let input = right.copy()
+      input.append(argument)
+      input.append(left)
+      context.expand_tokens(input)
+    },
+  ) catch {
+    err => Err(err)
+  }
+  let close_result : Result[Unit, ParseFailure] = Ok(context.end_group()) catch {
+    err => Err(err)
+  }
   match (expanded, close_result) {
     (Err(err), _) => raise err
     (Ok(_), Err(err)) => raise err

@@ -187,93 +187,101 @@ fn Parser::parse_array_environment(
     self.gullet.macros.set("\\cr", Some(MacroDefinition::text("\\\\\\relax")))
   }
   self.gullet.begin_group()
-  let result : Result[ParseNode, ParseFailure] = capture_parse_result(() => {
-    let array_stretch = self.array_stretch(options.array_stretch)
-    self.begin_array_row(options.auto_tag)
-    let body : Array[Array[ParseNode]] = [[]]
-    let row_gaps : Array[Measurement?] = []
-    let hlines_before_row : Array[Array[Bool]] = [self.consume_array_hlines()]
-    let tags : Array[Array[ParseNode]?] = []
-    let auto_tags : Array[Bool] = []
-    for ;; {
-      let cell_body = self.parse_expression(false, Some("\\\\"))
-      let empty_cell = cell_body.is_empty()
-      let cell : ParseNode = Styling(
-        mode=self.mode,
-        body=[
-          OrdGroup(mode=self.mode, loc=None, body=cell_body, semisimple=false),
-        ],
-        style=options.cell_style,
-        reset_font=true,
-      )
-      self.gullet.end_group()
-      self.gullet.begin_group()
-      guard body.last() is Some(row) else {
-        raise InternalInvariant(message="Missing array row")
-      }
-      row.push(cell)
-      match self.fetch().text {
-        "&" => {
-          guard !array_row_at_max(body, options.max_columns) else {
+  let result : Result[ParseNode, ParseFailure] = Ok(
+    {
+      let array_stretch = self.array_stretch(options.array_stretch)
+      self.begin_array_row(options.auto_tag)
+      let body : Array[Array[ParseNode]] = [[]]
+      let row_gaps : Array[Measurement?] = []
+      let hlines_before_row : Array[Array[Bool]] = [self.consume_array_hlines()]
+      let tags : Array[Array[ParseNode]?] = []
+      let auto_tags : Array[Bool] = []
+      for ;; {
+        let cell_body = self.parse_expression(false, Some("\\\\"))
+        let empty_cell = cell_body.is_empty()
+        let cell : ParseNode = Styling(
+          mode=self.mode,
+          body=[
+            OrdGroup(mode=self.mode, loc=None, body=cell_body, semisimple=false),
+          ],
+          style=options.cell_style,
+          reset_font=true,
+        )
+        self.gullet.end_group()
+        self.gullet.begin_group()
+        guard body.last() is Some(row) else {
+          raise InternalInvariant(message="Missing array row")
+        }
+        row.push(cell)
+        match self.fetch().text {
+          "&" => {
+            guard !array_row_at_max(body, options.max_columns) else {
+              raise InvalidArgument(
+                message="Too many tab characters: &",
+                loc=None,
+              )
+            }
+            self.consume()
+          }
+          "\\end" => {
+            self.push_array_tag(tags, auto_tags, options.auto_tag)
+            if row.length() == 1 &&
+              empty_cell &&
+              (body.length() > 1 || !options.empty_single_row) &&
+              !(tags.last() is Some(Some(_))) &&
+              !(auto_tags.last() is Some(true)) {
+              let _ = body.pop()
+            }
+            break
+          }
+          "\\\\" => {
+            guard !options.single_row else {
+              raise InvalidArgument(message="Expected \\end", loc=None)
+            }
+            self.consume()
+            row_gaps.push(self.parse_array_row_gap())
+            self.push_array_tag(tags, auto_tags, options.auto_tag)
+            hlines_before_row.push(self.consume_array_hlines())
+            body.push([])
+            self.begin_array_row(options.auto_tag)
+          }
+          token =>
             raise InvalidArgument(
-              message="Too many tab characters: &",
+              message="Expected & or \\\\ or \\end, got \{token}",
               loc=None,
             )
-          }
-          self.consume()
         }
-        "\\end" => {
-          self.push_array_tag(tags, auto_tags, options.auto_tag)
-          if row.length() == 1 &&
-            empty_cell &&
-            (body.length() > 1 || !options.empty_single_row) &&
-            !(tags.last() is Some(Some(_))) &&
-            !(auto_tags.last() is Some(true)) {
-            let _ = body.pop()
-          }
-          break
-        }
-        "\\\\" => {
-          guard !options.single_row else {
-            raise InvalidArgument(message="Expected \\end", loc=None)
-          }
-          self.consume()
-          row_gaps.push(self.parse_array_row_gap())
-          self.push_array_tag(tags, auto_tags, options.auto_tag)
-          hlines_before_row.push(self.consume_array_hlines())
-          body.push([])
-          self.begin_array_row(options.auto_tag)
-        }
-        token =>
-          raise InvalidArgument(
-            message="Expected & or \\\\ or \\end, got \{token}",
-            loc=None,
-          )
       }
-    }
-    if hlines_before_row.length() < body.length() + 1 {
-      hlines_before_row.push([])
-    }
-    Array(
-      mode=self.mode,
-      body~,
-      add_jot=options.add_jot,
-      array_stretch~,
-      columns=options.columns,
-      row_gaps~,
-      hskip_before_and_after=options.hskip_before_and_after,
-      hlines_before_row~,
-      column_separation_type=options.column_separation_type,
-      tags=if options.auto_tag is Some(_) { Some(tags) } else { None },
-      auto_tags=if options.auto_tag is Some(_) { Some(auto_tags) } else { None },
-      leqno=options.leqno,
-    )
-  })
-  let close_cell : Result[Unit, ParseFailure] = capture_parse_result(() => {
-    self.gullet.end_group()
-  })
-  let close_array : Result[Unit, ParseFailure] = capture_parse_result(() => {
-    self.gullet.end_group()
-  })
+      if hlines_before_row.length() < body.length() + 1 {
+        hlines_before_row.push([])
+      }
+      Array(
+        mode=self.mode,
+        body~,
+        add_jot=options.add_jot,
+        array_stretch~,
+        columns=options.columns,
+        row_gaps~,
+        hskip_before_and_after=options.hskip_before_and_after,
+        hlines_before_row~,
+        column_separation_type=options.column_separation_type,
+        tags=if options.auto_tag is Some(_) { Some(tags) } else { None },
+        auto_tags=if options.auto_tag is Some(_) {
+          Some(auto_tags)
+        } else {
+          None
+        },
+        leqno=options.leqno,
+      )
+    },
+  ) catch {
+    err => Err(err)
+  }
+  let close_cell : Result[Unit, ParseFailure] = Ok(self.gullet.end_group()) catch {
+    err => Err(err)
+  }
+  let close_array : Result[Unit, ParseFailure] = Ok(self.gullet.end_group()) catch {
+    err => Err(err)
+  }
   unwrap_array_parse_result(result, close_cell, close_array)
 }

@@ -167,61 +167,66 @@ fn Parser::parse_cd_environment(self : Parser) -> ParseNode raise ParseFailure {
   self.gullet.begin_group()
   self.gullet.macros.set("\\cr", Some(MacroDefinition::text("\\\\\\relax")))
   self.gullet.begin_group()
-  let result : Result[ParseNode, ParseFailure] = capture_parse_result(() => {
-    let parsed_rows : Array[Array[ParseNode]] = []
-    for ;; {
-      parsed_rows.push(self.parse_expression(false, Some("\\\\")))
-      self.gullet.end_group()
-      self.gullet.begin_group()
-      match self.fetch().text {
-        "&" | "\\\\" => self.consume()
-        "\\end" => {
-          if parsed_rows.last() is Some([]) {
-            let _ = parsed_rows.pop()
+  let result : Result[ParseNode, ParseFailure] = Ok(
+    {
+      let parsed_rows : Array[Array[ParseNode]] = []
+      for ;; {
+        parsed_rows.push(self.parse_expression(false, Some("\\\\")))
+        self.gullet.end_group()
+        self.gullet.begin_group()
+        match self.fetch().text {
+          "&" | "\\\\" => self.consume()
+          "\\end" => {
+            if parsed_rows.last() is Some([]) {
+              let _ = parsed_rows.pop()
+            }
+            break
           }
-          break
+          token =>
+            raise InvalidArgument(
+              message="Expected \\ or \\cr or \\end, got \{token}",
+              loc=None,
+            )
         }
-        token =>
-          raise InvalidArgument(
-            message="Expected \\ or \\cr or \\end, got \{token}",
-            loc=None,
-          )
       }
-    }
-    let body : Array[Array[ParseNode]] = []
-    for index, row in parsed_rows {
-      body.push(cd_row(row, index % 2 == 0))
-    }
-    // KaTeX parseCD always keeps the final structural empty row.
-    body.push([])
-    let count = body.get(0).map_or(0, row => row.length())
-    let columns = Array::make(
-      count,
-      AlignColumn(alignment="c", pre_gap=Some(0.25), post_gap=Some(0.25)),
-    )
-    let row_gap_count = body.length() + 1
-    let hlines_before_row = Array::makei(row_gap_count, _ => [])
-    Array(
-      mode=Math,
-      body~,
-      add_jot=true,
-      array_stretch=1.0,
-      columns=Some(columns),
-      row_gaps=[None],
-      hskip_before_and_after=false,
-      hlines_before_row~,
-      column_separation_type=Some(CdSeparation),
-      tags=None,
-      auto_tags=None,
-      leqno=false,
-    )
-  })
-  let close_cell : Result[Unit, ParseFailure] = capture_parse_result(() => {
-    self.gullet.end_group()
-  })
-  let close_array : Result[Unit, ParseFailure] = capture_parse_result(() => {
-    self.gullet.end_group()
-  })
+      let body : Array[Array[ParseNode]] = []
+      for index, row in parsed_rows {
+        body.push(cd_row(row, index % 2 == 0))
+      }
+      // KaTeX parseCD always keeps the final structural empty row.
+      body.push([])
+      let count = body.get(0).map_or(0, row => row.length())
+      let columns = Array::make(
+        count,
+        AlignColumn(alignment="c", pre_gap=Some(0.25), post_gap=Some(0.25)),
+      )
+      let row_gap_count = body.length() + 1
+      let hlines_before_row = Array::makei(row_gap_count, _ => [])
+      Array(
+        mode=Math,
+        body~,
+        add_jot=true,
+        array_stretch=1.0,
+        columns=Some(columns),
+        row_gaps=[None],
+        hskip_before_and_after=false,
+        hlines_before_row~,
+        column_separation_type=Some(CdSeparation),
+        tags=None,
+        auto_tags=None,
+        leqno=false,
+      )
+    },
+  ) catch {
+    err => Err(err)
+  }
+  let close_cell : Result[Unit, ParseFailure] = Ok(self.gullet.end_group()) catch {
+    err => Err(err)
+  }
+
+  let close_array : Result[Unit, ParseFailure] = Ok(self.gullet.end_group()) catch {
+    err => Err(err)
+  }
   unwrap_array_parse_result(result, close_cell, close_array)
 }
 
