@@ -6,21 +6,6 @@ fn Parser::switch_mode(self : Parser, mode : Mode) -> Unit {
 }
 
 ///|
-/// Unwraps a captured parse result together with its group-close step. The
-/// close is checked first: when the parse already unbalanced the group, the
-/// close error is the one that surfaces.
-fn[V] unwrap_captured(
-  close : Result[Unit, ParseFailure],
-  value : Result[V, ParseFailure],
-) -> V raise ParseFailure {
-  match (close, value) {
-    (Err(err), _) => raise err
-    (_, Err(err)) => raise err
-    (Ok(_), Ok(value)) => value
-  }
-}
-
-///|
 /// Parses the arguments of a function. Optional arguments come first; a
 /// missing optional argument contributes `None` to `opt_args`. The argument
 /// type of each position comes from the function spec; when the spec does not
@@ -135,23 +120,16 @@ fn Parser::parse_argument_group(
       if mode is Some(argument_mode) {
         self.switch_mode(argument_mode)
       }
+      defer self.switch_mode(outer_mode)
       self.gullet.begin_group()
-      let result : Result[ParseNode, ParseFailure] = Ok(
-        {
-          let body = self.parse_expression(false, Some("EOF"))
-          self.expect("EOF")
-          OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
-        },
-      ) catch {
-        err => Err(err)
+      let group = {
+        errdefer self.gullet.end_group()
+        let body = self.parse_expression(false, Some("EOF"))
+        self.expect("EOF")
+        OrdGroup(mode=self.mode, loc=arg_token.loc, body~, semisimple=false)
       }
-      let close_result : Result[Unit, ParseFailure] = Ok(
-        self.gullet.end_group(),
-      ) catch {
-        err => Err(err)
-      }
-      self.switch_mode(outer_mode)
-      Some(unwrap_captured(close_result, result))
+      self.gullet.end_group()
+      Some(group)
     }
   }
 }

@@ -127,22 +127,22 @@ fn Parser::parse(self : Parser) -> Array[ParseNode] raise ParseFailure {
       Some(MacroDefinition::text("\\textcolor")),
     )
   }
-  let result : Result[Array[ParseNode], ParseFailure] = {
-    let body = Ok(self.parse_expression(false, None)) catch { err => Err(err) }
+  defer {
+    self.gullet.end_groups()
+    if self.settings.global_group {
+      self.persist_user_macros()
+    }
+  }
+  let body = {
+    errdefer (if !self.settings.global_group { self.gullet.end_group() })
+    let body = self.parse_expression(false, None)
     self.expect("EOF")
     body
   }
-  let close_result : Result[Unit, ParseFailure] = {
-    guard !self.settings.global_group else { Ok(()) }
-    Ok(self.gullet.end_group()) catch {
-      err => Err(err)
-    }
+  if !self.settings.global_group {
+    self.gullet.end_group()
   }
-  self.gullet.end_groups()
-  if self.settings.global_group {
-    self.persist_user_macros()
-  }
-  unwrap_captured(close_result, result)
+  body
 }
 
 ///|
