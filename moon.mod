@@ -1,6 +1,6 @@
 name = "kokic/katex-parser"
 
-version = "0.6.0"
+version = "0.7.0"
 
 readme = "README.mbt.md"
 
@@ -10,6 +10,6 @@ license = "AGPL-3.0"
 
 keywords = [ "katex", "latex", "math", "parser", "tex" ]
 
-description = "A port of the KaTeX parser: lexing and parsing LaTeX math expressions with macro expansion into a typed AST, plus a Unicode rendering backend"
+description = "A port of the KaTeX parser: lexing and parsing LaTeX math expressions with macro expansion into a typed AST"
 
 preferred_target = "wasm"
