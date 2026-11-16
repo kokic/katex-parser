@@ -1,12 +1,12 @@
 name = "kokic/katex-parser"
 
-version = "0.7.0"
+version = "0.7.1"
 
 readme = "README.mbt.md"
 
 repository = "https://github.com/kokic/katex-parser"
 
-license = "AGPL-3.0"
+license = "Apache-2.0"
 
 keywords = [ "katex", "latex", "math", "parser", "tex" ]
 
