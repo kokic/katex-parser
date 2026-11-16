@@ -1,4 +1,5 @@
 import {
   "kokic/katex-parser" @katex,
   "kokic/katex-parser/anvil" @backend,
+  "kokic/katex-parser/mathml",
 }

@@ -14,9 +14,8 @@ pub fn render(
   }
   let body = make_row(render_expression(nodes, state))
 
-  // In the unicode backend, this is achieved by directly returning an empty string: 
-  // Internal(..) | EnvironmentEnd(..) => ""
-  guard !body.is_empty() else { return "" }
+  // An explicit annotation must survive even when the formula body is empty.
+  guard config.annotation is Some(_) || !body.is_empty() else { return "" }
 
   let semantic_children = [
     body,

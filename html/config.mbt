@@ -6,6 +6,8 @@ pub struct RenderConfig {
   fleqn : Bool
   max_size : Double
   min_rule_thickness : Double
+  annotation : String?
+  mathml : Bool
 }
 
 ///|
@@ -15,8 +17,18 @@ pub fn RenderConfig::make(
   fleqn~ : Bool = false,
   max_size~ : Double = 1.0 / 0.0,
   min_rule_thickness~ : Double = 0.0,
+  annotation? : String,
+  mathml~ : Bool = false,
 ) -> RenderConfig {
-  { display_mode, leqno, fleqn, max_size, min_rule_thickness, }
+  {
+    display_mode,
+    leqno,
+    fleqn,
+    max_size,
+    min_rule_thickness,
+    annotation,
+    mathml,
+  }
 }
 
 ///|

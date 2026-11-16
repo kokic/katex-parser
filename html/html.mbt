@@ -1,4 +1,6 @@
 ///|
+/// Requires KaTeX CSS to visually hide the MathML branch. An annotation-only
+/// branch supports copy-tex but does not provide formula semantics for accessibility.
 pub fn render(
   nodes : Array[@katex.ParseNode],
   config~ : RenderConfig = Default::default(),
@@ -13,7 +15,9 @@ pub fn render(
       (body, options.with_style(0))
     _ => (nodes, options)
   }
-  let rendered = make_span(["katex"], [build_html(body, options)])
+  let mathml = render_mathml(nodes, config)
+  let html = build_html(body, options).to_markup()
+  let rendered = "<span class=\"katex\">" + mathml + html + "</span>"
   if config.display_mode {
     let classes = ["katex-display"]
     if config.leqno {
@@ -22,10 +26,30 @@ pub fn render(
     if config.fleqn {
       classes.push("fleqn")
     }
-    make_span(classes, [rendered]).to_markup()
+    "<span class=\"\{class_string(classes)}\">\{rendered}</span>"
   } else {
-    rendered.to_markup()
+    rendered
   }
+}
+
+///|
+fn render_mathml(
+  nodes : Array[@katex.ParseNode],
+  config : RenderConfig,
+) -> String {
+  guard config.mathml || config.annotation is Some(_) else { return "" }
+  let mathml = @mathml.render(
+    if config.mathml {
+      nodes
+    } else {
+      []
+    },
+    config=@mathml.RenderConfig::make(
+      display_mode=config.display_mode,
+      annotation?=config.annotation,
+    ),
+  )
+  "<span class=\"katex-mathml\">\{mathml}</span>"
 }
 
 ///|
