@@ -34,12 +34,22 @@ pub struct CommandArgument {
 }
 
 ///|
+/// Literal text is inserted verbatim; fields are editable positions, not TeX.
+#derive(ToJson)
+pub(all) enum TemplatePart {
+  Literal(String)
+  Field(String)
+}
+
+///|
+pub type CommandTemplate = Array[TemplatePart]
+
+///|
 /// A snapshot of one public builtin command, including its leading backslash.
 /// args describes explicit arguments, not an infix operand or an implicit body.
 /// modes is absent when a macro's mode restrictions are not statically known.
 /// unicode/group describe its registered symbol, when available.
-/// templates use named ${field} placeholders, as accepted by CodeMirror's
-/// snippetCompletion. Regular commands list the form without optional args first.
+/// Regular commands list the template without optional arguments first.
 /// Templates are editing skeletons, not necessarily valid until fields are filled.
 #derive(ToJson)
 pub struct CommandInfo {
@@ -50,7 +60,7 @@ pub struct CommandInfo {
   modes : Array[Mode]?
   unicode : String?
   group : String?
-  templates : Array[String]
+  templates : Array[CommandTemplate]
 }
 
 ///|
@@ -86,15 +96,22 @@ pub fn builtin_commands() -> Array[CommandInfo] {
             Some(symbol.replacement)
           },
           group: Some(command_symbol_group_name(symbol.group)),
-          templates: [name],
+          templates: [[Literal(name)]],
         })
       commands[name] = { ..info, modes: Some(modes), }
     }
   }
   // Match parser resolution: macro expansion, then functions, then symbols.
-  for name, spec in builtin_function_registry.entries {
-    guard is_public_builtin_command(name) else { continue }
-    commands[name] = function_command_info(name, spec, commands.get(name))
+  for (spec, form) in builtin_function_specs {
+    for name in spec.names {
+      guard is_public_builtin_command(name) else { continue }
+      commands[name] = function_command_info(
+        name,
+        spec,
+        form,
+        commands.get(name),
+      )
+    }
   }
   for name, _ in builtin_dynamic_macro_definitions {
     guard is_public_builtin_command(name) else { continue }
@@ -131,7 +148,7 @@ pub fn builtin_commands() -> Array[CommandInfo] {
       ),
       unicode: None,
       group: None,
-      templates: [name],
+      templates: [[Literal(name)]],
     }
     commands[name] = complete_command_signature(info)
   }
@@ -148,15 +165,7 @@ pub fn builtin_commands() -> Array[CommandInfo] {
     }
   }
   result.sort_by((left, right) => left.name.compare(right.name))
-  result.map(info => {
-    ..info,
-    templates: info.templates.map(template => {
-      template
-      .replace_all(old="#{", new="${")
-      .replace_all(old="\\{", new="\\\\{")
-      .replace_all(old="\\}", new="\\\\}")
-    }),
-  })
+  result
 }
 
 ///|
@@ -173,6 +182,9 @@ pub extend CommandSyntax with ToJson::{to_json}
 
 ///|
 pub extend CommandArgument with ToJson::{to_json}
+
+///|
+pub extend TemplatePart with ToJson::{to_json}
 
 ///|
 pub extend CommandInfo with ToJson::{to_json}
