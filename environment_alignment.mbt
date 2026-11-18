@@ -30,7 +30,7 @@ fn alignment_rhs_cell(cell : ParseNode) -> ParseNode raise ParseFailure {
       mode~,
       style~,
       reset_font~,
-      body=[OrdGroup(mode=inner_mode, loc~, body~, semisimple~)]
+      body=[OrdGroup(mode=inner_mode, loc~, body~, semisimple~)],
     ) =>
       Styling(mode~, style~, reset_font~, body=[
         OrdGroup(

@@ -327,7 +327,7 @@ fn get_outer_atom_type(node : @katex.ParseNode) -> String? {
         @katex.ParseNode::Op(
           content=@katex.OperatorContent::SymbolOperator(_),
           ..
-        )
+        ),
       ),
       ..
     ) => Some("mbig")

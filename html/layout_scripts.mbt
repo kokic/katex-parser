@@ -97,7 +97,7 @@ fn layout_supsub(
       Op(
         content=@katex.OperatorContent::SymbolOperator("\\oiint" | "\\oiiint"),
         ..
-      )
+      ),
     )
   let left = if base_node.kind == "symbol" || is_oval {
     make_em(-base_node.italic)

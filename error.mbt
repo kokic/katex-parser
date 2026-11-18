@@ -11,7 +11,7 @@ pub(all) suberror ParseFailure {
   FunctionNotAllowed(
     func_name~ : String,
     context~ : String,
-    loc~ : SourceLocation?
+    loc~ : SourceLocation?,
   )
   MissingFunctionHandler(func_name~ : String, loc~ : SourceLocation?)
   TooManyExpansions(limit~ : Int32)

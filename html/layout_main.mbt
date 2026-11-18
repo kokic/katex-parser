@@ -30,7 +30,7 @@ fn render_layout_node(node : @katex.ParseNode, options : Options) -> HtmlNode? {
       bar_size~,
       left_delim~,
       right_delim~,
-      mode~
+      mode~,
     ) =>
       Some(
         layout_fraction(

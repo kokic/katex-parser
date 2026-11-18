@@ -13,7 +13,7 @@ fn render_array(node : @katex.ParseNode, state : RenderState) -> String {
     ) => render_aligned(body, state)
     Array(
       column_separation_type=Some(
-        @katex.ColumnSeparationType::AlignAtSeparation
+        @katex.ColumnSeparationType::AlignAtSeparation,
       ),
       ..
     ) => unsupported_comment("alignat")

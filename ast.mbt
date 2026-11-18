@@ -79,14 +79,14 @@ pub(all) enum ParseNode {
     mode~ : Mode,
     body~ : Array[ParseNode],
     style~ : StyleLevel,
-    reset_font~ : Bool
+    reset_font~ : Bool,
   )
   Sqrt(mode~ : Mode, body~ : ParseNode, index~ : ParseNode?)
   Infix(
     mode~ : Mode,
     replace_with~ : String,
     size~ : Measurement?,
-    loc~ : SourceLocation?
+    loc~ : SourceLocation?,
   )
   GenFrac(
     mode~ : Mode,
@@ -96,7 +96,7 @@ pub(all) enum ParseNode {
     has_bar_line~ : Bool,
     bar_size~ : Measurement?,
     left_delim~ : String?,
-    right_delim~ : String?
+    right_delim~ : String?,
   )
   Text(mode~ : Mode, body~ : Array[ParseNode], font~ : String)
   Font(mode~ : Mode, font~ : String, body~ : ParseNode)
@@ -104,7 +104,7 @@ pub(all) enum ParseNode {
     mode~ : Mode,
     mclass~ : AtomFamily,
     body~ : Array[ParseNode],
-    is_character_box~ : Bool
+    is_character_box~ : Bool,
   )
   Op(
     mode~ : Mode,
@@ -112,14 +112,14 @@ pub(all) enum ParseNode {
     always_handle_sup_sub~ : Bool,
     parent_is_sup_sub~ : Bool,
     suppress_base_shift~ : Bool,
-    content~ : OperatorContent
+    content~ : OperatorContent,
   )
   OperatorName(
     mode~ : Mode,
     body~ : Array[ParseNode],
     always_handle_sup_sub~ : Bool,
     limits~ : Bool,
-    parent_is_sup_sub~ : Bool
+    parent_is_sup_sub~ : Bool,
   )
   Overline(mode~ : Mode, body~ : ParseNode)
   Underline(mode~ : Mode, body~ : ParseNode)
@@ -127,7 +127,7 @@ pub(all) enum ParseNode {
     mode~ : Mode,
     body~ : ParseNode,
     smash_height~ : Bool,
-    smash_depth~ : Bool
+    smash_depth~ : Bool,
   )
   Phantom(mode~ : Mode, body~ : Array[ParseNode])
   VPhantom(mode~ : Mode, body~ : ParseNode)
@@ -137,7 +137,7 @@ pub(all) enum ParseNode {
     mode~ : Mode,
     shift~ : Measurement?,
     width~ : Measurement,
-    height~ : Measurement
+    height~ : Measurement,
   )
   RaiseBox(mode~ : Mode, dy~ : Measurement, body~ : ParseNode)
   HBox(mode~ : Mode, body~ : Array[ParseNode])
@@ -148,7 +148,7 @@ pub(all) enum ParseNode {
     display~ : Array[ParseNode],
     text~ : Array[ParseNode],
     script~ : Array[ParseNode],
-    scriptscript~ : Array[ParseNode]
+    scriptscript~ : Array[ParseNode],
   )
   Sizing(mode~ : Mode, size~ : Int32, body~ : Array[ParseNode])
   HorizBrace(mode~ : Mode, label~ : String, is_over~ : Bool, base~ : ParseNode)
@@ -158,7 +158,7 @@ pub(all) enum ParseNode {
     mode~ : Mode,
     size~ : Int32,
     mclass~ : AtomFamily,
-    delim~ : String
+    delim~ : String,
   )
   LeftRightRight(mode~ : Mode, delim~ : String, color~ : String?)
   LeftRight(
@@ -166,7 +166,7 @@ pub(all) enum ParseNode {
     body~ : Array[ParseNode],
     left~ : String,
     right~ : String,
-    right_color~ : String?
+    right_color~ : String?,
   )
   Middle(mode~ : Mode, delim~ : String)
   Kern(mode~ : Mode, dimension~ : Measurement)
@@ -175,13 +175,13 @@ pub(all) enum ParseNode {
     body~ : ParseNode,
     label~ : String,
     background_color~ : String?,
-    border_color~ : String?
+    border_color~ : String?,
   )
   Href(mode~ : Mode, href~ : String, body~ : Array[ParseNode])
   Html(
     mode~ : Mode,
     attributes~ : Map[String, String],
-    body~ : Array[ParseNode]
+    body~ : Array[ParseNode],
   )
   IncludeGraphics(
     mode~ : Mode,
@@ -189,7 +189,7 @@ pub(all) enum ParseNode {
     width~ : Measurement,
     height~ : Measurement,
     totalheight~ : Measurement,
-    src~ : String
+    src~ : String,
   )
   Tag(mode~ : Mode, body~ : Array[ParseNode], tag~ : Array[ParseNode])
   Array(
@@ -204,7 +204,7 @@ pub(all) enum ParseNode {
     column_separation_type~ : ColumnSeparationType?,
     tags~ : Array[Array[ParseNode]?]?,
     auto_tags~ : Array[Bool]?,
-    leqno~ : Bool
+    leqno~ : Bool,
   )
   EnvironmentEnd(mode~ : Mode, name~ : String)
   CdLabel(mode~ : Mode, side~ : String, label~ : ParseNode)
@@ -215,7 +215,7 @@ pub(all) enum ParseNode {
     mode~ : Mode,
     loc~ : SourceLocation?,
     body~ : Array[ParseNode],
-    semisimple~ : Bool
+    semisimple~ : Bool,
   )
   SupSub(mode~ : Mode, base~ : ParseNode?, sup~ : ParseNode?, sub~ : ParseNode?)
   TextOrd(mode~ : Mode, loc~ : SourceLocation?, text~ : String)
@@ -229,14 +229,14 @@ pub(all) enum ParseNode {
     label~ : String,
     is_stretchy~ : Bool,
     is_shifty~ : Bool,
-    base~ : ParseNode
+    base~ : ParseNode,
   )
   Verb(mode~ : Mode, loc~ : SourceLocation?, body~ : String, star~ : Bool)
   Atom(
     mode~ : Mode,
     loc~ : SourceLocation?,
     family~ : AtomFamily,
-    text~ : String
+    text~ : String,
   )
   Color(mode~ : Mode, color~ : String, body~ : Array[ParseNode])
 }

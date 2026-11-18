@@ -3,7 +3,7 @@ fn digit_value(text : String) -> Int32? {
   if text.length() != 1 {
     None
   } else {
-    Some(@string.parse_int(text[:], base=16)) catch {
+    Some(@string.parse_int(text[:], radix=16)) catch {
       _ => None
     }
   }
