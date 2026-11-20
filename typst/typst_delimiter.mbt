@@ -13,26 +13,13 @@ fn render_left_right(
 }
 
 ///|
-/// Wraps rendered content in the given delimiters: both visible → `lr(...)`;
-/// a single visible side → fixed-size `lr` next to the content; none → the
-/// bare content.
+/// Both delimiters belong to the same `lr` as the body, even when one side
+/// is invisible: its height comes from the body, not a fixed size.
 fn wrap_lr(content : String, left : String, right : String) -> String {
   let l = render_lr_delim(left)
   let r = render_lr_delim(right)
-  if l != "" && r != "" {
-    "lr(\{l} \{content} \{r})"
-  } else if l != "" || r != "" {
-    lr_single_side(content, l, r)
-  } else {
-    content
-  }
-}
-
-///|
-/// A fixed-size `lr` placed after the content for a single visible
-/// delimiter; shared with `render_delimited`.
-fn lr_single_side(content : String, l : String, r : String) -> String {
-  "\{content} lr(size: #2em, \{if l == "" { r } else { l }})"
+  guard l != "" || r != "" else { return content }
+  "lr(\{[l, wrap_arg(content), r].filter(s => s != "").join(" ")})"
 }
 
 ///|
@@ -62,6 +49,14 @@ fn render_lr_delim(delim : String) -> String {
     "]" => "\\]"
     "{" | "\\{" => "\\{"
     "}" | "\\}" => "\\}"
-    _ => render_symbol(delim)
+    _ => escape_math(delim_symbol(delim))
+  }
+}
+
+///|
+fn delim_symbol(delim : String) -> String {
+  match delim {
+    "|" | "\\vert" | "\\lvert" | "\\rvert" => "|"
+    _ => @backend.resolve_symbol(delim)
   }
 }

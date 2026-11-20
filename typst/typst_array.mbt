@@ -18,9 +18,14 @@ fn render_array(node : @katex.ParseNode, state : RenderState) -> String {
       ..
     ) => unsupported_comment("alignat")
     Array(
-      column_separation_type=Some(@katex.ColumnSeparationType::GatherSeparation),
+      body~,
+      columns~,
+      tags=None,
+      column_separation_type=Some(GatherSeparation),
       ..
-    ) => unsupported_comment("gathered")
+    ) => render_mat_body(body, columns, Some("#none"), state)
+    Array(column_separation_type=Some(GatherSeparation), ..) =>
+      unsupported_comment("gather")
     Array(
       body~,
       columns~,
@@ -96,7 +101,17 @@ fn mat_delim(left : String, right : String) -> String {
     ("\\{", "\\}") | ("{", "}") => "\"{\""
     ("|", "|") => "\"|\""
     ("\\|", "\\|") | ("‖", "‖") => "\"‖\""
-    _ => "#(\"{left}\", \"{right}\")"
+    (".", ".") => "#none"
+    _ => "#(\{delim_value(left)}, \{delim_value(right)})"
+  }
+}
+
+///|
+fn delim_value(delim : String) -> String {
+  if @backend.is_null_delimiter(delim) {
+    "none"
+  } else {
+    quote_string(delim_symbol(delim))
   }
 }
 
@@ -142,7 +157,7 @@ fn render_substack(
   state : RenderState,
 ) -> String {
   if is_single_column(columns) {
-    render_stack_rows(body, state.reduced())
+    render_stack_rows(body, { ..state.reduced(), in_arg: true, })
   } else {
     unsupported_comment("smallmatrix")
   }
@@ -312,7 +327,7 @@ fn render_table_hline(row_lines : Array[Bool]) -> String {
 /// text style still selects the TeX `\mathchoice` branch; a style command
 /// written *inside* the cell is rendered normally.
 fn render_native_cell(cell : @katex.ParseNode, state : RenderState) -> String {
-  let child = state.reduced()
+  let child = { ..state.reduced(), in_arg: true, }
   match cell {
     Styling(style=TextStyle, reset_font=true, body=[group], ..) =>
       render_cell(group, { ..child, tex: TextStyle, })

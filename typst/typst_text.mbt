@@ -53,6 +53,7 @@ let font_functions : Map[String, String] = Map::from_array([
   ("mathrm", "upright"),
   ("mathit", "italic"),
   ("mathbf", "bold"),
+  ("boldsymbol", "bold"),
   ("mathbb", "bb"),
   ("mathcal", "cal"),
   ("mathfrak", "frak"),

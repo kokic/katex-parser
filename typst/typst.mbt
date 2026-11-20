@@ -20,23 +20,42 @@ pub fn render(nodes : Array[@katex.ParseNode]) -> String {
 priv struct RenderState {
   tex : @katex.StyleLevel
   typst : @katex.StyleLevel
+  in_arg : Bool
 }
 
 ///|
 fn RenderState::at(style : @katex.StyleLevel) -> RenderState {
-  { tex: style, typst: style, }
+  { tex: style, typst: style, in_arg: false, }
 }
 
 ///|
 fn render_nodes(nodes : Array[@katex.ParseNode], state : RenderState) -> String {
-  let rendered = nodes.map(node => render_node(node, state))
-  join_math(fold_norm(fold_primes(merge_not(rendered))))
+  let pairs = norm_pairs(nodes)
+  fn render_range(start : Int32, end : Int32) -> String {
+    let items = []
+    for i = start; i < end; {
+      if pairs.get(i) is Some(close) {
+        let body = render_range(i + 1, close)
+        let norm = math_fn("norm", if body == "" { "#[]" } else { body })
+        items.push(
+          match nodes[close] {
+            SupSub(sup~, sub~, ..) => with_scripts(norm, sup, sub, state)
+            _ => norm
+          },
+        )
+        continue close + 1
+      }
+      items.push(render_node(nodes[i], state))
+      continue i + 1
+    }
+    join_math(fold_primes(merge_not(items)))
+  }
+  render_range(0, nodes.length())
 }
 
 ///|
-/// Consecutive prime marks (`x' ' '` from a `\prime` OrdGroup) fold into a
-/// single run: Typst reads `z'''` directly, and the folded run no longer
-/// trips the script-parenthesizing rule (which only wraps on spaces).
+/// Keep literal prime glyphs together. Postfix primes on a base are handled
+/// by `script_marks` while the superscript nodes are still available.
 fn fold_primes(items : Array[String]) -> Array[String] {
   let mut i = 0
   while i < items.length() {
@@ -100,30 +119,37 @@ fn is_close_paren(text : String) -> Bool {
 }
 
 ///|
-/// `\Vert x \Vert` (and the `\lVert`/`\rVert` spellings) render as a bare `‖`
-/// on each side; folds the pair into Typst's `norm(...)`.
-fn fold_norm(items : Array[String]) -> Array[String] {
-  for i in 0..<(items.length() - 1) {
-    guard items[i] == "‖" else { continue }
-    guard next_norm_match(items, i) is Some(j) else { continue }
-    let body = items.exact_view(start=i + 1, end=j).join(" ")
-    items[i] = "norm(\{body})"
-    for k in (i + 1)..<=j {
-      items[k] = ""
+/// Match directed boundaries before both become `‖`. For neutral `\Vert`
+/// retain the existing nonempty-pair convention within each directed scope.
+fn norm_pairs(nodes : Array[@katex.ParseNode]) -> Map[Int32, Int32] {
+  let pairs = Map([])
+  let opens : Array[(Int32, Int32?)] = []
+  let mut neutral = None
+  for i, node in nodes {
+    match node {
+      Atom(family=Mopen, text="\\lVert", ..) => {
+        opens.push((i, neutral))
+        neutral = None
+      }
+      Atom(family=Mclose, text="\\rVert", ..)
+      | SupSub(base=Some(Atom(family=Mclose, text="\\rVert", ..)), ..) =>
+        if opens.pop() is Some((open, previous)) {
+          pairs[open] = i
+          neutral = previous
+        }
+      TextOrd(text~, ..) if @backend.resolve_symbol(text) == "‖" =>
+        match neutral {
+          Some(open) if i > open + 1 => {
+            pairs[open] = i
+            neutral = None
+          }
+          None => neutral = Some(i)
+          _ => ()
+        }
+      _ => ()
     }
   }
-  items
-}
-
-///|
-/// The index of the next `‖` after position `i`, requiring at least one item
-/// in between (adjacent `‖‖` is a double-bar symbol, not an empty `norm()`).
-fn next_norm_match(items : Array[String], i : Int32) -> Int32? {
-  for j in (i + 2)..<items.length() {
-    guard items[j] == "‖" else { continue }
-    return Some(j)
-  }
-  None
+  pairs
 }
 
 ///|
@@ -156,7 +182,7 @@ fn render_node(node : @katex.ParseNode, state : RenderState) -> String {
     | MathOrd(text~, ..)
     | AccentToken(text~, ..)
     | OperatorToken(text~, ..)
-    | Atom(text~, ..) => render_symbol(text)
+    | Atom(text~, ..) => render_symbol(text, in_arg=state.in_arg)
     Spacing(text~, ..) => render_spacing(text)
     Size(value~, ..) => render_measurement(value)
     Url(url~, ..) => url
@@ -214,7 +240,8 @@ fn render_node(node : @katex.ParseNode, state : RenderState) -> String {
     Html(..) => unsupported_comment("\\htmlClass/\\htmlId")
     IncludeGraphics(width~, height~, src~, ..) =>
       "#image(\"\{escape_string(src)}\", width: \{render_measurement(width)}, height: \{render_measurement(height)})"
-    Tag(..) => unsupported_comment("\\tag")
+    // Equation numbering belongs to the enclosing equation, not this fragment.
+    Tag(body~, ..) => render_nodes(body, state)
     Array(..) => render_array(node, state)
     CdLabel(..) | CdParent(..) | Cr(..) => unsupported_comment("cd environment")
     HtmlMathML(mathml~, ..) => render_nodes(mathml, state)
@@ -234,16 +261,15 @@ fn render_sqrt(
   body : @katex.ParseNode,
   state : RenderState,
 ) -> String {
-  guard index is Some(index) else {
-    return math_fn("sqrt", render_node(body, state))
-  }
-  "root(\{wrap_arg(render_node(index, RenderState::at(ScriptScriptStyle)))}, \{wrap_arg(render_node(body, state))})"
+  let arg = { ..state, in_arg: true, }
+  let radicand = render_node(body, arg)
+  guard index is Some(index) else { return math_fn("sqrt", radicand) }
+  let index_state = { ..arg, tex: ScriptScriptStyle, typst: ScriptScriptStyle, }
+  "root(\{wrap_arg(render_node(index, index_state))}, \{wrap_arg(radicand)})"
 }
 
 ///|
-/// A single-argument Typst math function call. The argument is wrapped in
-/// grouping parentheses when it contains a top-level separator (see
-/// `wrap_arg`).
+/// A single-argument Typst math function call.
 fn math_fn(name : String, content : String) -> String {
   "\{name}(\{wrap_arg(content)})"
 }
@@ -292,13 +318,11 @@ fn em_string(em : Double) -> String {
 }
 
 ///|
-/// Wraps a rendered argument in grouping parentheses when it contains a
-/// top-level `,` `;` or `:` that would otherwise be parsed as an argument or
-/// named-argument separator. The parentheses render visibly; such cases are
-/// rare and documented as an approximation.
+/// Pass an already-rendered sequence as a single content argument without
+/// introducing visible delimiters or a nested equation element.
 fn wrap_arg(content : String) -> String {
   if contains_top_level_separator(content) {
-    "(\{content})"
+    "#($\{content}$.body)"
   } else {
     content
   }
@@ -324,8 +348,13 @@ fn contains_top_level_char(
 ) -> Bool {
   let mut depth = 0
   let mut in_string = false
+  let mut escaped = false
   for c in text {
-    if c == '"' {
+    if escaped {
+      escaped = false
+    } else if c == '\\' {
+      escaped = true
+    } else if c == '"' {
       in_string = !in_string
     } else if !in_string {
       if c == '(' || c == '[' || c == '{' {

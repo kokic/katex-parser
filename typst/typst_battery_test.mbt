@@ -24,11 +24,7 @@ let battery_cases : Array[BatteryCase] = [
   { name: "sqrt", tex: "\\sqrt{x^2+y^2}", expected: "sqrt(x^2 + y^2)", },
   { name: "root", tex: "\\sqrt[3]{x}", expected: "root(3, x)", },
   { name: "sup_sub", tex: "x_i^2 + a_b^c", expected: "x^2_i + a^c_b", },
-  {
-    name: "prime",
-    tex: "x' + y'' + z'''",
-    expected: "x^′ + y^′′ + z^′′′",
-  },
+  { name: "prime", tex: "x' + y'' + z'''", expected: "x' + y'' + z'''", },
   {
     name: "left_right",
     tex: "\\left(\\frac{a}{b}\\right)",
@@ -42,7 +38,7 @@ let battery_cases : Array[BatteryCase] = [
   {
     name: "left_dot",
     tex: "\\left. \\frac{a}{b} \\right|",
-    expected: "a / b lr(size: #2em, ∣)",
+    expected: "lr(a / b |)",
   },
   {
     name: "big",
@@ -132,7 +128,7 @@ let battery_cases : Array[BatteryCase] = [
   {
     name: "overset",
     tex: "\\overset{*}{f} \\quad \\underset{x \\to 0}{\\lim}",
-    expected: "limits(op(f))^∗ #h(1em) limits(op(lim))_(x → 0)",
+    expected: "limits(op(f), inline: #true)^∗ #h(1em) limits(op(lim), inline: #true)_(x → 0)",
   },
   {
     name: "operatorname",
@@ -193,7 +189,7 @@ let battery_cases : Array[BatteryCase] = [
   {
     name: "genfrac",
     tex: "\\genfrac{}{}{0pt}{}{a}{b} \\quad \\genfrac{(}{)}{0pt}{}{n}{k}",
-    expected: "a / b #h(1em) binom(n, k)",
+    expected: "vec(a, b, delim: #none) #h(1em) binom(n, k)",
   },
   {
     name: "sizing",
@@ -291,6 +287,22 @@ test "equation style is inherited; local style changes are preserved" {
   @test.assert_eq(
     @typst.render(@katex.parse("x^{\\tfrac{a}{b}}")),
     "x^inline(a / b)",
+  )
+}
+
+///|
+test "matrix and cases separators belong to the environment, not the cell" {
+  @test.assert_eq(
+    @typst.render(
+      @katex.parse(
+        "\\begin{matrix}a;b&\\begin{matrix}i,j&\\text{p,q}\\end{matrix}\\end{matrix}",
+      ),
+    ),
+    "mat(a \\; b, mat(i \\, j, \"p,q\"))",
+  )
+  @test.assert_eq(
+    @typst.render(@katex.parse("\\begin{cases}x&i,j>0\\\\y&i:j\\end{cases}")),
+    "cases(x & i \\, j > 0, y & i \\: j)",
   )
 }
 

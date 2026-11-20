@@ -1,8 +1,12 @@
 ///|
 /// Resolves a TeX symbol name (or a raw Unicode string) to its Unicode
 /// rendering via the parser's public registry, then applies math escaping.
-fn render_symbol(text : String) -> String {
-  escape_math(@backend.resolve_symbol(text))
+fn render_symbol(text : String, in_arg~ : Bool = false) -> String {
+  let symbol = @backend.resolve_symbol(text)
+  match symbol {
+    "," | ";" | ":" if in_arg => "\\\{symbol}"
+    _ => escape_math(symbol)
+  }
 }
 
 ///|

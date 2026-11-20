@@ -50,7 +50,7 @@ fn render_accent(
   accent_names
   .get(label)
   .map_or(unsupported_comment("accent \{label}"), name => {
-    math_fn(name, render_node(base, state))
+    math_fn(name, render_node(base, { ..state, in_arg: true, }))
   })
 }
 
