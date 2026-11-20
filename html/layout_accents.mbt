@@ -131,29 +131,17 @@ fn layout_horiz_brace(
   label : String,
   over : Bool,
   base : @katex.ParseNode,
-  sup : @katex.ParseNode?,
-  sub : @katex.ParseNode?,
+  annotation : @katex.ParseNode?,
   options : Options,
 ) -> HtmlNode {
-  let scripts = match (sup, sub) {
-    (Some(node), _) =>
-      Some(
-        build_group(
-          node,
-          options.with_style(style_sup(options.style)),
-          base_options=options,
-        ),
-      )
-    (_, Some(node)) =>
-      Some(
-        build_group(
-          node,
-          options.with_style(style_sub(options.style)),
-          base_options=options,
-        ),
-      )
-    _ => None
-  }
+  let scripts = annotation.map(node => {
+    let style = if over {
+      style_sup(options.style)
+    } else {
+      style_sub(options.style)
+    }
+    build_group(node, options.with_style(style), base_options=options)
+  })
   let body = build_group(base, options.base_style(0))
   let brace = stretchy_svg(label, Some(base), options)
   let mut vlist = if over {

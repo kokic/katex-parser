@@ -226,7 +226,7 @@ fn render_node(node : @katex.ParseNode, state : RenderState) -> String {
     HorizBrace(label~, base~, ..) => render_horiz_brace(label, base, state)
     XArrow(label~, body~, below~, ..) =>
       render_xarrow(label, body, below, state)
-    AccentUnder(..) => unsupported_comment("under-accents")
+    AccentUnder(label~, base~, ..) => render_accent_under(label, base, state)
     DelimSizing(size~, delim~, ..) => render_delim_sizing(size, delim)
     LeftRightRight(delim~, ..) => render_delimiter(delim)
     LeftRight(body~, left~, right~, ..) =>

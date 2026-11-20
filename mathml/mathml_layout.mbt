@@ -54,6 +54,7 @@ fn render_xarrow(
   below : @katex.ParseNode?,
   state : RenderState,
 ) -> MathMlNode {
+  let state = { ..state, style: @backend.script_style(state.style), }
   let arrow = stretchy(label).with_attribute(
     "minsize",
     if label.has_prefix("\\x") {
@@ -95,11 +96,7 @@ fn render_sup_sub(
 ) -> MathMlNode {
   let limits = operator_uses_limits(base, state)
   let base = base.map_or(element("mrow"), value => render_group(value, state))
-  let script_style = match state.style {
-    DisplayStyle | TextStyle => @katex.StyleLevel::ScriptStyle
-    ScriptStyle | ScriptScriptStyle => @katex.StyleLevel::ScriptScriptStyle
-  }
-  let script_state = { ..state, style: script_style, }
+  let script_state = { ..state, style: @backend.script_style(state.style), }
   match (sub, sup) {
     (Some(lower), Some(upper)) =>
       element(if limits { "munderover" } else { "msubsup" }, children=[

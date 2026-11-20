@@ -57,3 +57,23 @@ priv struct RenderState {
   in_tight : Bool
   config : RenderConfig
 }
+
+///|
+fn RenderState::fraction_child(self : RenderState) -> RenderState {
+  {
+    ..self,
+    style: @anvil.fraction_child_style(self.style),
+    in_display: false,
+    in_tight: self.style != DisplayStyle,
+  }
+}
+
+///|
+fn RenderState::script_child(self : RenderState) -> RenderState {
+  {
+    ..self,
+    style: @anvil.script_style(self.style),
+    in_display: false,
+    in_tight: true,
+  }
+}

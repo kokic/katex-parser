@@ -8,14 +8,9 @@ fn frac_block(
   state : RenderState,
   has_bar_line~ : Bool = true,
 ) -> Block {
-  // Fraction children are typeset at style+1: text for a display-style
-  // fraction, script/scriptscript otherwise. The numerator and denominator
-  // share the same style, so they must use the same (tight) spacing too.
-  let child_tight = state.style != @katex.StyleLevel::DisplayStyle
-  let num_state = { ..state, in_display: false, in_tight: child_tight, }
-  let den_state = { ..state, in_display: false, in_tight: child_tight, }
-  let num = Block::from(render_node_internal(numer, num_state))
-  let den = Block::from(render_node_internal(denom, den_state))
+  let child = state.fraction_child()
+  let num = Block::from(render_node_internal(numer, child))
+  let den = Block::from(render_node_internal(denom, child))
   let bar_w = num.width().max(den.width()) + 2
   let frac = if has_bar_line {
     let bar = Block::from(
@@ -58,11 +53,9 @@ fn barless_delimited_block(
   right : String?,
   state : RenderState,
 ) -> Block {
-  let child_tight = state.style != @katex.StyleLevel::DisplayStyle
-  let num_state = { ..state, in_display: false, in_tight: child_tight, }
-  let den_state = { ..state, in_display: false, in_tight: child_tight, }
-  let num = Block::from(render_node_internal(numer, num_state))
-  let den = Block::from(render_node_internal(denom, den_state))
+  let child = state.fraction_child()
+  let num = Block::from(render_node_internal(numer, child))
+  let den = Block::from(render_node_internal(denom, child))
   let w = num.width().max(den.width())
   let l = left.map_or("", render_delimiter)
   let r = right.map_or("", render_delimiter)

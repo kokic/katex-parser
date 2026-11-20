@@ -83,7 +83,7 @@ let battery_cases : Array[BatteryCase] = [
   {
     name: "substack",
     tex: "\\sum_{\\substack{i=0 \\\\ j=0}}^{n} x",
-    expected: "∑^n_mat(script(i = 0); script(j = 0)) x",
+    expected: "∑^n_mat(script(i = 0); script(j = 0), delim: #none) x",
   },
   {
     name: "hat",
@@ -298,7 +298,7 @@ test "matrix and cases separators belong to the environment, not the cell" {
         "\\begin{matrix}a;b&\\begin{matrix}i,j&\\text{p,q}\\end{matrix}\\end{matrix}",
       ),
     ),
-    "mat(a \\; b, mat(i \\, j, \"p,q\"))",
+    "mat(a \\; b, mat(i \\, j, \"p,q\", delim: #none), delim: #none)",
   )
   @test.assert_eq(
     @typst.render(@katex.parse("\\begin{cases}x&i,j>0\\\\y&i:j\\end{cases}")),

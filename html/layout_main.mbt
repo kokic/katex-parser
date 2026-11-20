@@ -61,7 +61,7 @@ fn render_layout_node(node : @katex.ParseNode, options : Options) -> HtmlNode? {
     AccentUnder(label~, base~, ..) =>
       Some(layout_accent_under(label, base, options))
     HorizBrace(label~, is_over~, base~, ..) =>
-      Some(layout_horiz_brace(label, is_over, base, None, None, options))
+      Some(layout_horiz_brace(label, is_over, base, None, options))
     XArrow(label~, body~, below~, ..) =>
       Some(layout_xarrow(label, body, below, options))
     Overline(body~, ..) => Some(layout_line(body, true, options))

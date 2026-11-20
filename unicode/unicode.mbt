@@ -181,10 +181,7 @@ fn render_node_internal(node : @katex.ParseNode, state : RenderState) -> String 
       )
     HorizBrace(label~, base~, ..) =>
       "\{@anvil.command_name(label)}(\{render_node_internal(base, state)})"
-    XArrow(label~, body~, below=None, ..) =>
-      "\{@anvil.command_name(label)}(\{render_node_internal(body, state)})"
-    XArrow(label~, body~, below=Some(below), ..) =>
-      "\{@anvil.command_name(label)}(\{render_node_internal(body, state)},\{render_node_internal(below, state)})"
+    XArrow(..) => content_block(node, state).render()
     AccentUnder(label~, base~, ..) =>
       "underaccent(\{@anvil.command_name(label)},\{render_node_internal(base, state)})"
     DelimSizing(delim~, ..) | LeftRightRight(delim~, ..) | Middle(delim~, ..) =>
@@ -512,9 +509,8 @@ fn inline_atop(
   denom : @katex.ParseNode,
   state : RenderState,
 ) -> String {
-  let num_state = { ..state, in_tight: true, }
-  let den_state = { ..state, in_tight: true, }
-  "\{render_node_internal(numer, num_state)},\{render_node_internal(denom, den_state)}"
+  let child = state.fraction_child()
+  "\{render_node_internal(numer, child)},\{render_node_internal(denom, child)}"
 }
 
 ///|
@@ -527,9 +523,8 @@ fn inline_fraction(
   slash : String,
   state : RenderState,
 ) -> String {
-  let num_state = { ..state, in_tight: true, }
-  let den_state = { ..state, in_tight: true, }
-  "\{render_operand(numer, num_state)}\{slash}\{render_operand(denom, den_state)}"
+  let child = state.fraction_child()
+  "\{render_operand(numer, child)}\{slash}\{render_operand(denom, child)}"
 }
 
 ///|
@@ -667,8 +662,12 @@ fn render_root_block(
   body : @katex.ParseNode,
   state : RenderState,
 ) -> Block {
-  let tight_state = { ..state, in_display: false, in_tight: true, }
-  let index_text = render_node_internal(index, tight_state)
+  let index_text = render_node_internal(index, {
+    ..state,
+    style: ScriptScriptStyle,
+    in_display: false,
+    in_tight: true,
+  })
   match unicode_script(index_text, UnicodeSuperscript) {
     Some(prefix) => render_radical_block(prefix, body, state)
     None =>
@@ -776,8 +775,9 @@ fn render_limits_block(
 ) -> Block {
   let tight_state = { ..state, in_display: false, in_tight: true, }
   let op_text = render_node_internal(base, tight_state)
-  let sup_text = sup.map_or("", s => render_node_internal(s, tight_state))
-  let sub_text = sub.map_or("", s => render_node_internal(s, tight_state))
+  let child = state.script_child()
+  let sup_text = sup.map_or("", s => render_node_internal(s, child))
+  let sub_text = sub.map_or("", s => render_node_internal(s, child))
   let w = display_width(op_text)
     .max(display_width(sup_text))
     .max(display_width(sub_text))
@@ -800,7 +800,7 @@ fn render_script(
   fallback_prefix : String,
   state : RenderState,
 ) -> String {
-  let tight_state = { ..state, in_display: false, in_tight: true, }
+  let tight_state = state.script_child()
   node.map_or("", node => {
     let text = render_node_internal(node, tight_state)
     let default = () => "\{fallback_prefix}\{render_operand(node, tight_state)}"
@@ -992,18 +992,14 @@ fn content_block(node : @katex.ParseNode, state : RenderState) -> Block {
         @anvil.command_name(label),
         content_block(base, state),
       )
-    @katex.ParseNode::XArrow(label~, body~, below=None, ..) =>
-      render_function_block(
-        @anvil.command_name(label),
-        content_block(body, state),
-      )
-    @katex.ParseNode::XArrow(label~, body~, below=Some(below), ..) =>
-      render_function_block(
-        @anvil.command_name(label),
-        content_block(body, state)
-        .beside(Block::from(","))
-        .beside(content_block(below, state)),
-      )
+    @katex.ParseNode::XArrow(label~, body~, below~, ..) => {
+      let child = state.script_child()
+      let upper = content_block(body, child)
+      let labels = below.map_or(upper, lower => {
+        upper.beside(Block::from(",")).beside(content_block(lower, child))
+      })
+      render_function_block(@anvil.command_name(label), labels)
+    }
     @katex.ParseNode::AccentUnder(label~, base~, ..) =>
       Block::from("underaccent(\{@anvil.command_name(label)},")
       .beside(content_block(base, state))

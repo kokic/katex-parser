@@ -55,6 +55,25 @@ fn render_accent(
 }
 
 ///|
+fn render_accent_under(
+  label : String,
+  base : @katex.ParseNode,
+  state : RenderState,
+) -> String {
+  let body = render_node(base, { ..state, in_arg: true, })
+  let mark = match label {
+    "\\underleftarrow" => "20ee"
+    "\\underrightarrow" => "20ef"
+    "\\underleftrightarrow" => "034d"
+    "\\utilde" => "0330"
+    "\\undergroup" => return math_fn("underparen", body)
+    "\\underlinesegment" => return math_fn("underbracket", body)
+    _ => return body
+  }
+  "accent(\{wrap_arg(body)}, \"\\u{\{mark}}\")"
+}
+
+///|
 /// Detects the `\dddot`/`\ddddot` macro expansion shape
 /// `\overset{\raisebox{-0.1ex}{\normalsize ...}}{x}` and returns the number of
 /// dots (3 or 4) in the raise box, or `None`.

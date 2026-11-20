@@ -98,7 +98,7 @@ fn render_node(node : @katex.ParseNode, state : RenderState) -> MathMlNode {
     Sqrt(body~, index=Some(index), ..) =>
       element("mroot", children=[
         render_group(body, state),
-        render_group(index, state),
+        render_group(index, { ..state, style: ScriptScriptStyle, }),
       ])
     Infix(replace_with~, ..) => token("mo", replace_with, state)
     GenFrac(

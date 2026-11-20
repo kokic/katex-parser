@@ -50,6 +50,23 @@ pub fn em_value(measurement : @katex.Measurement) -> Double? {
 }
 
 ///|
+pub fn script_style(style : @katex.StyleLevel) -> @katex.StyleLevel {
+  match style {
+    DisplayStyle | TextStyle => ScriptStyle
+    ScriptStyle | ScriptScriptStyle => ScriptScriptStyle
+  }
+}
+
+///|
+pub fn fraction_child_style(style : @katex.StyleLevel) -> @katex.StyleLevel {
+  if style is DisplayStyle {
+    TextStyle
+  } else {
+    script_style(style)
+  }
+}
+
+///|
 /// Selects the body of a `\mathchoice` node for the current style level.
 pub fn math_choice_variant(
   display : Array[@katex.ParseNode],

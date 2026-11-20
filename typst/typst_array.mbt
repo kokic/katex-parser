@@ -5,12 +5,12 @@ fn render_array(node : @katex.ParseNode, state : RenderState) -> String {
         hlines_before_row,
       ) => render_array_table(body, columns, hlines_before_row, state)
     Array(body~, columns~, column_separation_type=None, ..) =>
-      render_mat_body(body, columns, None, state)
+      render_mat_body(body, columns, "#none", state)
     Array(
       body~,
       column_separation_type=Some(@katex.ColumnSeparationType::AlignSeparation),
       ..
-    ) => render_aligned(body, state)
+    ) => aligned_rows(body, state).join(" \\ ")
     Array(
       column_separation_type=Some(
         @katex.ColumnSeparationType::AlignAtSeparation,
@@ -23,7 +23,7 @@ fn render_array(node : @katex.ParseNode, state : RenderState) -> String {
       tags=None,
       column_separation_type=Some(GatherSeparation),
       ..
-    ) => render_mat_body(body, columns, Some("#none"), state)
+    ) => render_mat_body(body, columns, "#none", state)
     Array(column_separation_type=Some(GatherSeparation), ..) =>
       unsupported_comment("gather")
     Array(
@@ -64,6 +64,7 @@ fn render_leftright_array(
     Array(body~, columns~, column_separation_type=None, ..) if is_left_brace(
         left,
       ) &&
+      @backend.is_null_delimiter(right) &&
       columns.map_or(false, all_l) => render_cases(body, state)
     Array(body~, columns~, hlines_before_row~, column_separation_type=None, ..) if columns.map_or(
         false, contains_separator,
@@ -74,19 +75,15 @@ fn render_leftright_array(
         right,
       )
     Array(body~, columns~, column_separation_type=None, ..) =>
-      render_mat_body(body, columns, Some(mat_delim(left, right)), state)
-    Array(
-      body~,
-      columns~,
-      column_separation_type=Some(@katex.ColumnSeparationType::SmallSeparation),
-      ..
-    ) => {
-      // `\left( \substack{...} \right)`: the stack has no delimiter of
-      // its own, so the surrounding `lr` is preserved.
-      let content = render_substack(body, columns, state)
-      wrap_lr(content, left, right)
+      render_mat_body(body, columns, mat_delim(left, right), state)
+    Array(body~, column_separation_type=Some(AlignSeparation), ..) => {
+      // A linebreak inside `lr` doesn't make the fences span the rows.
+      // One matrix cell per aligned row keeps its `&` alignment points.
+      let child = { ..state.reduced(), in_arg: true, }
+      let rows = aligned_rows(body, child).join("; ")
+      "mat(\{rows}, delim: \{mat_delim(left, right)})"
     }
-    _ => render_array(array, state)
+    _ => wrap_lr(render_array(array, state), left, right)
   }
 }
 
@@ -129,7 +126,7 @@ fn all_l(columns : Array[@katex.ArrayColumn]) -> Bool {
 fn render_mat_body(
   body : Array[Array[@katex.ParseNode]],
   columns : Array[@katex.ArrayColumn]?,
-  delim : String?,
+  delim : String,
   state : RenderState,
 ) -> String {
   if columns.map_or(false, contains_separator) {
@@ -139,9 +136,8 @@ fn render_mat_body(
       .map(row => row.map(cell => render_native_cell(cell, state)).join(", "))
       .join("; ")
     guard rows != "" else { unsupported_comment("empty array") }
-    let delim_arg = delim.map_or("", d => ", delim: \{d}")
     let align_arg = columns.bind(column_align_args).unwrap_or("")
-    "mat(\{rows}\{delim_arg}\{align_arg})"
+    "mat(\{rows}, delim: \{delim}\{align_arg})"
   }
 }
 
@@ -181,7 +177,7 @@ fn render_stack_rows(
     .map(row => row.map(cell => render_cell(cell, state)).join(", "))
     .join("; ")
   guard rows != "" else { unsupported_comment("empty array") }
-  "mat(\{rows})"
+  "mat(\{rows}, delim: #none)"
 }
 
 ///|
@@ -361,11 +357,9 @@ fn render_cases(
 ///|
 /// Aligned rows: cells joined with `&`, rows with `\ `. Empty cells render
 /// as nothing — the alignment point alone suffices (`&  &`).
-fn render_aligned(
+fn aligned_rows(
   body : Array[Array[@katex.ParseNode]],
   state : RenderState,
-) -> String {
-  body
-  .map(row => row.map(cell => render_node(cell, state)).join(" & "))
-  .join(" \\ ")
+) -> Array[String] {
+  body.map(row => row.map(cell => render_node(cell, state)).join(" & "))
 }

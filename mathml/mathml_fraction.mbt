@@ -13,9 +13,10 @@ fn render_fraction(
   } else {
     bar_size.map_or([], size => [("linethickness", measurement(size))])
   }
+  let child = { ..state, style: @backend.fraction_child_style(state.style), }
   let fraction = element(
     "mfrac",
-    children=[render_group(numer, state), render_group(denom, state)],
+    children=[render_group(numer, child), render_group(denom, child)],
     attributes=attrs,
   )
   match (left, right) {

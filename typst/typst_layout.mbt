@@ -16,30 +16,21 @@ fn render_styling(
 }
 
 ///|
-fn script_style(style : @katex.StyleLevel) -> @katex.StyleLevel {
-  match style {
-    DisplayStyle | TextStyle => ScriptStyle
-    ScriptStyle | ScriptScriptStyle => ScriptScriptStyle
-  }
-}
-
-///|
 fn RenderState::script(self : RenderState) -> RenderState {
-  { ..self, tex: script_style(self.tex), typst: script_style(self.typst), }
-}
-
-///|
-fn reduced_style(style : @katex.StyleLevel) -> @katex.StyleLevel {
-  if style is DisplayStyle {
-    TextStyle
-  } else {
-    script_style(style)
+  {
+    ..self,
+    tex: @backend.script_style(self.tex),
+    typst: @backend.script_style(self.typst),
   }
 }
 
 ///|
 fn RenderState::reduced(self : RenderState) -> RenderState {
-  { ..self, tex: reduced_style(self.tex), typst: reduced_style(self.typst), }
+  {
+    ..self,
+    tex: @backend.fraction_child_style(self.tex),
+    typst: @backend.fraction_child_style(self.typst),
+  }
 }
 
 ///|
@@ -97,7 +88,7 @@ fn render_sup_sub(
       let base = render_node(node, state)
       // A postfix script binds to the last atom of an infix fraction or
       // flattened group. `attach` takes the whole base without visible parens.
-      if contains_script_separator(base) {
+      if contains_script_separator(base) || base.has_suffix("'") {
         "attach(\{wrap_arg(base)}\{attach_arg("t", sup, state)}\{attach_arg("b", sub, state)})"
       } else {
         with_scripts(base, sup, sub, state)

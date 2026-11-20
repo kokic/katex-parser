@@ -53,14 +53,34 @@ fn layout_supsub(
         return layout_accent(
           label, is_stretchy, is_shifty, inner, mode, sup, sub, true, options,
         )
-      HorizBrace(label~, is_over~, base=inner, ..) if (sub is None) == is_over =>
-        return layout_horiz_brace(label, is_over, inner, sup, sub, options)
+      HorizBrace(label~, is_over~, base=inner, ..) => {
+        let (annotation, side_sup, side_sub) = if is_over {
+          (sup, None, sub)
+        } else {
+          (sub, sup, None)
+        }
+        let brace = layout_horiz_brace(
+          label, is_over, inner, annotation, options,
+        )
+        return layout_side_scripts(brace, base, side_sup, side_sub, options)
+      }
       _ => ()
     }
   }
   let base_node = base.map_or(make_span([], []), value => {
     build_group(value, options)
   })
+  layout_side_scripts(base_node, base, sup, sub, options)
+}
+
+///|
+fn layout_side_scripts(
+  base_node : HtmlNode,
+  base : @katex.ParseNode?,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
+  options : Options,
+) -> HtmlNode {
   let is_char = base.map_or(false, layout_character_box)
   let mut sup_shift = 0.0
   let mut sub_shift = 0.0
