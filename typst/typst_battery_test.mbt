@@ -19,7 +19,7 @@ let battery_cases : Array[BatteryCase] = [
   },
   { name: "frac", tex: "\\frac{a+1}{b-2}", expected: "(a + 1) / (b − 2)", },
   { name: "dfrac", tex: "\\dfrac{x}{y}", expected: "display(x / y)", },
-  { name: "tfrac", tex: "\\tfrac{1}{2}", expected: "inline(1 / 2)", },
+  { name: "tfrac", tex: "\\tfrac{1}{2}", expected: "1 / 2", },
   { name: "binom", tex: "\\binom{n}{k}", expected: "binom(n, k)", },
   { name: "sqrt", tex: "\\sqrt{x^2+y^2}", expected: "sqrt(x^2 + y^2)", },
   { name: "root", tex: "\\sqrt[3]{x}", expected: "root(3, x)", },
@@ -142,12 +142,12 @@ let battery_cases : Array[BatteryCase] = [
   {
     name: "text",
     tex: "\\text{hello world} \\quad \\text{if } x > 0 \\text{ then}",
-    expected: "text\"hello\u{a0}world\" #h(1em) text\"if\u{a0}\" x > 0 text\"\u{a0}then\"",
+    expected: "\"hello\u{a0}world\" #h(1em) \"if\u{a0}\" x > 0 \"\u{a0}then\"",
   },
   {
     name: "textbf",
     tex: "\\textbf{bold} \\quad \\textit{italic} \\quad \\texttt{mono}",
-    expected: "#strong[$text\"bold\"$] #h(1em) #emph[$text\"italic\"$] #h(1em) text\"mono\"",
+    expected: "#strong(\"bold\") #h(1em) #emph(\"italic\") #h(1em) \"mono\"",
   },
   {
     name: "fonts",
@@ -269,9 +269,30 @@ let battery_cases : Array[BatteryCase] = [
   {
     name: "text_complex",
     tex: "\\text{a very long text with spaces and } x^2",
-    expected: "text\"a\u{a0}very\u{a0}long\u{a0}text\u{a0}with\u{a0}spaces\u{a0}and\u{a0}\" x^2",
+    expected: "\"a\u{a0}very\u{a0}long\u{a0}text\u{a0}with\u{a0}spaces\u{a0}and\u{a0}\" x^2",
   },
 ]
+
+///|
+test "equation style is inherited; local style changes are preserved" {
+  let block = @katex.Settings::make(display_mode=true)
+  @test.assert_eq(
+    @typst.render(@katex.parse("\\mathrm{d} x", settings=block)),
+    "upright(d) x",
+  )
+  @test.assert_eq(
+    @typst.render(@katex.parse("\\displaystyle \\sum_i a_i")),
+    "display(∑_i a_i)",
+  )
+  @test.assert_eq(
+    @typst.render(@katex.parse("{\\textstyle \\sum_i a_i}", settings=block)),
+    "inline(∑_i a_i)",
+  )
+  @test.assert_eq(
+    @typst.render(@katex.parse("x^{\\tfrac{a}{b}}")),
+    "x^inline(a / b)",
+  )
+}
 
 ///|
 test "typst battery renders stable output" {

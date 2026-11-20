@@ -111,9 +111,10 @@ fn render_xarrow(
   state : RenderState,
 ) -> String {
   let arrow = xarrow_name(label)
-  let body_str = wrap_arg(render_node(body, state))
+  let label_state = state.script()
+  let body_str = wrap_arg(render_node(body, label_state))
   let b_str = below.map_or("", node => {
-    ", b: \{wrap_arg(render_node(node, state))}"
+    ", b: \{wrap_arg(render_node(node, label_state))}"
   })
   // The `body` field holds the label drawn above the arrow.
   "attach(\{arrow}, t: \{body_str}\{b_str})"

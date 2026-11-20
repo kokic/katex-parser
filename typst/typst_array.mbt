@@ -120,7 +120,9 @@ fn render_mat_body(
   if columns.map_or(false, contains_separator) {
     render_array_table(body, columns, [], state)
   } else {
-    let rows = body.map(row => render_mat_row(row, state)).join("; ")
+    let rows = body
+      .map(row => row.map(cell => render_native_cell(cell, state)).join(", "))
+      .join("; ")
     guard rows != "" else { unsupported_comment("empty array") }
     let delim_arg = delim.map_or("", d => ", delim: \{d}")
     let align_arg = columns.bind(column_align_args).unwrap_or("")
@@ -140,7 +142,7 @@ fn render_substack(
   state : RenderState,
 ) -> String {
   if is_single_column(columns) {
-    render_stack_rows(body, state)
+    render_stack_rows(body, state.reduced())
   } else {
     unsupported_comment("smallmatrix")
   }
@@ -306,8 +308,16 @@ fn render_table_hline(row_lines : Array[Bool]) -> String {
 }
 
 ///|
-fn render_mat_row(row : Array[@katex.ParseNode], state : RenderState) -> String {
-  row.map(cell => render_cell(cell, state)).join(", ")
+/// Ordinary matrix/cases cells inherit Typst layout. The parser's outer
+/// text style still selects the TeX `\mathchoice` branch; a style command
+/// written *inside* the cell is rendered normally.
+fn render_native_cell(cell : @katex.ParseNode, state : RenderState) -> String {
+  let child = state.reduced()
+  match cell {
+    Styling(style=TextStyle, reset_font=true, body=[group], ..) =>
+      render_cell(group, { ..child, tex: TextStyle, })
+    _ => render_cell(cell, child)
+  }
 }
 
 ///|
@@ -328,7 +338,7 @@ fn render_cases(
   state : RenderState,
 ) -> String {
   let items = body.map(row => {
-    row.map(cell => render_cell(cell, state)).join(" & ")
+    row.map(cell => render_native_cell(cell, state)).join(" & ")
   })
   "cases(\{items.join(", ")})"
 }

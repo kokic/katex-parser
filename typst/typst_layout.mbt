@@ -2,29 +2,44 @@
 fn render_styling(
   body : Array[@katex.ParseNode],
   style : @katex.StyleLevel,
+  parent : RenderState,
 ) -> String {
-  let state = { style, }
+  let content = render_nodes(body, RenderState::at(style))
+  guard style != parent.typst && content != "" else { return content }
+  let name = match style {
+    DisplayStyle => "display"
+    TextStyle => "inline"
+    ScriptStyle => "script"
+    ScriptScriptStyle => "sscript"
+  }
+  math_fn(name, content)
+}
+
+///|
+fn script_style(style : @katex.StyleLevel) -> @katex.StyleLevel {
   match style {
-    // Text style is the default; only a `\tfrac`-style fraction needs an
-    // explicit `inline(...)`.
-    TextStyle if body is [GenFrac(..)] =>
-      math_fn("inline", render_nodes(body, state))
-    TextStyle => render_nodes(body, state)
-    _ => render_style_wrapper(style, wrap_arg(render_nodes(body, state)))
+    DisplayStyle | TextStyle => ScriptStyle
+    ScriptStyle | ScriptScriptStyle => ScriptScriptStyle
   }
 }
 
 ///|
-/// Wraps rendered content in the display/script-level Typst function; empty
-/// content renders as nothing rather than an empty call.
-fn render_style_wrapper(style : @katex.StyleLevel, content : String) -> String {
-  guard content != "" else { "" }
-  match style {
-    DisplayStyle => "display(\{content})"
-    ScriptStyle => "script(\{content})"
-    ScriptScriptStyle => "sscript(\{content})"
-    TextStyle => content
+fn RenderState::script(self : RenderState) -> RenderState {
+  { tex: script_style(self.tex), typst: script_style(self.typst), }
+}
+
+///|
+fn reduced_style(style : @katex.StyleLevel) -> @katex.StyleLevel {
+  if style is DisplayStyle {
+    TextStyle
+  } else {
+    script_style(style)
   }
+}
+
+///|
+fn RenderState::reduced(self : RenderState) -> RenderState {
+  { tex: reduced_style(self.tex), typst: reduced_style(self.typst), }
 }
 
 ///|
@@ -44,9 +59,7 @@ fn render_sup_sub(
   sub : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
-  let sup_mark = script_marks('^', sup, state)
-  let sub_mark = script_marks('_', sub, state)
-  guard base is Some(node) else { return "zws\{sup_mark}\{sub_mark}" }
+  guard base is Some(node) else { return with_scripts("zws", sup, sub, state) }
   match node {
     @katex.ParseNode::HorizBrace(label~, base=brace_base, ..) =>
       render_folded_brace(label, brace_base, sup, sub, state)
@@ -69,7 +82,16 @@ fn render_sup_sub(
     ) => render_sup_attach(node, sup, sub, state)
     @katex.ParseNode::OperatorName(limits=true, ..) =>
       render_sup_attach(node, sup, sub, state)
-    _ => "\{render_node(node, state)}\{sup_mark}\{sub_mark}"
+    _ => {
+      let base = render_node(node, state)
+      // A postfix script binds to the last atom of an infix fraction or
+      // flattened group. `attach` takes the whole base without visible parens.
+      if contains_script_separator(base) {
+        "attach(\{wrap_arg(base)}\{attach_arg("t", sup, state)}\{attach_arg("b", sub, state)})"
+      } else {
+        with_scripts(base, sup, sub, state)
+      }
+    }
   }
 }
 
@@ -83,7 +105,17 @@ fn render_sup_attach(
   sub : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
-  "limits(\{render_node(base, state)})\{script_marks('^', sup, state)}\{script_marks('_', sub, state)}"
+  with_scripts("limits(\{render_node(base, state)})", sup, sub, state)
+}
+
+///|
+fn with_scripts(
+  base : String,
+  sup : @katex.ParseNode?,
+  sub : @katex.ParseNode?,
+  state : RenderState,
+) -> String {
+  "\{base}\{script_marks('^', sup, state)}\{script_marks('_', sub, state)}"
 }
 
 ///|
@@ -94,7 +126,9 @@ fn script_marks(
   node : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
-  node.map_or("", node => "\{mark}\{wrap_script(render_node(node, state))}")
+  node.map_or("", node => {
+    "\{mark}\{wrap_script(render_node(node, state.script()))}"
+  })
 }
 
 ///|
@@ -148,7 +182,9 @@ fn attach_arg(
   node : @katex.ParseNode?,
   state : RenderState,
 ) -> String {
-  node.map_or("", node => ", \{name}: \{wrap_arg(render_node(node, state))}")
+  node.map_or("", node => {
+    ", \{name}: \{wrap_arg(render_node(node, state.script()))}"
+  })
 }
 
 ///|
@@ -161,11 +197,12 @@ fn render_folded_arrow(
   state : RenderState,
 ) -> String {
   let arrow = xarrow_name(label)
-  let body_str = wrap_arg(render_node(body, state))
+  let label_state = state.script()
+  let body_str = wrap_arg(render_node(body, label_state))
   // A present `sup` takes over the top label; the xarrow's own label moves
   // to `t:`.
   let t_str = sup.map_or(body_str, node => {
-    "\{wrap_arg(render_node(node, state))}, t: \{body_str}"
+    "\{wrap_arg(render_node(node, label_state))}, t: \{body_str}"
   })
   let b_str = {
     guard below is Some(_) else { attach_arg("b", sub, state) }
@@ -183,8 +220,9 @@ fn render_genfrac(
   right_delim : String?,
   state : RenderState,
 ) -> String {
-  let num = wrap_frac(render_node(numer, state))
-  let den = wrap_frac(render_node(denom, state))
+  let child = state.reduced()
+  let num = wrap_frac(render_node(numer, child))
+  let den = wrap_frac(render_node(denom, child))
   let frac = "\{num} / \{den}"
   if is_binomial_genfrac(has_bar_line, left_delim, right_delim) {
     "binom(\{num}, \{den})"

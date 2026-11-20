@@ -52,13 +52,19 @@ fn render_operatorname(
 /// without separators; the result is always embedded in a quoted string, so
 /// spaces are preserved verbatim.
 fn plain_text_of(nodes : Array[@katex.ParseNode]) -> String? {
-  let parts : Array[String] = nodes.filter_map(node => {
-    match node {
-      TextOrd(text~, ..) | MathOrd(text~, ..) | Spacing(text~, ..) =>
-        Some(@backend.resolve_symbol(text))
-      _ => None
-    }
-  })
-  guard parts.length() == nodes.length() else { None }
-  Some(parts.join(""))
+  let text = StringBuilder()
+  for node in nodes {
+    guard text_atom(node) is Some(part) else { return None }
+    text.write_string(part)
+  }
+  Some(text.to_string())
+}
+
+///|
+fn text_atom(node : @katex.ParseNode) -> String? {
+  match node {
+    TextOrd(text~, ..) | MathOrd(text~, ..) | Spacing(text~, ..) =>
+      Some(@backend.resolve_symbol(text))
+    _ => None
+  }
 }

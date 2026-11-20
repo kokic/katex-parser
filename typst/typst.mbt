@@ -2,16 +2,29 @@
 /// Renders parsed KaTeX nodes as Typst math source.
 ///
 /// The output is a fragment of Typst math-mode syntax (the content that would
-/// appear between `$...$`), suitable for embedding in a Typst document.
+/// appear between `$...$`). Embed it in a block equation (`$ … $`) when
+/// the nodes were parsed with `display_mode=true`, otherwise in an inline one.
 /// Approximations are allowed and documented in the emission sites; no layout
 /// or measurement is performed here.
 pub fn render(nodes : Array[@katex.ParseNode]) -> String {
-  render_nodes(nodes, { style: @katex.StyleLevel::TextStyle, })
+  match nodes {
+    // The parser marks the equation's own style with a font reset, unlike
+    // an explicit `\displaystyle` or `\dfrac` in an inline equation.
+    [Styling(mode=Math, style=DisplayStyle, reset_font=true, body~)] =>
+      render_nodes(body, RenderState::at(DisplayStyle))
+    _ => render_nodes(nodes, RenderState::at(TextStyle))
+  }
 }
 
 ///|
 priv struct RenderState {
-  style : @katex.StyleLevel
+  tex : @katex.StyleLevel
+  typst : @katex.StyleLevel
+}
+
+///|
+fn RenderState::at(style : @katex.StyleLevel) -> RenderState {
+  { tex: style, typst: style, }
 }
 
 ///|
@@ -147,12 +160,12 @@ fn render_node(node : @katex.ParseNode, state : RenderState) -> String {
     Spacing(text~, ..) => render_spacing(text)
     Size(value~, ..) => render_measurement(value)
     Url(url~, ..) => url
-    Styling(body~, style~, ..) => render_styling(body, style)
+    Styling(body~, style~, ..) => render_styling(body, style, state)
     Sqrt(body~, index~, ..) => render_sqrt(index, body, state)
     Infix(..) => unsupported_comment("\\over/\\atop infix")
     GenFrac(numer~, denom~, has_bar_line~, left_delim~, right_delim~, ..) =>
       render_genfrac(numer, denom, has_bar_line, left_delim, right_delim, state)
-    Text(body~, font~, ..) => render_text(body, font, state)
+    Text(body~, font~, ..) => render_text(body, font)
     Font(font~, body~, ..) => render_font(font, body, state)
     MClass(body~, ..) => render_nodes(body, state)
     Op(content~, ..) => render_op(content, state)
@@ -179,7 +192,7 @@ fn render_node(node : @katex.ParseNode, state : RenderState) -> String {
           text,
           script,
           scriptscript,
-          state.style,
+          state.tex,
         ),
         state,
       )
@@ -224,7 +237,7 @@ fn render_sqrt(
   guard index is Some(index) else {
     return math_fn("sqrt", render_node(body, state))
   }
-  "root(\{wrap_arg(render_node(index, state))}, \{wrap_arg(render_node(body, state))})"
+  "root(\{wrap_arg(render_node(index, RenderState::at(ScriptScriptStyle)))}, \{wrap_arg(render_node(body, state))})"
 }
 
 ///|
